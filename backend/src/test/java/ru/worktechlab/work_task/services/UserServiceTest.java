@@ -12,7 +12,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import ru.worktechlab.work_task.TestFixtures;
 import ru.worktechlab.work_task.config.params.MailParams;
 import ru.worktechlab.work_task.dto.users.RegisterDTO;
+import ru.worktechlab.work_task.dto.users.UpdateProfileRequest;
+import ru.worktechlab.work_task.dto.users.UserDataDto;
 import ru.worktechlab.work_task.dto.users.UserShortDataDto;
+import ru.worktechlab.work_task.exceptions.BadRequestException;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.mappers.UserMapper;
 import ru.worktechlab.work_task.models.enums.Gender;
@@ -174,6 +177,39 @@ class UserServiceTest {
         var response = userService.getGenderValues();
 
         assertThat(response.getValues()).hasSize(Gender.values().length);
+    }
+
+    @Test
+    void updateProfile_shouldSetUsernameAndDisplayName() throws Exception {
+        when(userContext.getUserData()).thenReturn(contextData);
+        when(userRepository.findActiveUserByIdForUpdate("user-1")).thenReturn(Optional.of(testUser));
+        when(userRepository.existsByUsernameAndIdNot("ivanov", "user-1")).thenReturn(false);
+        when(userRepository.findActiveUserById("user-1")).thenReturn(Optional.of(testUser));
+        when(userMapper.toUserFullData(testUser)).thenReturn(mock(UserDataDto.class));
+
+        UpdateProfileRequest req = new UpdateProfileRequest();
+        req.setFirstName("Иван");
+        req.setDisplayName("Иван Иванов");
+        req.setUsername("ivanov");
+
+        userService.updateProfile(req);
+
+        assertThat(testUser.getUsername()).isEqualTo("ivanov");
+        assertThat(testUser.getDisplayName()).isEqualTo("Иван Иванов");
+    }
+
+    @Test
+    void updateProfile_shouldThrow_whenUsernameTaken() throws Exception {
+        when(userContext.getUserData()).thenReturn(contextData);
+        when(userRepository.findActiveUserByIdForUpdate("user-1")).thenReturn(Optional.of(testUser));
+        when(userRepository.existsByUsernameAndIdNot("ivanov", "user-1")).thenReturn(true);
+
+        UpdateProfileRequest req = new UpdateProfileRequest();
+        req.setFirstName("Иван");
+        req.setUsername("ivanov");
+
+        assertThatThrownBy(() -> userService.updateProfile(req))
+                .isInstanceOf(BadRequestException.class);
     }
 
     private RegisterDTO buildRegisterDto() {

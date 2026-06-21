@@ -21,6 +21,12 @@ public class UserDataDto {
     @Schema(description = "ИД последнего проекта")
     private String lastProjectId;
 
+    @Schema(description = "Username (уникальный)", example = "ivanov")
+    private String username;
+
+    @Schema(description = "Отображаемое имя", example = "Иван Иванов")
+    private String displayName;
+
     @Schema(description = "Фамилия пользователя", example = "Пин")
     @NotBlank(message = "Фамилия не может быть пустым")
     private String lastName;

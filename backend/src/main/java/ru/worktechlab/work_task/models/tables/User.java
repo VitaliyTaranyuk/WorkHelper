@@ -53,6 +53,12 @@ public class User {
     @Column(name = "last_project_id")
     private String lastProjectId;
 
+    @Column(name = "username", unique = true)
+    private String username;
+
+    @Column(name = "display_name")
+    private String displayName;
+
     @Column
     private String confirmationToken;
 
@@ -135,5 +141,13 @@ public class User {
 
     public void setBirthDate(LocalDate birthDate) {
         this.birthDate = birthDate;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 }
