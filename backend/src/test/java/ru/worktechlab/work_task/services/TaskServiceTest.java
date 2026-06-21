@@ -115,7 +115,7 @@ class TaskServiceTest {
         UserAndProjectData data = new UserAndProjectData(project, creator);
 
         when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
-        when(sprintsService.findSprintByIdAndProject("sprint-1", project)).thenReturn(sprint);
+        when(sprintsService.resolveSprintForTask("sprint-1", project)).thenReturn(sprint);
         when(taskRepository.saveAndFlush(any(TaskModel.class))).thenReturn(task);
         when(taskMapper.toDo(any(TaskModel.class))).thenReturn(expectedDto);
 

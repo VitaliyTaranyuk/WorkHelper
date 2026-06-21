@@ -26,6 +26,7 @@
 
 | ID | Задача | Зависимости | Статус | Критерии завершения |
 |----|--------|-------------|--------|---------------------|
+| T-100 | E2E-отладка: прогон пользовательских сценариев на живом приложении, устранение багов | T-005 | COMPLETED | 8 багов исправлено (BUG-001..008), полный цикл проект→спринт→задача→коммент зелёный (17/17 E2E) |
 | T-101 | Добавить Integration Tests (с реальной БД) | T-005 | NOT_STARTED | Tests с `@SpringBootTest` + Testcontainers или CI Postgres |
 | T-102 | Настроить branch protection на `main` (требовать PR + CI) | T-003 | NOT_STARTED | Direct push в main заблокирован через GitHub Settings |
 | T-103 | Устранить TD-001: вынести credentials из репозитория | T-006 | NOT_STARTED | `application-local.yml` убран из git, добавлен в `.gitignore`, README описывает setup |

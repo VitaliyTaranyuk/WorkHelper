@@ -106,6 +106,21 @@ public class SprintsService {
         );
     }
 
+    /**
+     * Resolves the sprint a task should belong to. When the caller does not specify a
+     * sprint (sprintId is null/blank), the task falls back to the project's default
+     * "Backlog" sprint instead of failing — standard TMS behaviour.
+     */
+    @TransactionMandatory
+    public Sprint resolveSprintForTask(String sprintId,
+                                       Project project) throws NotFoundException {
+        if (sprintId == null || sprintId.isBlank())
+            return sprintsRepository.findDefaultSprintByProject(project).orElseThrow(
+                    () -> new NotFoundException(String.format("Для проекта %s не найден дефолтный спринт", project.getName()))
+            );
+        return findSprintByIdAndProject(sprintId, project);
+    }
+
     @TransactionRequired
     public SprintInfoDTO updateSprint(String sprintId,
                                       String projectId,

@@ -20,7 +20,14 @@
 
 | ID | Описание | Дата устранения | PR/Commit |
 |----|----------|-----------------|-----------|
-| — | — | — | — |
+| BUG-001 | `task_status_id_seq` рассинхрон после seed → невозможно создать проект (CRITICAL) | 2026-06-21 | `20250630-fix-task-status-sequence.xml` |
+| BUG-002 | `users_projects_id_seq` тот же рассинхрон → невозможно создать проект (CRITICAL) | 2026-06-21 | `20250630-fix-task-status-sequence.xml` |
+| BUG-003 | `SprintsRepository.hasActiveSprint` — сломанный native SQL → 500 при активации спринта (HIGH) | 2026-06-21 | SprintsRepository.java |
+| BUG-004 | Таблица `comment` без колонки тела → 500 при создании комментария (HIGH) | 2026-06-21 | `20250701-add-comment-body-column.xml` |
+| BUG-005 | `TaskService.getProjectTaskByUserGuid` передавал userId вместо lastProjectId → 404 (HIGH) | 2026-06-21 | TaskService.java |
+| BUG-006 | Задача без `sprintId` падала с 404 вместо фоллбэка в Backlog (MEDIUM) | 2026-06-21 | SprintsService.resolveSprintForTask |
+| BUG-007 | `createProject` возвращал пустые statuses/users (граф не подгружен) (MEDIUM) | 2026-06-21 | ProjectsService (EntityManager.refresh) |
+| BUG-008 | `update-status` с null статусом → 500 NPE вместо 400 (LOW) | 2026-06-21 | UpdateStatusRequestDTO @NotNull |
 
 ---
 

@@ -1,0 +1,27 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!--
+      FIX: the comment table (20250620-add-table-comment) was created without the
+      column that stores the comment body. The Comment entity maps a non-null field
+      to column "comment", so every insert failed with:
+        "column \"comment\" of relation \"comment\" does not exist".
+      Add the missing column. defaultValue keeps the NOT NULL constraint safe for
+      any pre-existing rows.
+    -->
+    <changeSet id="20250701-add-comment-body-column" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="comment" columnName="comment"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="comment">
+            <column name="comment" type="text" defaultValue="">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>
