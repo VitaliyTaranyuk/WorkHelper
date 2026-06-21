@@ -33,34 +33,4 @@ export const TASK_FILTER = {
     type: 'dropdown',
     value: [] as string[],
   },
-  frontend: {
-    label: 'Frontend',
-    id: 'frontend',
-    type: 'button',
-    value: false,
-  },
-  backend: {
-    label: 'Backend',
-    id: 'backend',
-    type: 'button',
-    value: false,
-  },
-  analytic: {
-    label: 'Аналитика',
-    id: 'analytic',
-    type: 'button',
-    value: false,
-  },
-  design: {
-    label: 'Дизайн',
-    id: 'design',
-    type: 'button',
-    value: false,
-  },
-  test: {
-    label: 'Тестирование',
-    id: 'test',
-    type: 'button',
-    value: false,
-  },
 } as const

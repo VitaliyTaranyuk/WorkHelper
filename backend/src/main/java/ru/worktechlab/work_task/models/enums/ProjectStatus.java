@@ -7,6 +7,7 @@ public enum ProjectStatus {
     DRAFT("Черновик"),
     ACTIVE("Активен"),
     FINISHED("Завершен"),
+    ARCHIVED("Архивирован"),
     DELETED("Удален"),
     ;
 

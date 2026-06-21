@@ -8,7 +8,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.worktechlab.work_task.TestFixtures;
+import org.mockito.ArgumentCaptor;
+import org.springframework.test.util.ReflectionTestUtils;
 import ru.worktechlab.work_task.dto.UserAndProjectData;
+import ru.worktechlab.work_task.dto.tasks.BulkTaskRequestDTO;
 import ru.worktechlab.work_task.dto.task_comment.CommentDto;
 import ru.worktechlab.work_task.dto.task_comment.CommentResponseDto;
 import ru.worktechlab.work_task.dto.task_link.LinkDto;
@@ -26,11 +29,13 @@ import ru.worktechlab.work_task.repositories.TaskRepository;
 import ru.worktechlab.work_task.utils.CheckerUtil;
 import ru.worktechlab.work_task.utils.UserContext;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -196,5 +201,102 @@ class TaskServiceTest {
         dto.setTaskType("STORY");
         dto.setEstimation(5);
         return dto;
+    }
+
+    // ===== Simplified Kanban: lifecycle / bulk / my-tasks =====
+
+    @Test
+    void archiveTask_shouldSetArchivedAndCompletedDate() throws Exception {
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(taskRepository.findTaskModelByIdAndProjectForUpdate("task-1", "project-1")).thenReturn(Optional.of(task));
+        when(taskRepository.findById("task-1")).thenReturn(Optional.of(task));
+        when(taskMapper.toDo(task)).thenReturn(mock(TaskDataDto.class));
+
+        taskService.archiveTask("project-1", "task-1");
+
+        assertThat(task.isArchived()).isTrue();
+        assertThat(task.getCompletedDate()).isNotNull();
+    }
+
+    @Test
+    void restoreTask_shouldClearArchivedFlag() throws Exception {
+        task.setArchived(true);
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(taskRepository.findTaskModelByIdAndProjectForUpdate("task-1", "project-1")).thenReturn(Optional.of(task));
+        when(taskRepository.findById("task-1")).thenReturn(Optional.of(task));
+        when(taskMapper.toDo(task)).thenReturn(mock(TaskDataDto.class));
+
+        taskService.restoreTask("project-1", "task-1");
+
+        assertThat(task.isArchived()).isFalse();
+    }
+
+    @Test
+    void deleteTask_shouldRemoveLinksAndTask() throws Exception {
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(taskRepository.findTaskModelByIdAndProject("task-1", project)).thenReturn(Optional.of(task));
+        when(linkRepository.findLinksByTaskId("task-1")).thenReturn(List.of());
+
+        taskService.deleteTask("project-1", "task-1");
+
+        verify(taskRepository).delete(task);
+    }
+
+    @Test
+    void getMyTasks_shouldReturnOnlyCurrentUserNonArchivedTasks() throws Exception {
+        UserContext realCtx = new UserContext();
+        UserContext.UserContextData ctx = TestFixtures.contextData(realCtx, "user-1", "owner@test.com");
+        when(userContext.getUserData()).thenReturn(ctx);
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+
+        ReflectionTestUtils.setField(task, "assignee", creator); // creator.id == user-1
+        TaskModel othersTask = TestFixtures.task("task-2", creator, project, sprint, defaultStatus);
+        ReflectionTestUtils.setField(othersTask, "assignee", TestFixtures.user("user-2", "u2@test.com"));
+        TaskModel myArchived = TestFixtures.task("task-3", creator, project, sprint, defaultStatus);
+        ReflectionTestUtils.setField(myArchived, "assignee", creator);
+        myArchived.setArchived(true);
+        project.getTasks().addAll(List.of(task, othersTask, myArchived));
+
+        when(taskMapper.toDo(anyList())).thenReturn(List.of(mock(TaskDataDto.class)));
+
+        taskService.getMyTasks("project-1");
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<TaskModel>> captor = ArgumentCaptor.forClass(List.class);
+        verify(taskMapper).toDo(captor.capture());
+        assertThat(captor.getValue()).containsExactly(task);
+    }
+
+    @Test
+    void bulkMoveStatus_shouldMoveAllTasksToTargetStatus() throws Exception {
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        TaskStatus target = TestFixtures.status("IN_PROGRESS", project);
+        ReflectionTestUtils.setField(target, "id", 7L);
+        project.getStatuses().add(target);
+        when(taskRepository.findTaskModelByIdAndProject("task-1", project)).thenReturn(Optional.of(task));
+
+        BulkTaskRequestDTO dto = new BulkTaskRequestDTO();
+        dto.setProjectId("project-1");
+        dto.setTaskIds(List.of("task-1"));
+        dto.setStatusId(7L);
+
+        taskService.bulkMoveStatus(dto);
+
+        assertThat(task.getStatus()).isEqualTo(target);
+    }
+
+    @Test
+    void bulkMoveStatus_shouldThrow_whenStatusIdMissing() {
+        BulkTaskRequestDTO dto = new BulkTaskRequestDTO();
+        dto.setProjectId("project-1");
+        dto.setTaskIds(List.of("task-1"));
+
+        assertThatThrownBy(() -> taskService.bulkMoveStatus(dto))
+                .isInstanceOf(NotFoundException.class);
     }
 }

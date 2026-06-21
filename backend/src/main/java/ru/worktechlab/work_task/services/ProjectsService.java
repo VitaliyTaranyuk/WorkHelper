@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import ru.worktechlab.work_task.annotations.TransactionMandatory;
 import ru.worktechlab.work_task.annotations.TransactionRequired;
+import ru.worktechlab.work_task.dto.ApiResponse;
 import ru.worktechlab.work_task.dto.StringIdsDto;
 import ru.worktechlab.work_task.dto.UserAndProjectData;
 import ru.worktechlab.work_task.dto.projects.*;
@@ -57,7 +58,10 @@ public class ProjectsService {
         User user = userService.findActiveUserById(userId);
         if (CollectionUtils.isEmpty(user.getProjects()))
             return Collections.emptyList();
-        return projectMapper.toShortDataDto(user.getProjects());
+        List<Project> visible = user.getProjects().stream()
+                .filter(p -> p.getStatus() != ProjectStatus.DELETED)
+                .toList();
+        return projectMapper.toShortDataDto(visible);
     }
 
     @TransactionRequired
@@ -140,6 +144,26 @@ public class ProjectsService {
         projectRepository.flush();
         Project project = findProjectById(projectId);
         return projectMapper.toProjectDto(project);
+    }
+
+    @TransactionRequired
+    public ProjectDto archiveProject(String projectId) throws NotFoundException, BadRequestException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, true, false);
+        checkerUtil.checkProjectOwner(data.getProject(), data.getUser());
+        data.getProject().archive();
+        projectRepository.flush();
+        return projectMapper.toProjectDto(findProjectById(projectId));
+    }
+
+    @TransactionRequired
+    public ApiResponse deleteProject(String projectId) throws NotFoundException, BadRequestException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, true, false);
+        checkerUtil.checkProjectOwner(data.getProject(), data.getUser());
+        // Мягкое удаление: статус DELETED. Аддитивно, не ломает связанные задачи/спринты.
+        data.getProject().markDeleted();
+        projectRepository.flush();
+        log.info("Проект {} помечен удалённым пользователем {}", projectId, data.getUser().getId());
+        return new ApiResponse("Проект удалён");
     }
 
     private boolean hasProject(User user, String projectId) {

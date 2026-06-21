@@ -26,6 +26,19 @@
 
 ---
 
+## Последняя завершённая: Фаза 1.5 — упрощение модуля задач (Kanban)
+
+Решение пользователя: **medium**-чистка, **Backlog = колонка доски**, **только аддитивные миграции**.
+
+**Сделано (T-150…T-154):**
+- Task lifecycle: archive / restore / delete (+ поля `archived`, `completed_date`)
+- Массовые операции: bulk archive / delete / move-status / move-project
+- Backlog как дефолтная Kanban-колонка; архив/удаление проекта (ARCHIVED / soft-DELETED)
+- My Tasks endpoint; удалены 5 фейковых командных фильтров + фейк-юзеры
+- 2 аддитивные миграции; backend unit-тесты зелёные (+6 новых на lifecycle/bulk/my-tasks); frontend `tsc -b` зелёный; всё проверено вживую (REST + preview-браузер)
+
+Отложено в Tech Debt: TD-005…011 (удаление спринтов/comments/links/history, полная редукция фильтров, физическое удаление, env для API URL).
+
 ## Активная задача
 
 **T-101: Integration Tests** — NOT_STARTED

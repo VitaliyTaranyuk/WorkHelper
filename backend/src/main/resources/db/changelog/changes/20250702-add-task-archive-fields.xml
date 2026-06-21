@@ -1,0 +1,27 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- Additive: task lifecycle fields for the simplified Kanban module. No drops. -->
+    <changeSet id="20250702-add-task-archived" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="task_model" columnName="archived"/></not>
+        </preConditions>
+        <addColumn tableName="task_model">
+            <column name="archived" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="20250702-add-task-completed-date" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="task_model" columnName="completed_date"/></not>
+        </preConditions>
+        <addColumn tableName="task_model">
+            <column name="completed_date" type="timestamp"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

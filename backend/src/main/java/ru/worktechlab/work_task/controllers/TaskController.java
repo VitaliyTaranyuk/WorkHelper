@@ -19,6 +19,7 @@ import ru.worktechlab.work_task.dto.task_comment.UpdateCommentDto;
 import ru.worktechlab.work_task.dto.task_history.TaskHistoryResponseDto;
 import ru.worktechlab.work_task.dto.task_link.LinkDto;
 import ru.worktechlab.work_task.dto.task_link.LinkResponseDto;
+import ru.worktechlab.work_task.dto.tasks.BulkTaskRequestDTO;
 import ru.worktechlab.work_task.dto.tasks.TaskDataDto;
 import ru.worktechlab.work_task.dto.tasks.TaskModelDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateStatusRequestDTO;
@@ -204,5 +205,66 @@ public class TaskController {
             @PathVariable("projectId") String projectId
     ) throws NotFoundException {
         return taskService.allTasksLinks(taskId, projectId);
+    }
+
+    // ===== Simplified Kanban: lifecycle, bulk, my tasks =====
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @PutMapping("/{projectId}/{taskId}/archive")
+    @Operation(summary = "Архивировать задачу")
+    public TaskDataDto archiveTask(@PathVariable String projectId,
+                                   @PathVariable String taskId) throws NotFoundException {
+        return taskService.archiveTask(projectId, taskId);
+    }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @PutMapping("/{projectId}/{taskId}/restore")
+    @Operation(summary = "Восстановить задачу из архива")
+    public TaskDataDto restoreTask(@PathVariable String projectId,
+                                   @PathVariable String taskId) throws NotFoundException {
+        return taskService.restoreTask(projectId, taskId);
+    }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @DeleteMapping("/{projectId}/{taskId}")
+    @Operation(summary = "Удалить задачу")
+    public ApiResponse deleteTask(@PathVariable String projectId,
+                                  @PathVariable String taskId) throws NotFoundException {
+        return taskService.deleteTask(projectId, taskId);
+    }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @PostMapping("/bulk/archive")
+    @Operation(summary = "Массовое архивирование задач")
+    public ApiResponse bulkArchive(@Valid @RequestBody BulkTaskRequestDTO dto) throws NotFoundException {
+        return taskService.bulkArchive(dto);
+    }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @PostMapping("/bulk/delete")
+    @Operation(summary = "Массовое удаление задач")
+    public ApiResponse bulkDelete(@Valid @RequestBody BulkTaskRequestDTO dto) throws NotFoundException {
+        return taskService.bulkDelete(dto);
+    }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @PostMapping("/bulk/move-status")
+    @Operation(summary = "Массовое перемещение задач между колонками")
+    public ApiResponse bulkMoveStatus(@Valid @RequestBody BulkTaskRequestDTO dto) throws NotFoundException {
+        return taskService.bulkMoveStatus(dto);
+    }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @PostMapping("/bulk/move-project")
+    @Operation(summary = "Массовое перемещение задач между проектами")
+    public ApiResponse bulkMoveProject(@Valid @RequestBody BulkTaskRequestDTO dto) throws NotFoundException {
+        return taskService.bulkMoveProject(dto);
+    }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @GetMapping("/{projectId}/my")
+    @Operation(summary = "Мои задачи в проекте (фильтр My Tasks)")
+    public List<TaskDataDto> getMyTasks(@PathVariable String projectId) throws NotFoundException {
+        return taskService.getMyTasks(projectId);
     }
 }

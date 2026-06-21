@@ -70,6 +70,12 @@ public class TaskModel {
     @Column
     private String code;
 
+    @Column(nullable = false)
+    private boolean archived = false;
+
+    @Column(name = "completed_date")
+    private LocalDateTime completedDate;
+
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<Comment> comments = new ArrayList<>();
 
@@ -118,6 +124,26 @@ public class TaskModel {
     public void setStatus(TaskStatus newValue) {
         taskChangeDetector.add("Статус задачи", this.status.getCode(), newValue.getCode());
         this.status = newValue;
+    }
+
+    public void setArchived(boolean archived) {
+        this.archived = archived;
+    }
+
+    public void setCompletedDate(LocalDateTime completedDate) {
+        this.completedDate = completedDate;
+    }
+
+    public void touch() {
+        this.updateDate = LocalDateTime.now();
+    }
+
+    public void setProject(Project project) {
+        this.project = project;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
     }
 
     public TaskModel(String title,

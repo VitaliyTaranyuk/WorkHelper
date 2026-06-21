@@ -11,7 +11,6 @@ import type {
   UpdateDropdownFilterParams,
   UpdateFiltersParams,
 } from './useTaskFilter.type'
-import { STATIC_FILTER } from './constants'
 import { makeFilterAssignees } from './utils'
 
 export function useTaskFilter({
@@ -73,7 +72,6 @@ export function useTaskFilter({
   const filterFuncByFilterId = useMemo(
     (): FilterFuncByFilter => ({
       my: makeFilterAssignees([user!]),
-      ...STATIC_FILTER,
       creator: (task: ITaskCard) =>
         currentFilters.creator.value.includes(task.creator.id),
       assignee: (task: ITaskCard) =>

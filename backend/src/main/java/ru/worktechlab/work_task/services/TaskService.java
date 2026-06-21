@@ -17,6 +17,7 @@ import ru.worktechlab.work_task.dto.task_link.LinkDto;
 import ru.worktechlab.work_task.dto.task_link.LinkResponseDto;
 import ru.worktechlab.work_task.dto.tasks.TaskDataDto;
 import ru.worktechlab.work_task.dto.tasks.TaskModelDTO;
+import ru.worktechlab.work_task.dto.tasks.BulkTaskRequestDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateStatusRequestDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateTaskModelDTO;
 import ru.worktechlab.work_task.exceptions.DuplicateLinkException;
@@ -33,6 +34,7 @@ import ru.worktechlab.work_task.utils.CheckerUtil;
 import ru.worktechlab.work_task.utils.NormalizedLinkData;
 import ru.worktechlab.work_task.utils.UserContext;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -265,5 +267,134 @@ public class TaskService {
         TaskModel task = findTaskByIdAndProject(taskId, data.getProject());
         List<Link> links = linkRepository.findLinksByTaskId(task.getId());
         return linkMapper.convertToDto(links, task);
+    }
+
+    // ===== Simplified Kanban: task lifecycle (archive / restore / delete) =====
+
+    @TransactionRequired
+    public TaskDataDto archiveTask(String projectId, String taskId) throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        TaskModel task = findTaskByIdAndProjectForUpdate(taskId, data.getProject());
+        archive(task);
+        taskRepository.flush();
+        log.info("Задача {} архивирована пользователем {}", task.getCode(), data.getUser().getId());
+        return taskMapper.toDo(findTaskByIdOrThrow(task.getId()));
+    }
+
+    @TransactionRequired
+    public TaskDataDto restoreTask(String projectId, String taskId) throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        TaskModel task = findTaskByIdAndProjectForUpdate(taskId, data.getProject());
+        task.setArchived(false);
+        task.touch();
+        taskRepository.flush();
+        return taskMapper.toDo(findTaskByIdOrThrow(task.getId()));
+    }
+
+    @TransactionRequired
+    public ApiResponse deleteTask(String projectId, String taskId) throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        TaskModel task = findTaskByIdAndProject(taskId, data.getProject());
+        deleteInternal(task);
+        log.info("Задача {} удалена пользователем {}", task.getCode(), data.getUser().getId());
+        return new ApiResponse("Задача успешно удалена");
+    }
+
+    private void archive(TaskModel task) {
+        task.setArchived(true);
+        if (task.getCompletedDate() == null)
+            task.setCompletedDate(LocalDateTime.now());
+        task.touch();
+    }
+
+    private void deleteInternal(TaskModel task) {
+        List<Link> links = linkRepository.findLinksByTaskId(task.getId());
+        if (!links.isEmpty())
+            linkRepository.deleteAll(links);
+        taskRepository.delete(task); // комментарии удаляются каскадом (orphanRemoval)
+    }
+
+    // ===== Bulk operations =====
+
+    @TransactionRequired
+    public ApiResponse bulkArchive(BulkTaskRequestDTO dto) throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(dto.getProjectId(), false, false);
+        List<TaskModel> tasks = findTasksInProject(dto.getTaskIds(), data.getProject());
+        tasks.forEach(this::archive);
+        taskRepository.flush();
+        return new ApiResponse(String.format("Архивировано задач: %d", tasks.size()));
+    }
+
+    @TransactionRequired
+    public ApiResponse bulkDelete(BulkTaskRequestDTO dto) throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(dto.getProjectId(), false, false);
+        List<TaskModel> tasks = findTasksInProject(dto.getTaskIds(), data.getProject());
+        tasks.forEach(this::deleteInternal);
+        taskRepository.flush();
+        return new ApiResponse(String.format("Удалено задач: %d", tasks.size()));
+    }
+
+    @TransactionRequired
+    public ApiResponse bulkMoveStatus(BulkTaskRequestDTO dto) throws NotFoundException {
+        if (dto.getStatusId() == null)
+            throw new NotFoundException("Не указан целевой статус");
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(dto.getProjectId(), false, false);
+        TaskStatus target = findStatusInProject(data.getProject(), dto.getStatusId());
+        List<TaskModel> tasks = findTasksInProject(dto.getTaskIds(), data.getProject());
+        tasks.forEach(t -> {
+            t.setStatus(target);
+            t.touch();
+        });
+        taskRepository.flush();
+        return new ApiResponse(String.format("Перемещено задач в статус %s: %d", target.getCode(), tasks.size()));
+    }
+
+    @TransactionRequired
+    public ApiResponse bulkMoveProject(BulkTaskRequestDTO dto) throws NotFoundException {
+        if (dto.getTargetProjectId() == null)
+            throw new NotFoundException("Не указан целевой проект");
+        UserAndProjectData source = checkerUtil.findAndCheckProjectUserData(dto.getProjectId(), false, false);
+        UserAndProjectData target = checkerUtil.findAndCheckProjectUserData(dto.getTargetProjectId(), false, false);
+        Project targetProject = target.getProject();
+        TaskStatus defaultStatus = findDefaultStatus(targetProject);
+        Sprint defaultSprint = sprintsService.resolveSprintForTask(null, targetProject);
+        List<TaskModel> tasks = findTasksInProject(dto.getTaskIds(), source.getProject());
+        tasks.forEach(t -> {
+            t.setProject(targetProject);
+            t.setSprint(defaultSprint);
+            t.setStatus(defaultStatus);
+            t.setCode(getTaskCode(targetProject));
+            t.touch();
+        });
+        taskRepository.flush();
+        return new ApiResponse(String.format("Перенесено задач в проект %s: %d", targetProject.getName(), tasks.size()));
+    }
+
+    // ===== My Tasks =====
+
+    @TransactionRequired
+    public List<TaskDataDto> getMyTasks(String projectId) throws NotFoundException {
+        String userId = userContext.getUserData().getUserId();
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        List<TaskModel> myTasks = data.getProject().getTasks().stream()
+                .filter(t -> !t.isArchived())
+                .filter(t -> t.getAssignee() != null && userId.equals(t.getAssignee().getId()))
+                .toList();
+        return taskMapper.toDo(myTasks);
+    }
+
+    private List<TaskModel> findTasksInProject(List<String> taskIds, Project project) throws NotFoundException {
+        List<TaskModel> tasks = new java.util.ArrayList<>();
+        for (String taskId : taskIds)
+            tasks.add(findTaskByIdAndProject(taskId, project));
+        return tasks;
+    }
+
+    private TaskStatus findStatusInProject(Project project, Long statusId) throws NotFoundException {
+        return project.getStatuses().stream()
+                .filter(s -> s.getId() == statusId)
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException(
+                        String.format("Статус %d не найден в проекте %s", statusId, project.getName())));
     }
 }
