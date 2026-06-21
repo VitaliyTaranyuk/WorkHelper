@@ -74,7 +74,7 @@ public class TaskService {
         User user = userService.findUserById(userId);
         if (user.getLastProjectId() == null)
             throw new NotFoundException("У вас нет посещенных проектов");
-        Project project = projectsService.findProjectById(userId);
+        Project project = projectsService.findProjectById(user.getLastProjectId());
         Map<String, List<TaskModel>> tasksByUserId = project.getTasks().stream()
                 .filter(task -> task.getAssignee() != null)
                 .collect(Collectors.groupingBy(task -> task.getAssignee().getId()));
@@ -103,7 +103,7 @@ public class TaskService {
         User assignee = null;
         if (taskDTO.getAssignee() != null)
             assignee = checkerUtil.findAndCheckActiveUser(taskDTO.getAssignee(), project);
-        Sprint sprint = sprintsService.findSprintByIdAndProject(taskDTO.getSprintId(), project);
+        Sprint sprint = sprintsService.resolveSprintForTask(taskDTO.getSprintId(), project);
         TaskStatus status = findDefaultStatus(project);
         return new TaskModel(taskDTO.getTitle(), taskDTO.getDescription(), taskDTO.getPriority(), user, assignee, project,
                 sprint, taskDTO.getTaskType(), taskDTO.getEstimation(), status, getTaskCode(project));

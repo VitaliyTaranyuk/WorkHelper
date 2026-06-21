@@ -1,0 +1,49 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!--
+      FIX: task_status seed data (20250620-add-data) inserted rows with explicit ids (1..5).
+      PostgreSQL does NOT advance a bigserial/identity sequence on explicit inserts, so
+      task_status_id_seq stayed at 1. The next project creation requested nextval() == 1,
+      colliding with the seed row -> "duplicate key value violates unique constraint task_status_pkey".
+      We resynchronize the sequence to MAX(id) so new task statuses get fresh ids.
+    -->
+    <changeSet id="20250630-fix-task-status-sequence" author="claude" dbms="postgresql">
+        <sql>
+            SELECT setval(
+                pg_get_serial_sequence('task_status', 'id'),
+                (SELECT COALESCE(MAX(id), 1) FROM task_status)
+            );
+        </sql>
+        <rollback/>
+    </changeSet>
+
+    <!--
+      Same desync affects users_projects (seed inserted ids 1,2 explicitly).
+      Resynchronize every bigserial-backed sequence to MAX(id) defensively, so any
+      table seeded with literal ids (now or in future) cannot collide on insert.
+      The 3-arg setval form sets is_called correctly for empty tables (next id = 1).
+    -->
+    <changeSet id="20250630-resync-all-serial-sequences" author="claude" dbms="postgresql">
+        <sql splitStatements="false">
+            DO $$
+            DECLARE
+                t   text;
+                seq text;
+            BEGIN
+                FOREACH t IN ARRAY ARRAY['users_projects','user_role','refresh_token','task_history','task_status'] LOOP
+                    seq := pg_get_serial_sequence(t, 'id');
+                    IF seq IS NOT NULL THEN
+                        EXECUTE format(
+                            'SELECT setval(%L, (SELECT COALESCE(MAX(id), 1) FROM %I), (SELECT MAX(id) IS NOT NULL FROM %I))',
+                            seq, t, t);
+                    END IF;
+                END LOOP;
+            END $$;
+        </sql>
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>

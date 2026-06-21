@@ -1,5 +1,7 @@
 package ru.worktechlab.work_task.services;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -45,6 +47,9 @@ public class ProjectsService {
     private final TaskMapper taskMapper;
     private final RoleService roleService;
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     @TransactionRequired
     public List<ShortProjectDataDto> getAllUserProjects() {
         log.debug("Вывод всех проектов пользователя");
@@ -86,6 +91,10 @@ public class ProjectsService {
         createDefaultStatuses(project);
         createDefaultSprint(user, project);
         usersProjectsRepository.saveAndFlush(new UsersProject(user, project));
+        // Default statuses, sprint and membership were persisted through their own
+        // repositories, so the managed `project` instance still holds empty collections.
+        // Refresh it from the DB so the returned DTO contains the full graph (statuses, users).
+        entityManager.refresh(project);
         return projectMapper.toProjectDto(project);
     }
 

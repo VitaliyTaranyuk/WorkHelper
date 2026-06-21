@@ -25,5 +25,6 @@ public class UpdateStatusRequestDTO {
     private String id;
 
     @Schema(description = "ИД статуса задачи", example = "123")
+    @NotNull(message = "Поле STATUS не может быть пустым")
     private Long status;
 }

@@ -30,7 +30,11 @@
 
 **T-101: Integration Tests** — NOT_STARTED
 
-Следующий шаг: добавить `@SpringBootTest`-тесты с Testcontainers для проверки реального взаимодействия с БД.
+Следующий шаг: добавить `@SpringBootTest`-тесты с Testcontainers. Особенно важно после T-100 — нужны интеграционные тесты на: создание 2+ проектов (sequence), активацию спринта, создание комментария, фоллбэк задачи в Backlog. Эти баги Unit-тесты не ловили.
+
+## Последняя завершённая: T-100 (E2E-отладка)
+
+Прогнаны живые пользовательские сценарии (PowerShell + REST к localhost:8080, реальная БД на VPS). Найдено и исправлено **8 багов** (см. TECH_DEBT BUG-001..008), 2 из них CRITICAL (полностью блокировали создание проектов). Итог: полный цикл register→login→project→sprint→activate→task→comment→status→history — **17/17 зелёных**. Ветка `fix/e2e-stabilization`.
 
 ---
 

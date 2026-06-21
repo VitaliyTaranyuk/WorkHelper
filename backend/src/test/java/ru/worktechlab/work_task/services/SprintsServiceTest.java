@@ -125,6 +125,36 @@ class SprintsServiceTest {
     }
 
     @Test
+    void resolveSprintForTask_shouldReturnDefaultBacklog_whenSprintIdIsNull() throws Exception {
+        Sprint backlog = TestFixtures.defaultSprint("backlog-1", project, owner);
+        when(sprintsRepository.findDefaultSprintByProject(project)).thenReturn(Optional.of(backlog));
+
+        Sprint result = sprintsService.resolveSprintForTask(null, project);
+
+        assertThat(result).isEqualTo(backlog);
+        verify(sprintsRepository, never()).findSprintByIdAndProject(any(), any());
+    }
+
+    @Test
+    void resolveSprintForTask_shouldReturnSpecifiedSprint_whenSprintIdProvided() throws Exception {
+        when(sprintsRepository.findSprintByIdAndProject("sprint-1", project)).thenReturn(Optional.of(sprint));
+
+        Sprint result = sprintsService.resolveSprintForTask("sprint-1", project);
+
+        assertThat(result).isEqualTo(sprint);
+        verify(sprintsRepository, never()).findDefaultSprintByProject(any());
+    }
+
+    @Test
+    void resolveSprintForTask_shouldThrowNotFoundException_whenNoDefaultSprintExists() throws Exception {
+        when(sprintsRepository.findDefaultSprintByProject(project)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> sprintsService.resolveSprintForTask("  ", project))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining(project.getName());
+    }
+
+    @Test
     void getActiveSprint_shouldThrowNotFoundException_whenNoActiveSprint() throws Exception {
         UserAndProjectData data = new UserAndProjectData(project, owner);
 
