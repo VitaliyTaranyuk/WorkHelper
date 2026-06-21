@@ -1,0 +1,98 @@
+# PROJECT_CHECKPOINT.md
+
+> Текущее состояние проекта WorkHelper.
+> Обновлять после каждой завершённой задачи.
+> **Последнее обновление:** 2026-06-21
+
+---
+
+## Текущий прогресс
+
+**Фаза:** 0 (Инициализация) — ЗАВЕРШЕНА  
+**Следующая фаза:** 1 (Качество и надёжность)
+
+---
+
+## Завершённые задачи (COMPLETED)
+
+| ID | Задача | Коммит/PR |
+|----|--------|-----------|
+| T-001 | Загрузить файлы в GitHub | Push 574 objects → `main` |
+| T-002 | CLAUDE.md + README.md | В репозитории |
+| T-003 | CI/CD GitHub Actions | `.github/workflows/backend-ci.yml`, `frontend-ci.yml` |
+| T-004 | Настройка БД (PostgreSQL VPS + Liquibase) | `application-local.yml`, `application.yml` |
+| T-005 | Unit Tests (37 тестов, 100% green) | commit `ec0dda3` |
+| T-006 | Структура `.ai/` с правилами проекта | Текущий коммит |
+
+---
+
+## Активная задача
+
+**T-101: Integration Tests** — NOT_STARTED
+
+Следующий шаг: добавить `@SpringBootTest`-тесты с Testcontainers для проверки реального взаимодействия с БД.
+
+---
+
+## Оставшиеся задачи
+
+**Фаза 1 (приоритет):**
+- T-101: Integration Tests
+- T-102: Branch protection на `main`
+- T-103: Убрать credentials из репозитория (TD-001)
+- T-104: Статический анализ (Checkstyle/SpotBugs)
+- T-105: Расширить coverage до 80%+ (JaCoCo)
+
+**Фаза 2:** Frontend audit + тесты  
+**Фаза 3:** Production Readiness (observability, rate limiting, OWASP scan)
+
+---
+
+## Риски
+
+| Риск | Уровень | Митигация |
+|------|---------|-----------|
+| Credentials в `application-local.yml` (TD-001) | HIGH | T-103: вынести в `.gitignore` + env vars |
+| Нет branch protection — прямой push в `main` | MEDIUM | T-102 |
+| Нет Integration Tests — расхождение с реальной схемой | MEDIUM | T-101 |
+| CI не верифицирует Liquibase миграции | MEDIUM | T-101 + T-104 |
+
+---
+
+## Технический долг
+
+См. `.ai/TECH_DEBT.md`:
+- TD-001: Credentials в репозитории (HIGH)
+- TD-002: Нет Integration Tests (MEDIUM)
+- TD-003: Нет branch protection (MEDIUM)
+- TD-004: CI не проверяет Liquibase (MEDIUM)
+
+---
+
+## Последние изменения
+
+```
+ec0dda3  test: add unit test suite with 37 tests across 5 test classes
+edf8d09  (предыдущие коммиты — CI, docs, DB config, initial push)
+```
+
+---
+
+## Состояние репозитория
+
+- **Branch:** `main`
+- **Repo:** `https://github.com/VitaliyTaranyuk/WorkHelper`
+- **Backend build:** ✅ SUCCESSFUL
+- **Backend tests:** ✅ 37/37 PASSED
+- **Frontend build:** ✅ (CI проверяет lint + build)
+- **DB connection:** PostgreSQL на `91.211.249.37:32505` (vibe-db)
+
+---
+
+## Следующие шаги (в порядке приоритета)
+
+1. **T-102**: Включить branch protection через GitHub Settings → Branches
+2. **T-103**: Убрать `application-local.yml` из VCS (добавить в `.gitignore`, создать `.env.example`)
+3. **T-104**: Добавить Checkstyle в Gradle
+4. **T-101**: Integration Tests с Testcontainers
+5. **T-105**: JaCoCo coverage report в CI

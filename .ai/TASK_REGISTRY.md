@@ -1,0 +1,54 @@
+# TASK_REGISTRY.md
+
+> Реестр задач проекта WorkHelper.
+> Обновлять статус после каждого завершения задачи.
+
+---
+
+## Статусы: NOT_STARTED | IN_PROGRESS | COMPLETED | BLOCKED
+
+---
+
+## Фаза 0: Инициализация проекта
+
+| ID | Задача | Зависимости | Статус | Критерии завершения |
+|----|--------|-------------|--------|---------------------|
+| T-001 | Загрузить файлы проекта в GitHub-репозиторий | — | COMPLETED | Все файлы на `main` в `VitaliyTaranyuk/WorkHelper` |
+| T-002 | Создать CLAUDE.md и README.md | T-001 | COMPLETED | Файлы в репо, описывают проект и правила |
+| T-003 | Создать CI/CD (GitHub Actions) | T-001 | COMPLETED | `backend-ci.yml`, `frontend-ci.yml` в `.github/workflows/` |
+| T-004 | Настроить подключение к БД | T-001 | COMPLETED | `application-local.yml` с кредами, Liquibase enabled |
+| T-005 | Покрыть backend unit-тестами (80%+ критической логики) | T-004 | COMPLETED | 37 тестов, 0 ошибок, 5 классов: Auth/User/Sprints/Task/CheckerUtil |
+| T-006 | Создать `.ai/` структуру (PROJECT_RULES, CHECKPOINT, TASK_REGISTRY, TECH_DEBT, ARCHITECTURE) | T-005 | COMPLETED | Все 5 файлов созданы, закоммичены, правила перенесены из `rules.txt` |
+
+---
+
+## Фаза 1: Качество и надёжность
+
+| ID | Задача | Зависимости | Статус | Критерии завершения |
+|----|--------|-------------|--------|---------------------|
+| T-101 | Добавить Integration Tests (с реальной БД) | T-005 | NOT_STARTED | Tests с `@SpringBootTest` + Testcontainers или CI Postgres |
+| T-102 | Настроить branch protection на `main` (требовать PR + CI) | T-003 | NOT_STARTED | Direct push в main заблокирован через GitHub Settings |
+| T-103 | Устранить TD-001: вынести credentials из репозитория | T-006 | NOT_STARTED | `application-local.yml` убран из git, добавлен в `.gitignore`, README описывает setup |
+| T-104 | Добавить Checkstyle / SpotBugs в Gradle для статического анализа | T-005 | NOT_STARTED | `./gradlew check` включает статический анализ |
+| T-105 | Покрыть оставшиеся сервисы тестами (ProjectsService, NotificationService и др.) | T-005 | NOT_STARTED | Coverage ≥ 80% по JaCoCo |
+
+---
+
+## Фаза 2: Frontend
+
+| ID | Задача | Зависимости | Статус | Критерии завершения |
+|----|--------|-------------|--------|---------------------|
+| T-201 | Аудит frontend: что работает, что нет | T-001 | NOT_STARTED | Отчёт по состоянию компонентов |
+| T-202 | Добавить frontend unit-тесты (Vitest) | T-201 | NOT_STARTED | Тесты для хуков и критических компонентов |
+| T-203 | E2E тесты (Playwright) | T-202 | NOT_STARTED | Основные сценарии: логин, создание задачи, спринт |
+
+---
+
+## Фаза 3: Production Readiness
+
+| ID | Задача | Зависимости | Статус | Критерии завершения |
+|----|--------|-------------|--------|---------------------|
+| T-301 | Настроить observability (логи + метрики) | T-102 | NOT_STARTED | Spring Actuator + структурированные логи |
+| T-302 | Добавить rate limiting на API | T-102 | NOT_STARTED | Защита от DDoS/брутфорс |
+| T-303 | Dependency Security Scan (OWASP) в CI | T-003 | NOT_STARTED | `dependencyCheckAnalyze` в Gradle + CI step |
+| T-304 | Docker Compose для локальной разработки | T-103 | NOT_STARTED | `docker-compose.yml` поднимает весь стек |
