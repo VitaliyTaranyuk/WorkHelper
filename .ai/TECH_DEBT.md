@@ -28,6 +28,7 @@
 | BUG-006 | Задача без `sprintId` падала с 404 вместо фоллбэка в Backlog (MEDIUM) | 2026-06-21 | SprintsService.resolveSprintForTask |
 | BUG-007 | `createProject` возвращал пустые statuses/users (граф не подгружен) (MEDIUM) | 2026-06-21 | ProjectsService (EntityManager.refresh) |
 | BUG-008 | `update-status` с null статусом → 500 NPE вместо 400 (LOW) | 2026-06-21 | UpdateStatusRequestDTO @NotNull |
+| BUG-009 | `User.extendedPermissions` — `@OneToMany` без `mappedBy` → JPA искал несуществующую join-таблицу `users_extended_permissions` → 500 на `/users/profile`, ломая логин в UI (CRITICAL) | 2026-06-21 | User.java `mappedBy = "user"` |
 
 ---
 

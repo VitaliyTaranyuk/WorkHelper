@@ -59,7 +59,9 @@ public class User {
     @Column
     private LocalDateTime confirmedAt;
 
-    @OneToMany
+    // Связь one-to-many через FK extended_permission.user_id (владелец — ExtendedPermission.user).
+    // Без mappedBy JPA по умолчанию ищет несуществующую join-таблицу users_extended_permissions.
+    @OneToMany(mappedBy = "user")
     private final List<ExtendedPermission> extendedPermissions = new ArrayList<>();
 
     @ManyToMany(cascade = CascadeType.MERGE)
