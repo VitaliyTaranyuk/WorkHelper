@@ -1,3 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://91.211.249.37:32505/vibe-db
+    username: vibe
+    password: 'CKL6$U<gfAx15=a'
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+  liquibase:
+    enabled: true
+  cors:
+    allowed:
+      origins: "http://91.211.249.37:30080"
+      local: "http://localhost:5173"
+
 server:
   servlet:
     context-path:
+  port: 8080
+
+app:
+  mail:
+    enable: false
