@@ -53,6 +53,7 @@ class TaskServiceTest {
     @Mock private CommentMapper commentMapper;
     @Mock private LinkRepository linkRepository;
     @Mock private LinkMapper linkMapper;
+    @Mock private InAppNotificationService inAppNotificationService;
 
     @InjectMocks
     private TaskService taskService;

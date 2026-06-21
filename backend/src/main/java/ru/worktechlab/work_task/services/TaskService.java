@@ -55,6 +55,7 @@ public class TaskService {
     private final CommentMapper commentMapper;
     private final LinkRepository linkRepository;
     private final LinkMapper linkMapper;
+    private final InAppNotificationService inAppNotificationService;
 
     @TransactionRequired
     public TaskDataDto updateTask(String projectId,
@@ -209,6 +210,7 @@ public class TaskService {
         TaskModel task = findTaskByIdAndProject(dto.getTaskId(), data.getProject());
         Comment comment = convertToEntity(dto, data.getUser(), task);
         commentRepository.saveAndFlush(comment);
+        inAppNotificationService.createMentionNotifications(dto.getComment(), data.getUser(), task, comment.getId());
         return commentMapper.toDto(comment);
     }
 
