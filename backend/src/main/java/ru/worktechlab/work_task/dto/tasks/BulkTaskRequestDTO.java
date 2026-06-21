@@ -28,4 +28,7 @@ public class BulkTaskRequestDTO {
 
     @Schema(description = "ИД целевого проекта (для массового переноса)")
     private String targetProjectId;
+
+    @Schema(description = "ИД целевого спринта (для массового переноса между спринтами)")
+    private String targetSprintId;
 }

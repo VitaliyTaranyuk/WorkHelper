@@ -18,6 +18,7 @@ import ru.worktechlab.work_task.dto.task_link.LinkResponseDto;
 import ru.worktechlab.work_task.dto.tasks.TaskDataDto;
 import ru.worktechlab.work_task.dto.tasks.TaskModelDTO;
 import ru.worktechlab.work_task.dto.tasks.BulkTaskRequestDTO;
+import ru.worktechlab.work_task.dto.tasks.ReorderColumnDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateStatusRequestDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateTaskModelDTO;
 import ru.worktechlab.work_task.exceptions.DuplicateLinkException;
@@ -370,6 +371,38 @@ public class TaskService {
         });
         taskRepository.flush();
         return new ApiResponse(String.format("Перенесено задач в проект %s: %d", targetProject.getName(), tasks.size()));
+    }
+
+    @TransactionRequired
+    public ApiResponse bulkMoveSprint(BulkTaskRequestDTO dto) throws NotFoundException {
+        if (dto.getTargetSprintId() == null)
+            throw new NotFoundException("Не указан целевой спринт");
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(dto.getProjectId(), false, false);
+        Sprint sprint = sprintsService.findSprintByIdAndProject(dto.getTargetSprintId(), data.getProject());
+        List<TaskModel> tasks = findTasksInProject(dto.getTaskIds(), data.getProject());
+        tasks.forEach(task -> {
+            task.setSprint(sprint);
+            task.touch();
+        });
+        taskRepository.flush();
+        return new ApiResponse(String.format("Перемещено задач в спринт %s: %d", sprint.getName(), tasks.size()));
+    }
+
+    // ===== Board ordering (drag-and-drop within a column) =====
+
+    @TransactionRequired
+    public ApiResponse reorderColumn(String projectId, ReorderColumnDTO dto) throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        TaskStatus column = findStatusInProject(data.getProject(), dto.getStatusId());
+        int index = 0;
+        for (String taskId : dto.getTaskIds()) {
+            TaskModel task = findTaskByIdAndProject(taskId, data.getProject());
+            task.setStatus(column);
+            task.setPosition(index++);
+            task.touch();
+        }
+        taskRepository.flush();
+        return new ApiResponse("Порядок задач обновлён");
     }
 
     // ===== My Tasks =====

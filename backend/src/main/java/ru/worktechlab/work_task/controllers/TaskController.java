@@ -20,6 +20,7 @@ import ru.worktechlab.work_task.dto.task_history.TaskHistoryResponseDto;
 import ru.worktechlab.work_task.dto.task_link.LinkDto;
 import ru.worktechlab.work_task.dto.task_link.LinkResponseDto;
 import ru.worktechlab.work_task.dto.tasks.BulkTaskRequestDTO;
+import ru.worktechlab.work_task.dto.tasks.ReorderColumnDTO;
 import ru.worktechlab.work_task.dto.tasks.TaskDataDto;
 import ru.worktechlab.work_task.dto.tasks.TaskModelDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateStatusRequestDTO;
@@ -259,6 +260,21 @@ public class TaskController {
     @Operation(summary = "Массовое перемещение задач между проектами")
     public ApiResponse bulkMoveProject(@Valid @RequestBody BulkTaskRequestDTO dto) throws NotFoundException {
         return taskService.bulkMoveProject(dto);
+    }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @PostMapping("/bulk/move-sprint")
+    @Operation(summary = "Массовое перемещение задач между спринтами")
+    public ApiResponse bulkMoveSprint(@Valid @RequestBody BulkTaskRequestDTO dto) throws NotFoundException {
+        return taskService.bulkMoveSprint(dto);
+    }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @PutMapping("/{projectId}/reorder")
+    @Operation(summary = "Переупорядочить задачи в колонке (drag-and-drop)")
+    public ApiResponse reorderColumn(@PathVariable String projectId,
+                                     @Valid @RequestBody ReorderColumnDTO dto) throws NotFoundException {
+        return taskService.reorderColumn(projectId, dto);
     }
 
     @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
