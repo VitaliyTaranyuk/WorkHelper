@@ -1,3 +1,15 @@
+# CLAUDE.md — WorkHelper Project Entry Point
+
+> **AI-агент:** При старте каждой сессии загружать контекст в следующем порядке:
+> 1. `.ai/PROJECT_RULES.md` — полные инженерные правила проекта
+> 2. `.ai/PROJECT_CHECKPOINT.md` — текущий прогресс и активная задача
+> 3. `.ai/TASK_REGISTRY.md` — бэклог задач
+> 4. `git status && git log --oneline -5` — состояние репозитория
+>
+> Не дублировать правила в ответах. Ссылаться на `.ai/PROJECT_RULES.md`.
+
+---
+
 # SYSTEM MODE: PRODUCTION SOFTWARE ENGINEERING
 
 Ты работаешь как Principal Software Architect, Principal Software Engineer, Senior QA Engineer и Technical Product Lead.
