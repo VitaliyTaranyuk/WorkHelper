@@ -1,0 +1,36 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+      http://www.liquibase.org/xml/ns/dbchangelog
+      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <changeSet author="a1234 (generated)" id="1747312572093-6">
+        <createTable tableName="task_model">
+            <column name="id" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="assignee_id" type="VARCHAR(255)"/>
+            <column name="creation_date" type="datetime"/>
+            <column name="creator_id" type="VARCHAR(255)"/>
+            <column name="description" type="VARCHAR(4096)"/>
+            <column name="estimation" type="INT"/>
+            <column name="priority" type="VARCHAR(255)"/>
+            <column name="project_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sprint_id" type="VARCHAR(255)"/>
+            <column name="status_id" type="bigint"/>
+            <column name="task_type" type="VARCHAR(255)"/>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="update_date" type="datetime"/>
+            <column name="code" type="VARCHAR(255)"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="project_id" baseTableName="task_model" constraintName="task_model_projects_FK" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="project" validate="true"/>
+        <addForeignKeyConstraint baseColumnNames="sprint_id" baseTableName="task_model" constraintName="task_model_sprints_FK" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="sprint" validate="true"/>
+        <addForeignKeyConstraint baseColumnNames="assignee_id" baseTableName="task_model" constraintName="task_model_assignee_users_FK" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="users" validate="true"/>
+        <addForeignKeyConstraint baseColumnNames="creator_id" baseTableName="task_model" constraintName="task_model_creator_users_FK" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="users" validate="true"/>
+        <addForeignKeyConstraint baseColumnNames="status_id" baseTableName="task_model" constraintName="task_model_status_FK" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="task_status" validate="true"/>
+    </changeSet>
+</databaseChangeLog>

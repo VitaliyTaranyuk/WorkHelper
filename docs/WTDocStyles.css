@@ -1,0 +1,97 @@
+/* Общие стили для документа */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Стили для заголовков */
+h1, h2, h3, h4, h5, h6 {
+    color: #2c3e50;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    border-top: none !important;
+    border-bottom: none !important;
+    margin-left: 15px; /* Базовый отступ для всех */
+}
+
+/* Увеличиваем отступ для каждого последующего уровня */
+h2 { margin-left: 30px; }
+h3 { margin-left: 45px; }
+h4 { margin-left: 60px; }
+h5 { margin-left: 75px; }
+h6 { margin-left: 90px; }
+
+h1 {
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 0.3em;
+}
+
+h2 {
+    border-bottom: 1px solid #eaecef;
+    padding-bottom: 0.2em;
+}
+
+/* СТИЛИ ДЛЯ ТАБЛИЦ (Обычный формат) */
+
+/* Общие настройки для всех таблиц */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5em 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Легкая тень для объема */
+    font-size: 0.95em;
+}
+
+/* Заголовок таблицы */
+table thead {
+    background-color: #f8f9fa; /* Светло-серый фон для шапки */
+    border-bottom: 2px solid #ddd;
+}
+
+/* Ячейки заголовка */
+table th {
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* Ячейки тела таблицы */
+table td {
+    padding: 10px 15px;
+    border-bottom: 1px solid #eaecef; /* Разделительные линии между строками */
+}
+
+/* Подсветка строк при наведении */
+table tbody tr:hover {
+    background-color: #f5f7fa; /* Очень светлый голубой при наведении */
+}
+
+/* Чередование цветов строк (опционально, для улучшения читаемости) */
+table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+table tbody tr:nth-child(even):hover {
+    background-color: #f5f7fa;
+}
+
+/* Стили для блоков с кодом */
+pre {
+    background-color: #f5f7fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 1em;
+    overflow: auto;
+}
+
+code {
+    background-color: #f5f7fa;
+    padding: 0.1em 0.4em;
+    border-radius: 3px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}

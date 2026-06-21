@@ -1,0 +1,40 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+    <changeSet id="add-roles-20250604" author="mastanov-mv">
+        <sql>
+            insert into role
+            (id, is_active, name)
+            values ('57563a09-5b2d-4edd-acf0-d69b3ce57b9d',true,'ADMIN'),
+            ('67563a09-5b2d-4edd-acf0-d69b3ce57b9d',true,'PROJECT_OWNER'),
+            ('77563a09-5b2d-4edd-acf0-d69b3ce57b9d',true,'PROJECT_MEMBER'),
+            ('87563a09-5b2d-4edd-acf0-d69b3ce57b9d',true,'POWER_USER')
+        </sql>
+        <sql>
+            insert into users
+            (id, is_active, birth_date, email, first_name, gender, last_name, middle_name, password, phone, confirmed_at)
+            values ('17563a09-5b2d-4edd-acf0-d69b3ce57b9d',true,'2001-01-01','test1@mail.ru','Админ','MALE','Иванов','Иванович',
+            '$2a$10$KaVHluqzpnf5SZt5AQMwHu012fwB2DE803njWq9y19cddH3Qj8baW','89109999999','2025-01-01'),
+            ('27563a09-5b2d-4edd-acf0-d69b3ce57b9d',true,'2001-01-01','test2@mail.ru','Владелец проекта','MALE','Иванов','Иванович',
+            '$2a$10$KaVHluqzpnf5SZt5AQMwHu012fwB2DE803njWq9y19cddH3Qj8baW','89109999999','2025-01-01'),
+            ('37563a09-5b2d-4edd-acf0-d69b3ce57b9d',true,'2001-01-01','test3@mail.ru','Пользователь','MALE','Иванов','Иванович',
+            '$2a$10$KaVHluqzpnf5SZt5AQMwHu012fwB2DE803njWq9y19cddH3Qj8baW','89109999999','2025-01-01'),
+            ('47563a09-5b2d-4edd-acf0-d69b3ce57b9d',true,'2001-01-01','test4@mail.ru','Пользователь, доп.функц.','MALE','Иванов','Иванович',
+            '$2a$10$KaVHluqzpnf5SZt5AQMwHu012fwB2DE803njWq9y19cddH3Qj8baW','89109999999','2025-01-01'),
+            ('57563a09-5b2d-4edd-acf0-d69b3ce57b9d',true,'2001-01-01','test5@mail.ru','Пользователь1','MALE','Иванов','Иванович',
+            '$2a$10$KaVHluqzpnf5SZt5AQMwHu012fwB2DE803njWq9y19cddH3Qj8baW','89109999999','2025-01-01'),
+            ('67563a09-5b2d-4edd-acf0-d69b3ce57b9d',true,'2001-01-01','test6@mail.ru','Пользователь2','MALE','Иванов','Иванович',
+            '$2a$10$KaVHluqzpnf5SZt5AQMwHu012fwB2DE803njWq9y19cddH3Qj8baW','89109999999','2025-01-01')
+        </sql>
+        <sql>
+            insert into user_role
+            (id, role_id, user_id)
+            values (nextval('user_role_id_seq'),'57563a09-5b2d-4edd-acf0-d69b3ce57b9d','17563a09-5b2d-4edd-acf0-d69b3ce57b9d'),
+            (nextval('user_role_id_seq'),'67563a09-5b2d-4edd-acf0-d69b3ce57b9d','27563a09-5b2d-4edd-acf0-d69b3ce57b9d'),
+            (nextval('user_role_id_seq'),'77563a09-5b2d-4edd-acf0-d69b3ce57b9d','37563a09-5b2d-4edd-acf0-d69b3ce57b9d'),
+            (nextval('user_role_id_seq'),'87563a09-5b2d-4edd-acf0-d69b3ce57b9d','47563a09-5b2d-4edd-acf0-d69b3ce57b9d'),
+            (nextval('user_role_id_seq'),'57563a09-5b2d-4edd-acf0-d69b3ce57b9d','47563a09-5b2d-4edd-acf0-d69b3ce57b9d')
+        </sql>
+    </changeSet>
+</databaseChangeLog>

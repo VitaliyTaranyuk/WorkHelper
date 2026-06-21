@@ -1,0 +1,13 @@
+/* TODO: продумать подключение шрифтов, сделать тему для mui со шрифтами */
+/* TODO: выбрать нужные наборы шрифтов */
+:root {
+  font-family: Inter, sans-serif;
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1; /* fix for Chrome */
+}
+@supports (font-variation-settings: normal) {
+  :root {
+    font-family: InterVariable, sans-serif;
+  }
+}

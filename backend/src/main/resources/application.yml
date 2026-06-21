@@ -1,0 +1,45 @@
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:prod}
+  liquibase:
+    change-log: classpath:/db/changelog/db.changelog-master.xml
+    enabled: true
+  app:
+    jwtSecret: mySecretKey123912738aopsgjnspkmndfsopkvajoirjg94gf2opfng2moknm
+    jwtExpirationMs: ${EXPIRATIONS_MS:1800000}
+    refreshExpiration: ${REFRESH_EXPIRATIONS:86400000}
+  datasource:
+    url: ${DB_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  jpa:
+    show-sql: ${SHOW_SQL:false}
+    hibernate:
+      ddl-auto: update
+  cors:
+    allowed:
+      origins: ${ORIGIN_CORS:"http://91.211.249.37:30080"}
+      local: ${LOCAL_CORS:"http://localhost:3000"}
+
+app:
+  mail:
+    enable: ${ENABLE_EMAIL_SENDING:false}
+    login: ${EMAIL_LOGIN:email@mail.ru}
+    password: ${EMAIL_PASSWORD:mypassword}
+    host: ${EMAIL_HOST:smtp.mail.ru}
+    port: ${EMAIL_PORT:465}
+    has-proxy: ${HAS_PROXY:false}
+    proxy-host: ${PROXY_HOST:mailtest@mail.ru}
+    proxy-port: ${PROXY_PORT:23}
+    connect-timeout: ${EMAIL_CONNECT_TIMEOUT:100000}
+    read-timeout: ${EMAIL_READ_TIMEOUT:100000}
+    sending-url: ${SERVER_URL:http://localhost:8090}
+    protocol: ${EMAIL_PROTOCOL:STARTTLS}
+    from-email: ${EMAIL_SUBJECT:worktechtest@mail.ru}
+    prefix: ${TEMPLATE_PATH:"mail/"}
+
+server:
+  port: ${PORT:8080}
+
+logging:
+  levelly: TRACE

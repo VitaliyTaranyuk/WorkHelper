@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter"/>
+    <conversionRule conversionWord="wex"
+                    converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter"/>
+    <conversionRule conversionWord="wEx"
+                    converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter"/>
+
+    <springProperty name="consolePattern" source="logging.config.console"
+                    defaultValue="%clr(%d{HH:mm:ss.SSS}){faint} %clr(%5p) %clr(%X{rid}){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"/>
+    <springProperty name="filePattern" source="logging.config.file" defaultValue="%d %-5level %X{rid} %logger{0}: %msg%n"/>
+    <springProperty name="syslogPattern" source="logging.config.syslog" defaultValue="%msg%n"/>
+    <springProperty name="syslogHost" source="logging.syslog.host" defaultValue="localhost"/>
+    <springProperty name="fileDir" source="logging.file.dir" defaultValue="./logs"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <withJansi>true</withJansi>
+        <encoder>
+            <pattern>${consolePattern}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${fileDir}/wt.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${fileDir}/archived/wt.%d{yyyy-MM-dd}.%i.log.zip</fileNamePattern>
+            <maxHistory>50</maxHistory>
+            <maxFileSize>50MB</maxFileSize>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <charset>utf-8</charset>
+            <Pattern>${filePattern}</Pattern>
+        </encoder>
+    </appender>
+
+    <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <appender-ref ref="FILE"/>
+    </appender>
+
+    <appender name="SYSLOG" class="ch.qos.logback.classic.net.SyslogAppender">
+        <syslogHost>${syslogHost}</syslogHost>
+        <facility>AUTH</facility>
+        <suffixPattern>${filePattern}</suffixPattern>
+    </appender>
+
+    <!--for prod LOG everything at INFO level only in file -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="ASYNC"/>
+        </root>
+        <!--custom logger for SYSLOG -->
+        <logger name="SyslogEvent" level="INFO" additivity="false">
+            <appender-ref ref="SYSLOG"/>
+        </logger>
+    </springProfile>
+
+    <!--for local LOG everything at INFO level, but our code in DEBUG -->
+    <springProfile name="local">
+        <root level="INFO">
+            <appender-ref ref="ASYNC"/>
+            <appender-ref ref="STDOUT"/>
+        </root>
+        <!--our code in DEBUG -->
+        <logger name="ru.worktechlab.work_task" level="DEBUG" additivity="false">
+            <appender-ref ref="ASYNC"/>
+            <appender-ref ref="STDOUT"/>
+        </logger>
+    </springProfile>
+    <springProfile name="test">
+        <root level="INFO">
+            <appender-ref ref="STDOUT"/>
+        </root>
+        <logger name="ru.worktechlab.work_task" level="DEBUG" additivity="false">
+            <appender-ref ref="STDOUT"/>
+        </logger>
+    </springProfile>
+
+    <!-- https://logback.qos.ch/manual/configuration.html#shutdownHook and https://jira.qos.ch/browse/LOGBACK-1090 -->
+    <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook"/>
+
+    <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+        <resetJUL>true</resetJUL>
+    </contextListener>
+
+</configuration>

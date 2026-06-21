@@ -1,0 +1,65 @@
+import type { UserWithAvatar, UserWithEmail } from '@/entities/user/types'
+import type { TASK_FILTER } from './constants'
+import type { PropertyType } from '@/shared/typeUtils'
+
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH'
+
+export type TaskType = 'TASK' | 'BUG'
+
+export const TASK_PRIORITY_TUPPLE = ['LOW', 'MEDIUM', 'HIGH'] as const
+
+export const TASK_TYPE_TUPPLE = ['TASK', 'BUG'] as const
+
+export type ITaskCard = {
+  id: string
+  code: string
+  title: string
+  description?: string
+  priority: TaskPriority
+  taskType: TaskType
+  estimation?: number
+  assignee?: UserWithAvatar
+  creator: UserWithAvatar
+  createdAt: string
+  sprintId: string
+  status: TaskStatusShort
+}
+
+export type TaskStatus = {
+  id: number
+  priority: number
+  code: string
+  description?: string
+  viewed: boolean
+  projectId: string
+  defaultTaskStatus?: boolean
+}
+
+export type TaskDataFull = {
+  id: string
+  title: string
+
+  description?: string
+  priority: TaskPriority
+  assignee?: UserWithEmail
+  creator: UserWithEmail
+  createdAt: string
+  projectId: string
+  sprintId: string
+
+  taskType: TaskType
+  status: TaskStatusShort
+
+  estimation?: number
+  code: string
+}
+
+export type TaskStatusShort = {
+  id: number
+  code: string
+  description?: string
+}
+
+export type ITaskFilterObj = typeof TASK_FILTER
+export type IFilterKey = keyof ITaskFilterObj
+export type FilterType = PropertyType<ITaskFilterObj, IFilterKey>['type']

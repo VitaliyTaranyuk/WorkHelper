@@ -1,0 +1,99 @@
+name: Backend — Deploy to K3s
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - prod
+          - test-env
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      IMAGE_NAME: backend
+      IMAGE_TAG: build-${{ github.run_number }}
+      IMAGE_FILE: backend.tar
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout репозитория
+        uses: actions/checkout@v4
+
+      - name: Установка JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'corretto'
+          java-version: '21'
+
+      - name: Делаем gradlew исполняемым
+        run: chmod +x gradlew
+
+      - name: Сборка JAR-файла
+        run: ./gradlew build -x test
+
+      - name: Определяем версию
+        id: vars
+        run: |
+          echo "JAR_VERSION=$(ls build/libs/WorkTask-0.0.1-*.jar | grep -o '0.0.1-[a-f0-9]*' | head -n 1)" >> $GITHUB_ENV
+          echo "COMMIT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Копируем JAR в нужное имя для Docker
+        run: cp build/libs/WorkTask-${{ env.JAR_VERSION }}.jar app.jar
+
+      - name: Собираем Docker-образ с профилем
+        run: |
+          docker build \
+            --build-arg SPRING_PROFILES_ACTIVE=${{ github.event.inputs.environment }} \
+            -t $IMAGE_NAME:$IMAGE_TAG .
+
+      - name: Сохраняем Docker-образ в TAR
+        run: docker save $IMAGE_NAME:$IMAGE_TAG -o ../$IMAGE_FILE
+
+      - name: Копируем образ на сервер
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "backend.tar"
+          target: "/home/deployer/backend"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    env:
+      IMAGE_TAG: build-${{ github.run_number }}
+      ENV: "${{ github.event.inputs.environment }}"
+      MANIFEST_DIR: "/home/deployer/backend/k8s/${{ github.event.inputs.environment }}"
+      NAMESPACE: "${{ github.event.inputs.environment }}"
+
+    steps:
+      - name: Подключение по SSH и деплой
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /home/deployer/backend
+
+            k3s ctr -n k8s.io images import /home/deployer/backend/backend.tar
+
+            echo "Деплой в окружение: ${{ env.ENV }}"
+            echo "Директория для манифеста: ${{ env.MANIFEST_DIR }}"
+            cd ${{ env.MANIFEST_DIR }}
+
+            k3s kubectl set image deployment myapp myapp=backend:${{ env.IMAGE_TAG }} -n ${{ env.NAMESPACE }}
+            k3s kubectl rollout restart deployment myapp -n ${{ env.NAMESPACE }}
