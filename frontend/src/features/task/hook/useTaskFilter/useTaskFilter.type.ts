@@ -5,14 +5,7 @@ export type UpdateButtonFilterParams = {
   filterValue: { filterId: IFilterKey }
 }
 
-export type UpdateDropdownFilterParams = {
-  filterType: 'dropdown'
-  filterValue: { filterId: IFilterKey; value: string }
-}
-
-export type UpdateFiltersParams =
-  | UpdateButtonFilterParams
-  | UpdateDropdownFilterParams
+export type UpdateFiltersParams = UpdateButtonFilterParams
 
 export type TaskFilter = (task: ITaskCard) => boolean
 export type FilterFuncByFilter = Record<IFilterKey, TaskFilter>

@@ -14,23 +14,20 @@ export const PRIORITY_COLORS_BORDERS: Record<TaskPriority, string> = {
 
 export const ESTIMATION_MAX = 9999
 
-export const TASK_FILTER = {
+export type TaskFilterId = 'my'
+
+export interface TaskFilterDef {
+  label: string
+  id: TaskFilterId
+  type: 'button'
+  value: boolean
+}
+
+export const TASK_FILTER: Record<TaskFilterId, TaskFilterDef> = {
   my: {
     label: 'Мои задачи',
     id: 'my',
     type: 'button',
     value: false,
   },
-  assignee: {
-    label: 'Исполнитель',
-    id: 'assignee',
-    type: 'dropdown',
-    value: [] as string[],
-  },
-  creator: {
-    label: 'Создатель',
-    id: 'creator',
-    type: 'dropdown',
-    value: [] as string[],
-  },
-} as const
+}
