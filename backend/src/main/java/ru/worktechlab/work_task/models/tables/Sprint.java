@@ -30,6 +30,8 @@ public class Sprint {
     private boolean active;
     @Column
     private boolean defaultSprint;
+    @Column(nullable = false)
+    private boolean archived = false;
     @OneToOne
     private User creator;
     @OneToOne
@@ -79,5 +81,14 @@ public class Sprint {
     public void finish(User finisher) {
         this.finisher = finisher;
         this.finishedAt = LocalDate.now();
+    }
+
+    public void archive() {
+        this.archived = true;
+        this.active = false;
+    }
+
+    public void restore() {
+        this.archived = false;
     }
 }
