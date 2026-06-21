@@ -1,47 +1,39 @@
 import type { DropResult } from '@hello-pangea/dnd'
 import { useCallback } from 'react'
-import type { OnTaskStatusChange, StatusTasksMap } from './Board'
-import type { TaskStatus } from '@/entities/task/types'
+import type { OnReorder, StatusTasksMap } from './Board'
 
 type UseDragTaskProps = {
-  projectStatuses: TaskStatus[] | undefined
   tasksByStatus: StatusTasksMap
-  onTaskStatusChange: OnTaskStatusChange
+  onReorder: OnReorder
 }
 
-export function useDragTask({
-  projectStatuses,
-  tasksByStatus,
-  onTaskStatusChange,
-}: UseDragTaskProps) {
+export function useDragTask({ tasksByStatus, onReorder }: UseDragTaskProps) {
   const handleDragEnd = useCallback(
     async (result: DropResult) => {
-      if (!result.destination || !projectStatuses) return
+      if (!result.destination) return
 
       const sourceStatusId = Number(result.source.droppableId)
       const destStatusId = Number(result.destination.droppableId)
-      const sourceIndex = result.source.index
 
-      const sourceTasks = tasksByStatus.get(sourceStatusId) || []
-      const movedTask = sourceTasks[sourceIndex]
+      const sameColumn = sourceStatusId === destStatusId
+      if (sameColumn && result.source.index === result.destination.index) return
 
-      if (!movedTask || sourceStatusId === destStatusId) {
-        return
-      }
+      const sourceTasks = [...(tasksByStatus.get(sourceStatusId) || [])]
+      const [moved] = sourceTasks.splice(result.source.index, 1)
+      if (!moved) return
 
-      if (onTaskStatusChange) {
-        await onTaskStatusChange({
-          taskId: movedTask.id,
-          newStatus: projectStatuses.find(
-            (status) => status.id === destStatusId,
-          )!,
-          oldStatus: projectStatuses.find(
-            (status) => status.id === sourceStatusId,
-          )!,
-        })
-      }
+      const destTasks = sameColumn
+        ? sourceTasks
+        : [...(tasksByStatus.get(destStatusId) || [])]
+      destTasks.splice(result.destination.index, 0, moved)
+
+      // Reorder персистит и колонку (статус), и позицию карточки.
+      await onReorder({
+        statusId: destStatusId,
+        taskIds: destTasks.map((task) => task.id),
+      })
     },
-    [projectStatuses, tasksByStatus, onTaskStatusChange],
+    [tasksByStatus, onReorder],
   )
 
   return { handleDragEnd }

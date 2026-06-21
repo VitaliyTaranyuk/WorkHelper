@@ -92,6 +92,8 @@ export const API_ENDPOINT_PATH = {
 
     UPDATE_STATUS: () => `/tasks/update-status`,
 
+    REORDER: ({ projectId }: ProjectId) => `/tasks/${projectId}/reorder`,
+
     UPDATE_SPRINT: () => `/tasks/update-sprint`,
 
     GET_HISTORY: ({ projectId, taskId }: ProjectId & TaskId) =>

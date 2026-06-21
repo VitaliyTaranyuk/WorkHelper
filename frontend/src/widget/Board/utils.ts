@@ -27,6 +27,11 @@ export const getTasksByStatus = ({
     }
   })
 
+  // Сохранённый порядок карточек внутри колонки (drag-and-drop).
+  statusMap.forEach((statusTasks) => {
+    statusTasks.sort((a, b) => a.position - b.position)
+  })
+
   return statusMap
 }
 

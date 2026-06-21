@@ -3,7 +3,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { TaskCard } from '@/entities/task'
 import type { CompactEditFormTask } from '@/features/task/TaskForm/useTaskForm'
-import type { ITaskCard, TaskStatus } from '@/entities/task/types'
+import type { ITaskCard } from '@/entities/task/types'
 import type { NiceModalHandler } from '@ebay/nice-modal-react'
 import {
   BoardContainer,
@@ -18,14 +18,13 @@ import { getTasksByStatus } from './utils'
 export type BoardProps = {
   editTaskModal: NiceModalHandler<{ task: CompactEditFormTask }>
   tasks: ITaskCard[]
-  onTaskStatusChange: OnTaskStatusChange
+  onReorder: OnReorder
 }
 
 export type StatusTasksMap = Map<number, ITaskCard[]>
-export type OnTaskStatusChange = (params: {
-  taskId: string
-  newStatus: TaskStatus
-  oldStatus: TaskStatus
+export type OnReorder = (params: {
+  statusId: number
+  taskIds: string[]
 }) => Promise<void>
 
 export const Board = memo(BoardInner)
@@ -53,8 +52,7 @@ function BoardInner(props: BoardProps) {
   }, [activeProject?.statuses])
 
   const { handleDragEnd } = useDragTask({
-    onTaskStatusChange: props.onTaskStatusChange,
-    projectStatuses: activeProject?.statuses,
+    onReorder: props.onReorder,
     tasksByStatus,
   })
 
@@ -76,7 +74,9 @@ function BoardInner(props: BoardProps) {
                   {...provided.droppableProps}
                 >
                   <ColumnHeader>
-                    <ColumnTitle>{status.code}</ColumnTitle>
+                    <ColumnTitle>
+                      {status.code} ({statusTasks.length})
+                    </ColumnTitle>
                   </ColumnHeader>
                   <TaskList>
                     {statusTasks.map((task, idx) => {

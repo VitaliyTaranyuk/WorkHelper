@@ -30,6 +30,7 @@ export function mapTaskMinDTOToTaskCard(taskDTO: TaskDataDto): ITaskCard {
     createdAt: taskDTO.createdAt!,
     sprintId: taskDTO.sprintId!,
     status: taskDTO.status!,
+    position: (taskDTO as { position?: number }).position ?? 0,
   }
 }
 
