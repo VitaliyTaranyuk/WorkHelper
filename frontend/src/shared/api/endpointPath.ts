@@ -156,4 +156,11 @@ export const API_ENDPOINT_PATH = {
   ROLES: {
     GET_ALL: () => `/roles`,
   },
+
+  NOTIFICATIONS: {
+    LIST: () => `/notifications`,
+    UNREAD_COUNT: () => `/notifications/unread-count`,
+    MARK_READ: ({ id }: { id: string }) => `/notifications/${id}/read`,
+    MARK_ALL_READ: () => `/notifications/read-all`,
+  },
 } as const

@@ -1,5 +1,6 @@
 import * as admin from './adminApi'
 import * as auth from './authApi'
+import * as notification from './notificationsApi'
 import * as project from './projectsApi'
 import * as registration from './registrationApi'
 import * as role from './rolesApi'
@@ -11,6 +12,7 @@ import * as user from './usersApi'
 export const workTechApi = {
   admin,
   auth,
+  notification,
   project,
   registration,
   role,
