@@ -23,6 +23,7 @@ import {
   useDeleteStatus,
   useUpdateStatuses,
 } from '@/features/status/useStatusActions'
+import { useBoardEditModeStore } from '@/features/board/boardEditModeStore'
 
 export type BoardProps = {
   editTaskModal: NiceModalHandler<{ task: CompactEditFormTask }>
@@ -68,6 +69,7 @@ function BoardInner(props: BoardProps) {
   const createStatus = useCreateStatus()
   const deleteStatus = useDeleteStatus()
   const updateStatuses = useUpdateStatuses()
+  const editMode = useBoardEditModeStore((state) => state.editMode)
 
   const handleAddColumn = () => {
     if (!activeProject) return
@@ -130,14 +132,18 @@ function BoardInner(props: BoardProps) {
                   <ColumnHeader>
                     <ColumnTitle
                       onDoubleClick={() =>
-                        handleRenameColumn(status.id, status.code)
+                        editMode && handleRenameColumn(status.id, status.code)
                       }
-                      title="Двойной клик — переименовать"
+                      title={
+                        editMode
+                          ? 'Двойной клик — переименовать'
+                          : undefined
+                      }
                     >
                       {status.code}
                       {statusTasks.length > 0 ? ` (${statusTasks.length})` : ''}
                     </ColumnTitle>
-                    {!status.defaultTaskStatus && (
+                    {editMode && !status.defaultTaskStatus && (
                       <IconButton
                         size="small"
                         aria-label="Удалить колонку"
@@ -188,19 +194,21 @@ function BoardInner(props: BoardProps) {
             </Droppable>
           )
         })}
-        <Button
-          onClick={handleAddColumn}
-          startIcon={<AddIcon />}
-          sx={{
-            alignSelf: 'flex-start',
-            minWidth: 160,
-            height: 40,
-            textTransform: 'none',
-            flexShrink: 0,
-          }}
-        >
-          Добавить колонку
-        </Button>
+        {editMode && (
+          <Button
+            onClick={handleAddColumn}
+            startIcon={<AddIcon />}
+            sx={{
+              alignSelf: 'flex-start',
+              minWidth: 160,
+              height: 40,
+              textTransform: 'none',
+              flexShrink: 0,
+            }}
+          >
+            Добавить колонку
+          </Button>
+        )}
       </BoardContainer>
     </DragDropContext>
   )
