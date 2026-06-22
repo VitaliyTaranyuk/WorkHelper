@@ -1,0 +1,39 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- Additive: project change history (diff log). -->
+    <changeSet id="20250710-add-project-history" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="project_history"/></not>
+        </preConditions>
+        <createTable tableName="project_history">
+            <column name="id" type="varchar(255)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="project_id" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="change_type" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="old_value" type="varchar(1024)"/>
+            <column name="new_value" type="varchar(1024)"/>
+            <column name="user_id" type="varchar(255)"/>
+            <column name="created_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="project_history" baseColumnNames="project_id"
+                                 constraintName="fk_ph_project"
+                                 referencedTableName="project" referencedColumnNames="id"/>
+        <addForeignKeyConstraint baseTableName="project_history" baseColumnNames="user_id"
+                                 constraintName="fk_ph_user"
+                                 referencedTableName="users" referencedColumnNames="id"/>
+        <createIndex tableName="project_history" indexName="idx_ph_project">
+            <column name="project_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

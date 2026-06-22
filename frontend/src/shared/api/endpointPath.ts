@@ -59,6 +59,8 @@ export const API_ENDPOINT_PATH = {
 
     DELETE: ({ projectId }: ProjectId) => `/projects/${projectId}`,
 
+    HISTORY: ({ projectId }: ProjectId) => `/projects/${projectId}/history`,
+
     ADD_USERS: ({ projectId }: ProjectId) => `/projects/${projectId}/add-users`,
 
     REMOVE_USERS: ({ projectId }: ProjectId) =>

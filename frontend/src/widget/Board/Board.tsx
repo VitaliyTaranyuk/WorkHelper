@@ -16,6 +16,7 @@ import { useDragTask } from './useDragTask'
 import { getTasksByStatus } from './utils'
 import IconButton from '@mui/material/IconButton'
 import Button from '@mui/material/Button'
+import Stack from '@mui/material/Stack'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import AddIcon from '@mui/icons-material/Add'
 import {
@@ -24,6 +25,9 @@ import {
   useUpdateStatuses,
 } from '@/features/status/useStatusActions'
 import { useBoardEditModeStore } from '@/features/board/boardEditModeStore'
+import { useModal } from '@ebay/nice-modal-react'
+import { ProjectHistoryModal } from '@/widget/modal/project/ProjectHistoryModal'
+import HistoryIcon from '@mui/icons-material/History'
 
 export type BoardProps = {
   editTaskModal: NiceModalHandler<{ task: CompactEditFormTask }>
@@ -70,6 +74,7 @@ function BoardInner(props: BoardProps) {
   const deleteStatus = useDeleteStatus()
   const updateStatuses = useUpdateStatuses()
   const editMode = useBoardEditModeStore((state) => state.editMode)
+  const historyModal = useModal(ProjectHistoryModal)
 
   const handleAddColumn = () => {
     if (!activeProject) return
@@ -195,19 +200,22 @@ function BoardInner(props: BoardProps) {
           )
         })}
         {editMode && (
-          <Button
-            onClick={handleAddColumn}
-            startIcon={<AddIcon />}
-            sx={{
-              alignSelf: 'flex-start',
-              minWidth: 160,
-              height: 40,
-              textTransform: 'none',
-              flexShrink: 0,
-            }}
-          >
-            Добавить колонку
-          </Button>
+          <Stack gap={1} sx={{ flexShrink: 0 }}>
+            <Button
+              onClick={handleAddColumn}
+              startIcon={<AddIcon />}
+              sx={{ minWidth: 160, height: 40, textTransform: 'none' }}
+            >
+              Добавить колонку
+            </Button>
+            <Button
+              onClick={() => historyModal.show({ projectId: activeProject.id })}
+              startIcon={<HistoryIcon />}
+              sx={{ minWidth: 160, height: 40, textTransform: 'none' }}
+            >
+              История изменений
+            </Button>
+          </Stack>
         )}
       </BoardContainer>
     </DragDropContext>

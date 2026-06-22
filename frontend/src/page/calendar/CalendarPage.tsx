@@ -42,8 +42,19 @@ export function CalendarPage({ projectId }: Props) {
   const valid = title.trim().length > 0 && startAt.length > 0
 
   const grouped = useMemo(() => {
+    // По дате/времени: ближайшие предстоящие встречи — вверху, прошедшие — ниже.
+    const now = Date.now()
+    const list = [...(meetings ?? [])]
+    const upcoming = list
+      .filter((m) => new Date(m.startAt).getTime() >= now)
+      .sort((a, b) => +new Date(a.startAt) - +new Date(b.startAt))
+    const past = list
+      .filter((m) => new Date(m.startAt).getTime() < now)
+      .sort((a, b) => +new Date(b.startAt) - +new Date(a.startAt))
+    const ordered = [...upcoming, ...past]
+
     const map = new Map<string, typeof meetings>()
-    for (const m of meetings ?? []) {
+    for (const m of ordered) {
       const day = new Date(m.startAt).toLocaleDateString('ru-RU')
       if (!map.has(day)) map.set(day, [])
       map.get(day)!.push(m)

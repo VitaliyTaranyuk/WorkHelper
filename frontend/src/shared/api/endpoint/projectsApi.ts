@@ -38,6 +38,29 @@ export function createProject({
   })
 }
 
+export type ProjectHistoryDto = {
+  changeType: string
+  oldValue?: string | null
+  newValue?: string | null
+  userName?: string | null
+  username?: string | null
+  createdAt: string
+}
+
+export function getProjectHistory({
+  projectId,
+  otherParams = {},
+}: {
+  projectId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<ProjectHistoryDto[]>({
+    method: 'GET',
+    url: API_ENDPOINT_PATH.PROJECTS.HISTORY({ projectId }),
+    ...otherParams,
+  })
+}
+
 export function archiveProject({
   projectId,
   otherParams = {},

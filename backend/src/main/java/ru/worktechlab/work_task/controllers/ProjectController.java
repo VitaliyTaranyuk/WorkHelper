@@ -12,6 +12,8 @@ import ru.worktechlab.work_task.dto.StringIdsDto;
 import ru.worktechlab.work_task.dto.projects.*;
 import ru.worktechlab.work_task.exceptions.BadRequestException;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
+import ru.worktechlab.work_task.dto.history.ProjectHistoryDto;
+import ru.worktechlab.work_task.services.ProjectHistoryService;
 import ru.worktechlab.work_task.services.ProjectsService;
 
 import java.util.List;
@@ -25,6 +27,7 @@ import static ru.worktechlab.work_task.models.enums.Roles.Fields.*;
 public class ProjectController {
 
     private final ProjectsService projectsService;
+    private final ProjectHistoryService projectHistoryService;
 
     @RolesAllowed({ADMIN, PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
     @GetMapping("/for-user")
@@ -145,5 +148,14 @@ public class ProjectController {
             @PathVariable String projectId
     ) throws NotFoundException, BadRequestException {
         return projectsService.deleteProject(projectId);
+    }
+
+    @RolesAllowed({ADMIN, PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @GetMapping("/{projectId}/history")
+    @Operation(summary = "История изменений проекта (дифф)")
+    public List<ProjectHistoryDto> getProjectHistory(
+            @PathVariable String projectId
+    ) throws NotFoundException {
+        return projectHistoryService.getHistory(projectId);
     }
 }

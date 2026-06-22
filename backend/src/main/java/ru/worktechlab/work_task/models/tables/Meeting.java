@@ -38,6 +38,9 @@ public class Meeting {
     @JoinColumn(name = "creator_id")
     private User creator;
 
+    @Column(name = "reminder_sent", nullable = false)
+    private boolean reminderSent = false;
+
     @ManyToMany
     @JoinTable(name = "meeting_participant",
             joinColumns = @JoinColumn(name = "meeting_id"),
@@ -73,5 +76,11 @@ public class Meeting {
         this.participants.clear();
         if (users != null)
             this.participants.addAll(users);
+        // изменение состава/времени — напоминание нужно отправить заново
+        this.reminderSent = false;
+    }
+
+    public void setReminderSent(boolean reminderSent) {
+        this.reminderSent = reminderSent;
     }
 }
