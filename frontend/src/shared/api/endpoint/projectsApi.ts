@@ -38,6 +38,34 @@ export function createProject({
   })
 }
 
+export function archiveProject({
+  projectId,
+  otherParams = {},
+}: {
+  projectId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient({
+    method: 'PUT',
+    url: API_ENDPOINT_PATH.PROJECTS.ARCHIVE({ projectId }),
+    ...otherParams,
+  })
+}
+
+export function deleteProject({
+  projectId,
+  otherParams = {},
+}: {
+  projectId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient({
+    method: 'DELETE',
+    url: API_ENDPOINT_PATH.PROJECTS.DELETE({ projectId }),
+    ...otherParams,
+  })
+}
+
 /**
  * @name GetAllUserProjects
  * @summary Вывести список проектов пользователя

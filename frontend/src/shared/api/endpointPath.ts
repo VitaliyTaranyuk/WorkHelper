@@ -55,6 +55,10 @@ export const API_ENDPOINT_PATH = {
 
     UPDATE_PROJECT: ({ projectId }: ProjectId) => `/projects/${projectId}/edit`,
 
+    ARCHIVE: ({ projectId }: ProjectId) => `/projects/${projectId}/archive`,
+
+    DELETE: ({ projectId }: ProjectId) => `/projects/${projectId}`,
+
     ADD_USERS: ({ projectId }: ProjectId) => `/projects/${projectId}/add-users`,
 
     REMOVE_USERS: ({ projectId }: ProjectId) =>
@@ -134,6 +138,9 @@ export const API_ENDPOINT_PATH = {
 
     UPDATE: ({ projectId }: ProjectId) =>
       `/statuses/project/${projectId}/update`,
+
+    DELETE: ({ projectId, statusId }: ProjectId & { statusId: number }) =>
+      `/statuses/project/${projectId}/${statusId}`,
   },
 
   ADMIN: {
