@@ -14,6 +14,7 @@ public class NotificationDto {
     private String type;
     private String message;
     private String taskId;
+    private String taskCode;
     private String commentId;
     private String actorUsername;
     private boolean read;

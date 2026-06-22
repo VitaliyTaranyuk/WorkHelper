@@ -64,8 +64,15 @@ export function CompactTaskForm(props: CompactTaskFormProps) {
     [activeProject?.users],
   )
 
+  // В списке спринтов показываем только активные спринты и Бэклог (дефолтный).
+  // Неактивные спринты не отображаются.
   const sortedSprints = useMemo(
-    () => orderBy(sprints, ['isActive', 'isDefault', 'name'], ['desc', 'desc']),
+    () =>
+      orderBy(
+        (sprints ?? []).filter((sprint) => sprint.isActive || sprint.isDefault),
+        ['isActive', 'isDefault', 'name'],
+        ['desc', 'desc'],
+      ),
     [sprints],
   )
 

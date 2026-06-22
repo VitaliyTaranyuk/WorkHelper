@@ -80,6 +80,7 @@ public class TaskService {
             throw new NotFoundException("У вас нет посещенных проектов");
         Project project = projectsService.findProjectById(user.getLastProjectId());
         Map<String, List<TaskModel>> tasksByUserId = project.getTasks().stream()
+                .filter(task -> !task.isArchived()) // завершённые/архивные не показываем на активной доске
                 .filter(task -> task.getAssignee() != null)
                 .collect(Collectors.groupingBy(task -> task.getAssignee().getId()));
         return tasksByUserId.values().stream()
@@ -406,6 +407,23 @@ public class TaskService {
     }
 
     // ===== My Tasks =====
+
+    @TransactionRequired
+    public List<TaskDataDto> getCompletedTasks(String projectId) throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        List<TaskModel> completed = data.getProject().getTasks().stream()
+                .filter(TaskModel::isArchived)
+                .sorted((a, b) -> {
+                    LocalDateTime da = a.getCompletedDate();
+                    LocalDateTime db = b.getCompletedDate();
+                    if (da == null && db == null) return 0;
+                    if (da == null) return 1;
+                    if (db == null) return -1;
+                    return db.compareTo(da);
+                })
+                .toList();
+        return taskMapper.toDo(completed);
+    }
 
     @TransactionRequired
     public List<TaskDataDto> getMyTasks(String projectId) throws NotFoundException {

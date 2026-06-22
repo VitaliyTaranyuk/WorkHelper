@@ -283,4 +283,11 @@ public class TaskController {
     public List<TaskDataDto> getMyTasks(@PathVariable String projectId) throws NotFoundException {
         return taskService.getMyTasks(projectId);
     }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @GetMapping("/{projectId}/completed")
+    @Operation(summary = "Завершённые задачи проекта (ушли с активной доски)")
+    public List<TaskDataDto> getCompletedTasks(@PathVariable String projectId) throws NotFoundException {
+        return taskService.getCompletedTasks(projectId);
+    }
 }

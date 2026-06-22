@@ -1,0 +1,16 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- Additive: store task code in notification for a clickable link to the task. -->
+    <changeSet id="20250708-add-notification-task-code" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="notification" columnName="task_code"/></not>
+        </preConditions>
+        <addColumn tableName="notification">
+            <column name="task_code" type="varchar(255)"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

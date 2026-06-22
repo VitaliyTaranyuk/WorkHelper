@@ -28,6 +28,22 @@ export function getStatuses({
   })
 }
 
+export function deleteStatus({
+  projectId,
+  statusId,
+  otherParams = {},
+}: {
+  projectId: string
+  statusId: number
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient({
+    method: 'DELETE',
+    url: API_ENDPOINT_PATH.STATUSES.DELETE({ projectId, statusId }),
+    ...otherParams,
+  })
+}
+
 /**
  * @name CreateStatus
  * @summary Создать статус в проекте

@@ -33,6 +33,7 @@ public class TaskStatusService {
     private final TaskStatusMapper taskStatusMapper;
     private final CheckerUtil checkerUtil;
     private final TaskRepository taskRepository;
+    private final ProjectHistoryService projectHistoryService;
 
     @TransactionRequired
     public StatusListResponseDto getStatuses(String projectId) throws NotFoundException {
@@ -52,6 +53,7 @@ public class TaskStatusService {
         TaskStatus status = taskStatusRepository.saveAndFlush(new TaskStatus(
                 requestData.getPriority(), requestData.getCode(), requestData.getDescription(), requestData.getViewed(), requestData.isDefaultTaskStatus(), data.getProject()
         ));
+        projectHistoryService.record(projectId, ProjectHistoryService.COLUMN_CREATE, null, status.getCode(), data.getUser());
         return taskStatusMapper.todo(status);
     }
 
@@ -66,6 +68,9 @@ public class TaskStatusService {
         checkHasDefaultValue(project, requestStatusesDto.getStatuses());
         for (TaskStatusRequestDto status : requestStatusesDto.getStatuses()) {
             TaskStatus dbStatus = findStatusByIdAndProjectForUpdate(status.getId(), project);
+            String oldCode = dbStatus.getCode();
+            if (oldCode != null && !oldCode.equals(status.getCode()))
+                projectHistoryService.record(projectId, ProjectHistoryService.COLUMN_RENAME, oldCode, status.getCode(), data.getUser());
             dbStatus.setPriority(status.getPriority());
             dbStatus.setDescription(status.getDescription());
             dbStatus.setCode(status.getCode());
@@ -118,6 +123,7 @@ public class TaskStatusService {
             task.touch();
         });
         taskRepository.flush();
+        projectHistoryService.record(projectId, ProjectHistoryService.COLUMN_DELETE, status.getCode(), null, data.getUser());
         taskStatusRepository.delete(status);
         taskStatusRepository.flush();
         log.info("Колонка {} удалена, перенесено задач: {}", statusId, tasks.size());

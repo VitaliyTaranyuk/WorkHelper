@@ -82,9 +82,27 @@ public class SprintsService {
         checkerUtil.checkExtendedPermission(data.getUser(), data.getProject());
         Sprint sprint = findSprintByIdForUpdate(sprintId, data.getProject());
         sprint.finish(data.getUser());
+        // Завершённые задачи (колонка DONE) при завершении спринта уходят с активной
+        // доски: помечаются завершёнными (archived) и доступны в разделе "Завершённые".
+        archiveDoneTasks(sprint);
         sprintsRepository.flush();
         Sprint dbSprint = findSprintById(sprint.getId());
         return sprintMapper.toSprintInfoDto(dbSprint);
+    }
+
+    @TransactionMandatory
+    public void archiveDoneTasks(Sprint sprint) {
+        List<TaskModel> doneTasks = taskRepository.findAllBySprint(sprint).stream()
+                .filter(task -> "DONE".equals(task.getStatus().getCode()) && !task.isArchived())
+                .toList();
+        doneTasks.forEach(task -> {
+            task.setArchived(true);
+            if (task.getCompletedDate() == null)
+                task.setCompletedDate(java.time.LocalDateTime.now());
+            task.touch();
+        });
+        taskRepository.flush();
+        log.info("Спринт {} завершён, завершено задач (DONE): {}", sprint.getId(), doneTasks.size());
     }
 
     @TransactionMandatory

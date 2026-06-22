@@ -17,7 +17,7 @@ type TaskCardProps = ITaskCard & {
 
 export const TaskCard = (props: TaskCardProps) => {
   return (
-    <Card>
+    <Card onClick={props.onTitleClick} role="button" tabIndex={0}>
       <Header>
         <Wrapper gap={'4px'}>
           <TaskType taskType={props.taskType} />
@@ -34,7 +34,7 @@ export const TaskCard = (props: TaskCardProps) => {
         </Wrapper>
       </Header>
       <Footer>
-        <TaskTitle onClick={props.onTitleClick}>{props.title}</TaskTitle>
+        <TaskTitle as="span">{props.title}</TaskTitle>
       </Footer>
     </Card>
   )
