@@ -4,13 +4,22 @@ import styled from '@emotion/styled'
 
 export const Card = styled.div`
   width: 252px;
-  height: 78px;
+  min-height: 78px;
   display: flex;
   flex-direction: column;
   padding: 8px 10px;
   background-color: ${COLOR.background[200]};
   border-radius: 16px;
   font-size: 12px;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+
+  :hover {
+    transform: scale(1.03);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.16);
+  }
 `
 
 export const Header = styled.div`

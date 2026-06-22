@@ -7,6 +7,7 @@ export type NotificationDto = {
   type: string
   message: string
   taskId?: string | null
+  taskCode?: string | null
   commentId?: string | null
   actorUsername?: string | null
   read: boolean

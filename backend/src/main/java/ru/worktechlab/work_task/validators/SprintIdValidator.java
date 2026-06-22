@@ -17,7 +17,10 @@ public class SprintIdValidator implements ConstraintValidator<ValidSprintId, Str
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
         if (value == null || value.isEmpty()) return true;
-        Boolean isActive = sprintsRepository.isSprintActive(value);
-        return Boolean.TRUE.equals(isActive);
+        // Принимаем любой существующий спринт — задачу можно положить в backlog
+        // (не-активный default-спринт), в архивный и т.д. Старая проверка на
+        // isActive блокировала любое обновление задачи с sprintId, указывающим
+        // на backlog или незапущенный sprint, что несовместимо с Trello/Jira UX.
+        return sprintsRepository.existsById(value);
     }
 }

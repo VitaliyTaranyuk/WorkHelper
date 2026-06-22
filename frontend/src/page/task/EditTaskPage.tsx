@@ -1,4 +1,4 @@
-import { Box, Stack } from '@mui/material'
+import { Box, Button, Stack } from '@mui/material'
 import { CompactTaskForm } from '@/features/task/TaskForm/CompactTaskForm'
 import { useEditTaskForm } from '@/features/task/TaskForm/useTaskForm'
 import { memo } from 'react'
@@ -8,10 +8,13 @@ import { useProjectData } from '@/features/project/query/useProjectData'
 import { Loader } from '@/shared/ui/components/Loader'
 import type { ITaskCard } from '@/entities/task/types'
 import { Headline } from './styles'
-import { formatToLocaleDate } from '@/shared/utils/date'
+import { formatDateDDMMYYYY } from '@/shared/utils/date'
 import { useEditTask } from '@/features/task/mutation/useEditTask'
+import { useDeleteTask } from '@/features/task/mutation/useDeleteTask'
 import { useTaskByCode } from '@/features/task/query/useTaskByCode'
 import { toast } from 'sonner'
+import { TaskComments } from '@/features/task/TaskComments'
+import { useNavigate } from '@tanstack/react-router'
 
 export const EditTaskPage = memo(function EditTaskPageInner({
   code,
@@ -39,6 +42,8 @@ function TaskPageForm({ task }: { task: ITaskCard }) {
   const { activeProject } = useProjectData()
   const form = useEditTaskForm({ task })
   const editTask = useEditTask()
+  const deleteTask = useDeleteTask()
+  const navigate = useNavigate()
 
   const onSubmit = form.handleSubmit(async (formValues) => {
     try {
@@ -70,15 +75,22 @@ function TaskPageForm({ task }: { task: ITaskCard }) {
     }
   })
 
+  const onDelete = async () => {
+    if (!activeProject) return
+    if (!window.confirm(`Удалить задачу ${task.code}?`)) return
+    await deleteTask.mutateAsync({ projectId: activeProject.id, taskId: task.id })
+    navigate({ to: '/main' })
+  }
+
   return (
-    <Stack mt={'10px'} maxWidth={510}>
+    <Stack mt={'10px'} maxWidth={560}>
       <Headline>{task.code}</Headline>
       <Stack mt={2}>
         <CompactTaskForm
           fullMode
           mode="edit"
           staticTaskInfo={{
-            createdAt: formatToLocaleDate({ date: task.createdAt }),
+            createdAt: formatDateDDMMYYYY(task.createdAt),
             creator: task.creator,
           }}
           onSubmit={onSubmit}
@@ -103,8 +115,19 @@ function TaskPageForm({ task }: { task: ITaskCard }) {
         >
           Сохранить
         </MUIPrimaryButton>
+        <Button
+          variant="outlined"
+          color="error"
+          fullWidth
+          onClick={onDelete}
+          disabled={deleteTask.isPending}
+        >
+          Удалить задачу
+        </Button>
         <Box width={'100%'} />
       </Stack>
+
+      {activeProject && <TaskComments projectId={activeProject.id} taskId={task.id} />}
     </Stack>
   )
 }

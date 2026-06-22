@@ -15,12 +15,18 @@ import { Spacer } from '@/shared/ui/Spacer'
 import { HeaderActions } from '@/widget/HeaderActions'
 import type { HeaderActionsProps } from '@/widget/HeaderActions/HeaderActions'
 import { useProjectData } from '@/features/project/query/useProjectData'
+import IconButton from '@mui/material/IconButton'
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import { useBoardEditModeStore } from '@/features/board/boardEditModeStore'
+import { Link } from '@tanstack/react-router'
 type HeaderProps = {
   headerActions: HeaderActionsProps
 }
 
 export function Header({ headerActions }: HeaderProps) {
   const { activeProject } = useProjectData()
+  const { editMode, toggle } = useBoardEditModeStore()
 
   return (
     <TopBlock>
@@ -30,9 +36,31 @@ export function Header({ headerActions }: HeaderProps) {
       <StyledVerticalLine size={BLOCK_BORDER_WIDTH_PX} />
       <HeaderMainBlock>
         <ProjectName>{activeProject?.name}</ProjectName>
+        <IconButton
+          aria-label="Редактирование доски"
+          onClick={toggle}
+          color={editMode ? 'primary' : 'default'}
+          title={
+            editMode
+              ? 'Режим редактирования доски включён'
+              : 'Включить редактирование доски'
+          }
+          size="small"
+        >
+          <EditOutlinedIcon fontSize="small" />
+        </IconButton>
         <Spacer />
         <HeaderActions actions={headerActions} />
         <NotificationBell />
+        <IconButton
+          component={Link}
+          to="/settings"
+          aria-label="Настройки"
+          title="Настройки"
+          size="small"
+        >
+          <SettingsOutlinedIcon fontSize="small" />
+        </IconButton>
         <UserProfile />
       </HeaderMainBlock>
     </TopBlock>

@@ -315,6 +315,22 @@ export function deleteComment({
   })
 }
 
+export function deleteTask({
+  projectId,
+  taskId,
+  otherParams = {},
+}: {
+  projectId: string
+  taskId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient({
+    method: 'DELETE',
+    url: API_ENDPOINT_PATH.TASKS.DELETE({ projectId, taskId }),
+    ...otherParams,
+  })
+}
+
 /**
  * @name GetAllTasksComments
  * @summary Получить комментарии к задаче

@@ -20,7 +20,7 @@ import { sxStyle } from './TaskModal.styles'
 import { MUIPrimaryButton } from '@/shared/ui/Button'
 import { modalStyle } from '@/shared/ui/modalStyles'
 import { useProjectData } from '@/features/project/query/useProjectData'
-import { formatToLocaleDate } from '@/shared/utils/date'
+import { formatDateDDMMYYYY } from "@/shared/utils/date"
 import { useEditTask } from '@/features/task/mutation/useEditTask'
 import { assertIsDefined } from '@/shared/utils/typeChecking'
 
@@ -97,7 +97,7 @@ function EditTaskModalInner(props: EditTaskModalInnerProps) {
         <CompactTaskForm
           mode="edit"
           staticTaskInfo={{
-            createdAt: formatToLocaleDate({ date: props.task.createdAt }),
+            createdAt: formatDateDDMMYYYY(props.task.createdAt),
             creator: props.task.creator,
           }}
           onSubmit={onSubmit}

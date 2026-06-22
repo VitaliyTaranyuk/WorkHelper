@@ -33,6 +33,9 @@ public class Notification {
     @Column(name = "task_id")
     private String taskId;
 
+    @Column(name = "task_code")
+    private String taskCode;
+
     @Column(name = "comment_id")
     private String commentId;
 
@@ -42,12 +45,13 @@ public class Notification {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    public Notification(User recipient, User actor, String type, String message, String taskId, String commentId) {
+    public Notification(User recipient, User actor, String type, String message, String taskId, String taskCode, String commentId) {
         this.recipient = recipient;
         this.actor = actor;
         this.type = type;
         this.message = message;
         this.taskId = taskId;
+        this.taskCode = taskCode;
         this.commentId = commentId;
         this.read = false;
         this.createdAt = LocalDateTime.now();

@@ -55,6 +55,12 @@ export const API_ENDPOINT_PATH = {
 
     UPDATE_PROJECT: ({ projectId }: ProjectId) => `/projects/${projectId}/edit`,
 
+    ARCHIVE: ({ projectId }: ProjectId) => `/projects/${projectId}/archive`,
+
+    DELETE: ({ projectId }: ProjectId) => `/projects/${projectId}`,
+
+    HISTORY: ({ projectId }: ProjectId) => `/projects/${projectId}/history`,
+
     ADD_USERS: ({ projectId }: ProjectId) => `/projects/${projectId}/add-users`,
 
     REMOVE_USERS: ({ projectId }: ProjectId) =>
@@ -74,6 +80,9 @@ export const API_ENDPOINT_PATH = {
     FINISH: ({ projectId, sprintId }: ProjectId & SprintId) =>
       `/sprints/project/${projectId}/${sprintId}/finish`,
 
+    DELETE: ({ projectId, sprintId }: ProjectId & SprintId) =>
+      `/sprints/project/${projectId}/${sprintId}`,
+
     GET_INFO: ({ projectId }: ProjectId) =>
       `/sprints/project/${projectId}/sprint-info`,
 
@@ -91,6 +100,9 @@ export const API_ENDPOINT_PATH = {
       `/tasks/${projectId}/${taskId}/update`,
 
     UPDATE_STATUS: () => `/tasks/update-status`,
+
+    DELETE: ({ projectId, taskId }: ProjectId & TaskId) =>
+      `/tasks/${projectId}/${taskId}`,
 
     REORDER: ({ projectId }: ProjectId) => `/tasks/${projectId}/reorder`,
 
@@ -134,6 +146,9 @@ export const API_ENDPOINT_PATH = {
 
     UPDATE: ({ projectId }: ProjectId) =>
       `/statuses/project/${projectId}/update`,
+
+    DELETE: ({ projectId, statusId }: ProjectId & { statusId: number }) =>
+      `/statuses/project/${projectId}/${statusId}`,
   },
 
   ADMIN: {
@@ -157,6 +172,13 @@ export const API_ENDPOINT_PATH = {
 
   ROLES: {
     GET_ALL: () => `/roles`,
+  },
+
+  MEETINGS: {
+    LIST: ({ projectId }: ProjectId) => `/meetings/project/${projectId}`,
+    CREATE: ({ projectId }: ProjectId) => `/meetings/project/${projectId}`,
+    UPDATE: ({ meetingId }: { meetingId: string }) => `/meetings/${meetingId}`,
+    DELETE: ({ meetingId }: { meetingId: string }) => `/meetings/${meetingId}`,
   },
 
   NOTIFICATIONS: {

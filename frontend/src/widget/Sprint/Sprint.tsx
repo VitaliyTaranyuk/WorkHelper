@@ -11,6 +11,9 @@ import {
   ViewSprintButton,
 } from '@/features/sprint/SprintActionButton'
 import { Stack } from '@mui/material'
+import IconButton from '@mui/material/IconButton'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import { useDeleteSprint } from '@/features/sprint/mutation/useDeleteSprint'
 import { SprintTask } from '@/entities/task/ui/SprintTask'
 import { Spacer } from '@/shared/ui/Spacer'
 import { truncateText } from '@/shared/utils/text'
@@ -54,6 +57,7 @@ export function Sprint({ sprint, projectId, taskFilter }: SprintProps) {
   const updateTasksSprint = useUpdateTasksSprint()
 
   const openPopup = useMoveToSprintMenuStore((state) => state.openPopup)
+  const deleteSprint = useDeleteSprint()
 
   const sprintDateRange = useMemo(
     () =>
@@ -172,6 +176,23 @@ export function Sprint({ sprint, projectId, taskFilter }: SprintProps) {
                     sprint,
                   }}
                 />
+              )}
+              {!sprint.isActive && (
+                <IconButton
+                  size="small"
+                  aria-label="Удалить спринт"
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Удалить спринт «${sprint.name}»? Его задачи перейдут в Backlog.`,
+                      )
+                    ) {
+                      deleteSprint.mutate({ projectId, sprintId: sprint.id })
+                    }
+                  }}
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
               )}
             </ButtonBlock>
           )}

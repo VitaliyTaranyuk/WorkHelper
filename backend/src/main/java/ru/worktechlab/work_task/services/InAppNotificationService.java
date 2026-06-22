@@ -47,7 +47,7 @@ public class InAppNotificationService {
             userRepository.findByUsername(username).ifPresent(recipient -> {
                 if (recipient.getId().equals(actor.getId())) return;
                 String message = String.format("%s упомянул(а) вас в задаче %s", actorName(actor), task.getCode());
-                notificationRepository.save(new Notification(recipient, actor, TYPE_MENTION, message, task.getId(), commentId));
+                notificationRepository.save(new Notification(recipient, actor, TYPE_MENTION, message, task.getId(), task.getCode(), commentId));
                 log.debug("MENTION notification: {} -> {} (task {})", actor.getId(), recipient.getId(), task.getCode());
             });
         }
@@ -100,7 +100,7 @@ public class InAppNotificationService {
 
     private NotificationDto toDto(Notification n) {
         String actorUsername = n.getActor() != null ? n.getActor().getUsername() : null;
-        return new NotificationDto(n.getId(), n.getType(), n.getMessage(), n.getTaskId(),
+        return new NotificationDto(n.getId(), n.getType(), n.getMessage(), n.getTaskId(), n.getTaskCode(),
                 n.getCommentId(), actorUsername, n.isRead(), n.getCreatedAt());
     }
 }

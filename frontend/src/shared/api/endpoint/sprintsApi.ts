@@ -100,6 +100,22 @@ export function finishSprint({
   })
 }
 
+export function deleteSprint({
+  projectId,
+  sprintId,
+  otherParams = {},
+}: {
+  projectId: string
+  sprintId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient({
+    method: 'DELETE',
+    url: API_ENDPOINT_PATH.SPRINTS.DELETE({ projectId, sprintId }),
+    ...otherParams,
+  })
+}
+
 /**
  * @name GetSprintInfo
  * @summary Получить информацию по спринту (текущему/активному)

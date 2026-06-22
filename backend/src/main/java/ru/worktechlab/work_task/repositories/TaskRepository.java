@@ -26,6 +26,9 @@ public interface TaskRepository extends JpaRepository<TaskModel, String>, TaskFi
     @Query(nativeQuery = true,
             value = "select * from task_model tm where tm.project_id = :projectId and tm.id = :taskId for update skip locked")
     Optional<TaskModel> findTaskModelByIdAndProjectForUpdate(String taskId, String projectId);
+
+    @Query("from TaskModel where code = :code and project = :project")
+    Optional<TaskModel> findByCodeAndProject(String code, Project project);
 }
 
 
