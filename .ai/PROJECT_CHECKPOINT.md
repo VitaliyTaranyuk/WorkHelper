@@ -26,9 +26,40 @@
 
 ---
 
+## Последняя завершённая: Фаза 1.5 — упрощение модуля задач (Kanban)
+
+Решение пользователя: **medium**-чистка, **Backlog = колонка доски**, **только аддитивные миграции**.
+
+**Сделано (T-150…T-154):**
+- Task lifecycle: archive / restore / delete (+ поля `archived`, `completed_date`)
+- Массовые операции: bulk archive / delete / move-status / move-project
+- Backlog как дефолтная Kanban-колонка; архив/удаление проекта (ARCHIVED / soft-DELETED)
+- My Tasks endpoint; удалены 5 фейковых командных фильтров + фейк-юзеры
+- 2 аддитивные миграции; backend unit-тесты зелёные (+6 новых на lifecycle/bulk/my-tasks); frontend `tsc -b` зелёный; всё проверено вживую (REST + preview-браузер)
+
+Отложено в Tech Debt: TD-005…011 (удаление спринтов/comments/links/history, полная редукция фильтров, физическое удаление, env для API URL).
+
+## Фаза 2: Trello-like MVP (ветка feature/trello-mvp)
+
+Курс «удалять спринты/comments» **отменён** пользователем; новый курс — расширять существующее. Разрушающее удаление откачено.
+
+**Сделано (backend, аддитивно, проверено вживую + unit-тесты):**
+- STEP 3: sprint archive/delete (задачи → Backlog)
+- STEP 6: User.username(уникальный)/displayName, профиль `PUT /users/profile`, seed → @admin/@ivanov/@petrov
+- STEP 8: in-app уведомления — `Notification` + парсинг `@username` в комментах, список/счётчик/прочитано
+- STEP 4: удаление колонки (задачи → дефолт); rename/reorder/create уже были
+- STEP 4+: `Task.position` + `PUT /tasks/{id}/reorder` (порядок карточек в колонке)
+- STEP 5: bulk move-sprint
+
+**Сделано (frontend, проверено в preview):**
+- Колокол уведомлений + счётчик непрочитанных + список + mark-read
+- Доска: счётчики задач в колонках, сохранение порядка карточек (DnD), **фикс пред-существующего бага** загрузки задач (доска грузила с несуществующего `GET /tasks` → 401; переключено на `/tasks/tasks-in-project`)
+
+**Остаётся (frontend-полировка, backend готов):** UI редактирования профиля, UI управления колонками (rename/delete кнопки), UI архив/удаление спринта.
+
 ## Активная задача
 
-**T-101: Integration Tests** — NOT_STARTED
+**T-101: Integration Tests** — NOT_STARTED (Docker недоступен — Tech Debt)
 
 Следующий шаг: добавить `@SpringBootTest`-тесты с Testcontainers. Особенно важно после T-100 — нужны интеграционные тесты на: создание 2+ проектов (sequence), активацию спринта, создание комментария, фоллбэк задачи в Backlog. Эти баги Unit-тесты не ловили.
 

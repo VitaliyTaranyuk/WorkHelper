@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.worktechlab.work_task.dto.EnumValuesResponse;
 import ru.worktechlab.work_task.dto.StringIdsDto;
+import ru.worktechlab.work_task.dto.users.UpdateProfileRequest;
 import ru.worktechlab.work_task.dto.users.UpdateUserRequest;
 import ru.worktechlab.work_task.dto.users.UserDataDto;
 import ru.worktechlab.work_task.dto.users.UserShortDataDto;
@@ -56,6 +57,15 @@ public class UserController {
     @GetMapping("/profile")
     public UserDataDto getUser() {
         return userService.getUser();
+    }
+
+    @RolesAllowed({ADMIN, PROJECT_OWNER, PROJECT_MEMBER, POWER_USER})
+    @Operation(summary = "Минимальное редактирование профиля (имя, displayName, username)")
+    @PutMapping("/profile")
+    public UserDataDto updateProfile(
+            @jakarta.validation.Valid @RequestBody UpdateProfileRequest data)
+            throws NotFoundException, ru.worktechlab.work_task.exceptions.BadRequestException {
+        return userService.updateProfile(data);
     }
 
     @RolesAllowed({ADMIN, PROJECT_OWNER, PROJECT_MEMBER, POWER_USER})

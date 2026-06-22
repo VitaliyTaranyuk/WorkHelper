@@ -23,6 +23,7 @@ export type ITaskCard = {
   createdAt: string
   sprintId: string
   status: TaskStatusShort
+  position: number
 }
 
 export type TaskStatus = {

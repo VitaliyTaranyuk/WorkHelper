@@ -86,6 +86,16 @@ public class Project {
             this.startDate = date;
     }
 
+    public void archive() {
+        this.status = ProjectStatus.ARCHIVED;
+        this.updateDate = LocalDate.now();
+    }
+
+    public void markDeleted() {
+        this.status = ProjectStatus.DELETED;
+        this.updateDate = LocalDate.now();
+    }
+
     public void incrementCounter() {
         this.taskCounter = this.taskCounter == null ? 1 : this.taskCounter + 1;
     }

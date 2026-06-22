@@ -6,13 +6,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import ru.worktechlab.work_task.annotations.TransactionMandatory;
 import ru.worktechlab.work_task.annotations.TransactionRequired;
+import ru.worktechlab.work_task.dto.ApiResponse;
 import ru.worktechlab.work_task.dto.UserAndProjectData;
 import ru.worktechlab.work_task.dto.statuses.*;
 import ru.worktechlab.work_task.exceptions.BadRequestException;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.mappers.TaskStatusMapper;
 import ru.worktechlab.work_task.models.tables.Project;
+import ru.worktechlab.work_task.models.tables.TaskModel;
 import ru.worktechlab.work_task.models.tables.TaskStatus;
+import ru.worktechlab.work_task.repositories.TaskRepository;
 import ru.worktechlab.work_task.repositories.TaskStatusRepository;
 import ru.worktechlab.work_task.utils.CheckerUtil;
 
@@ -29,6 +32,7 @@ public class TaskStatusService {
     private final TaskStatusRepository taskStatusRepository;
     private final TaskStatusMapper taskStatusMapper;
     private final CheckerUtil checkerUtil;
+    private final TaskRepository taskRepository;
 
     @TransactionRequired
     public StatusListResponseDto getStatuses(String projectId) throws NotFoundException {
@@ -93,6 +97,31 @@ public class TaskStatusService {
             throw new BadRequestException(String.format("У проекта %s не назначен статус по умолчанию", project.getName()));
         if (countDefaultStatus > 1)
             throw new BadRequestException(String.format("У проекта %s назначено несколько статусов по умолчанию", project.getName()));
+    }
+
+    @TransactionRequired
+    public ApiResponse deleteStatus(String projectId,
+                                    long statusId) throws NotFoundException, BadRequestException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        checkerUtil.checkProjectOwner(data.getProject(), data.getUser());
+        TaskStatus status = findStatusByIdAndProjectForUpdate(statusId, data.getProject());
+        if (status.isDefaultTaskStatus())
+            throw new BadRequestException("Колонку по умолчанию нельзя удалить");
+        TaskStatus defaultStatus = data.getProject().getStatuses().stream()
+                .filter(TaskStatus::isDefaultTaskStatus)
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException(String.format("Для проекта %s не найдена колонка по умолчанию", data.getProject().getName())));
+        // Trello UX: задачи удаляемой колонки переносятся в колонку по умолчанию, не теряются.
+        List<TaskModel> tasks = taskRepository.findAllByStatus(status);
+        tasks.forEach(task -> {
+            task.setStatus(defaultStatus);
+            task.touch();
+        });
+        taskRepository.flush();
+        taskStatusRepository.delete(status);
+        taskStatusRepository.flush();
+        log.info("Колонка {} удалена, перенесено задач: {}", statusId, tasks.size());
+        return new ApiResponse(String.format("Колонка удалена, задач перенесено: %d", tasks.size()));
     }
 
     @TransactionMandatory

@@ -26,6 +26,28 @@ import { workTechApiClient } from '../workTechHttpClient'
 import type { RequestParams } from './type'
 
 /**
+ * @name ReorderColumn
+ * @summary Переупорядочить задачи в колонке (drag-and-drop)
+ * @request PUT:/tasks/{projectId}/reorder
+ */
+export function reorderColumn({
+  projectId,
+  data,
+  otherParams = {},
+}: {
+  projectId: string
+  data: { statusId: number; taskIds: string[] }
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient({
+    method: 'PUT',
+    url: API_ENDPOINT_PATH.TASKS.REORDER({ projectId }),
+    data,
+    ...otherParams,
+  })
+}
+
+/**
  * @name CreateTask
  * @summary Создать задачу
  * @request POST:/tasks/create

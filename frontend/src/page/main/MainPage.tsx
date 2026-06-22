@@ -4,9 +4,9 @@ import { useTaskFilter } from '@/features/task/hook/useTaskFilter/useTaskFilter'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { TaskFilter } from '@/widget/TaskFilter'
 import { EditTaskModal } from '@/widget/modal/task'
-import type { OnTaskStatusChange } from '@/widget/Board/Board'
+import type { OnReorder } from '@/widget/Board/Board'
 import { useActiveSprintTasks } from '@/features/task/query/useActiveSprintTasks'
-import { useUpdateTaskStatus } from '@/features/task/mutation/useUpdateTaskStatus'
+import { useReorderColumn } from '@/features/task/mutation/useReorderColumn'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { TASK_FILTER } from '@/entities/task/constants'
 
@@ -18,7 +18,7 @@ export function MainPage() {
   })
 
   const { data: tasks } = useActiveSprintTasks({ projectId: activeProject?.id })
-  const updateTaskStatusMutation = useUpdateTaskStatus()
+  const reorderMutation = useReorderColumn()
 
   const [activeSprintTasks, setActiveSprintTasks] = useState(tasks || [])
 
@@ -26,28 +26,36 @@ export function MainPage() {
     setActiveSprintTasks(tasks || [])
   }, [tasks])
 
-  const onTaskStatusChange: OnTaskStatusChange = useCallback(
-    async ({ taskId, newStatus }) => {
+  const onReorder: OnReorder = useCallback(
+    async ({ statusId, taskIds }) => {
+      const destStatus = activeProject?.statuses.find((s) => s.id === statusId)
+
+      // оптимистично: обновляем колонку и позицию перемещённых карточек
       setActiveSprintTasks((prev) =>
         prev.map((task) => {
-          if (task.id === taskId) {
-            return {
-              ...task,
-              status: newStatus,
-            }
+          const index = taskIds.indexOf(task.id)
+          if (index === -1) return task
+          return {
+            ...task,
+            position: index,
+            status: destStatus
+              ? {
+                  id: destStatus.id,
+                  code: destStatus.code,
+                  description: destStatus.description,
+                }
+              : task.status,
           }
-
-          return { ...task }
         }),
       )
 
-      updateTaskStatusMutation.mutate({
-        taskId,
+      reorderMutation.mutate({
         projectId: activeProject!.id,
-        statusId: newStatus.id,
+        statusId,
+        taskIds,
       })
     },
-    [activeProject, updateTaskStatusMutation],
+    [activeProject, reorderMutation],
   )
 
   const filteredTasks = useMemo(() => {
@@ -60,11 +68,7 @@ export function MainPage() {
         currentFilters={currentFilters}
         onFilterChange={updateFilters}
       />
-      <Board
-        editTaskModal={modal}
-        tasks={filteredTasks}
-        onTaskStatusChange={onTaskStatusChange}
-      />
+      <Board editTaskModal={modal} tasks={filteredTasks} onReorder={onReorder} />
     </>
   )
 }

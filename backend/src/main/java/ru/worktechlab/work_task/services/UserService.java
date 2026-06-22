@@ -12,6 +12,7 @@ import ru.worktechlab.work_task.dto.EnumDto;
 import ru.worktechlab.work_task.dto.EnumValuesResponse;
 import ru.worktechlab.work_task.dto.StringIdsDto;
 import ru.worktechlab.work_task.dto.users.*;
+import ru.worktechlab.work_task.exceptions.BadRequestException;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.mappers.UserMapper;
 import ru.worktechlab.work_task.models.enums.Gender;
@@ -165,6 +166,21 @@ public class UserService {
         user.setEmail(data.getEmail());
         user.setPhone(data.getPhone());
         user.setBirthDate(data.getBirthDate());
+        userRepository.flush();
+        return userMapper.toUserFullData(findActiveUserById(userId));
+    }
+
+    @TransactionRequired
+    public UserDataDto updateProfile(UpdateProfileRequest data) throws NotFoundException, BadRequestException {
+        String userId = userContext.getUserData().getUserId();
+        User user = findActiveUserByIdForUpdate(userId);
+        user.setFirstName(data.getFirstName());
+        user.setDisplayName(data.getDisplayName());
+        if (data.getUsername() != null && !data.getUsername().isBlank()) {
+            if (userRepository.existsByUsernameAndIdNot(data.getUsername(), userId))
+                throw new BadRequestException(String.format("Username '%s' уже занят", data.getUsername()));
+            user.setUsername(data.getUsername());
+        }
         userRepository.flush();
         return userMapper.toUserFullData(findActiveUserById(userId));
     }

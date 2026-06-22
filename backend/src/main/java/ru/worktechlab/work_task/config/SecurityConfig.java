@@ -29,7 +29,10 @@ import ru.worktechlab.work_task.authorization.jwt.AuthTokenFilter;
 import ru.worktechlab.work_task.repositories.UserRepository;
 import ru.worktechlab.work_task.services.UsersDetailsService;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 @Slf4j
 @Configuration
@@ -97,7 +100,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(allowedOrigins, allowedLocal)); // Разрешаем фронтенд
+        // Каждое свойство может содержать несколько origin через запятую.
+        List<String> origins = Stream.of(allowedOrigins, allowedLocal)
+                .filter(Objects::nonNull)
+                .flatMap(v -> Arrays.stream(v.split(",")))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+        configuration.setAllowedOrigins(origins); // Разрешаем фронтенд
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Access-Control-Allow-Origin", "Access-Control-Allow-Methods", "Access-Control-Allow-Headers"));
         configuration.setAllowCredentials(true); // Разрешаем куки и аутентификацию

@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.worktechlab.work_task.annotations.TransactionMandatory;
 import ru.worktechlab.work_task.annotations.TransactionRequired;
+import ru.worktechlab.work_task.dto.ApiResponse;
 import ru.worktechlab.work_task.dto.UserAndProjectData;
 import ru.worktechlab.work_task.dto.sprints.SprintDtoRequest;
 import ru.worktechlab.work_task.dto.sprints.SprintInfoDTO;
@@ -13,8 +14,12 @@ import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.mappers.SprintMapper;
 import ru.worktechlab.work_task.models.tables.Project;
 import ru.worktechlab.work_task.models.tables.Sprint;
+import ru.worktechlab.work_task.models.tables.TaskModel;
 import ru.worktechlab.work_task.repositories.SprintsRepository;
+import ru.worktechlab.work_task.repositories.TaskRepository;
 import ru.worktechlab.work_task.utils.CheckerUtil;
+
+import java.util.List;
 
 @Service
 @Slf4j
@@ -23,6 +28,7 @@ public class SprintsService {
     private final SprintsRepository sprintsRepository;
     private final SprintMapper sprintMapper;
     private final CheckerUtil checkerUtil;
+    private final TaskRepository taskRepository;
 
     @TransactionRequired
     public SprintInfoDTO getActiveSprint(String projectId) throws NotFoundException {
@@ -134,5 +140,42 @@ public class SprintsService {
         sprintsRepository.flush();
         Sprint dbSprint = findSprintById(sprint.getId());
         return sprintMapper.toSprintInfoDto(dbSprint);
+    }
+
+    @TransactionRequired
+    public SprintInfoDTO archiveSprint(String sprintId,
+                                       String projectId) throws NotFoundException, BadRequestException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        checkerUtil.checkExtendedPermission(data.getUser(), data.getProject());
+        Sprint sprint = findSprintByIdForUpdate(sprintId, data.getProject());
+        if (sprint.isDefaultSprint())
+            throw new BadRequestException("Backlog-спринт нельзя архивировать");
+        sprint.archive();
+        sprintsRepository.flush();
+        return sprintMapper.toSprintInfoDto(findSprintById(sprint.getId()));
+    }
+
+    @TransactionRequired
+    public ApiResponse deleteSprint(String sprintId,
+                                    String projectId) throws NotFoundException, BadRequestException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        checkerUtil.checkExtendedPermission(data.getUser(), data.getProject());
+        Sprint sprint = findSprintByIdForUpdate(sprintId, data.getProject());
+        if (sprint.isDefaultSprint())
+            throw new BadRequestException("Backlog-спринт нельзя удалить");
+        // Trello/Jira UX: задачи удаляемого спринта переносятся в Backlog, не теряются.
+        Sprint backlog = sprintsRepository.findDefaultSprintByProject(data.getProject()).orElseThrow(
+                () -> new NotFoundException(String.format("Для проекта %s не найден Backlog-спринт", data.getProject().getName()))
+        );
+        List<TaskModel> tasks = taskRepository.findAllBySprint(sprint);
+        tasks.forEach(task -> {
+            task.setSprint(backlog);
+            task.touch();
+        });
+        taskRepository.flush();
+        sprintsRepository.delete(sprint);
+        sprintsRepository.flush();
+        log.info("Спринт {} удалён, перенесено задач в Backlog: {}", sprintId, tasks.size());
+        return new ApiResponse(String.format("Спринт удалён, задач перенесено в Backlog: %d", tasks.size()));
     }
 }

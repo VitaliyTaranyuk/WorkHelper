@@ -11,11 +11,13 @@ export function useActiveSprintTasks({
 }) {
   const query = useQuery({
     queryKey: ['tasks', projectId, TASK_QUERY_KEY.activeSprint],
-    queryFn: () => workTechApi.task.getUserProjectTasks(),
+    // /tasks/tasks-in-project — рабочий эндпоинт (возвращает задачи проекта,
+    // сгруппированные по исполнителям); разворачиваем в плоский список карточек.
+    queryFn: () => workTechApi.task.getTasksInProject(),
     select: (response): ITaskCard[] =>
-      response.data.tasks
-        ? response.data.tasks.map(mapTaskMinDTOToTaskCard)
-        : [],
+      (response.data ?? [])
+        .flatMap((group) => group.tasks ?? [])
+        .map(mapTaskMinDTOToTaskCard),
     enabled: !!projectId,
   })
 

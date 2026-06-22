@@ -16,10 +16,13 @@ import ru.worktechlab.work_task.mappers.SprintMapper;
 import ru.worktechlab.work_task.models.tables.Project;
 import ru.worktechlab.work_task.models.tables.Sprint;
 import ru.worktechlab.work_task.models.tables.User;
+import ru.worktechlab.work_task.models.tables.TaskModel;
 import ru.worktechlab.work_task.repositories.SprintsRepository;
+import ru.worktechlab.work_task.repositories.TaskRepository;
 import ru.worktechlab.work_task.utils.CheckerUtil;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,6 +36,7 @@ class SprintsServiceTest {
     @Mock private SprintsRepository sprintsRepository;
     @Mock private SprintMapper sprintMapper;
     @Mock private CheckerUtil checkerUtil;
+    @Mock private TaskRepository taskRepository;
 
     @InjectMocks
     private SprintsService sprintsService;
@@ -164,5 +168,45 @@ class SprintsServiceTest {
         assertThatThrownBy(() -> sprintsService.getActiveSprint("project-1"))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining(project.getName());
+    }
+
+    @Test
+    void archiveSprint_shouldSetArchived() throws Exception {
+        UserAndProjectData data = new UserAndProjectData(project, owner);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsRepository.findSprintByIdForUpdate("sprint-1", "project-1")).thenReturn(Optional.of(sprint));
+        when(sprintsRepository.findById("sprint-1")).thenReturn(Optional.of(sprint));
+        when(sprintMapper.toSprintInfoDto(sprint)).thenReturn(mock(SprintInfoDTO.class));
+
+        sprintsService.archiveSprint("sprint-1", "project-1");
+
+        assertThat(sprint.isArchived()).isTrue();
+    }
+
+    @Test
+    void archiveSprint_shouldThrow_whenDefaultSprint() throws Exception {
+        Sprint backlog = TestFixtures.defaultSprint("backlog-1", project, owner);
+        UserAndProjectData data = new UserAndProjectData(project, owner);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsRepository.findSprintByIdForUpdate("backlog-1", "project-1")).thenReturn(Optional.of(backlog));
+
+        assertThatThrownBy(() -> sprintsService.archiveSprint("backlog-1", "project-1"))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void deleteSprint_shouldMoveTasksToBacklogAndDelete() throws Exception {
+        Sprint backlog = TestFixtures.defaultSprint("backlog-1", project, owner);
+        UserAndProjectData data = new UserAndProjectData(project, owner);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsRepository.findSprintByIdForUpdate("sprint-1", "project-1")).thenReturn(Optional.of(sprint));
+        when(sprintsRepository.findDefaultSprintByProject(project)).thenReturn(Optional.of(backlog));
+        TaskModel task = TestFixtures.task("task-1", owner, project, sprint, TestFixtures.defaultStatus(project));
+        when(taskRepository.findAllBySprint(sprint)).thenReturn(List.of(task));
+
+        sprintsService.deleteSprint("sprint-1", "project-1");
+
+        assertThat(task.getSprint()).isEqualTo(backlog);
+        verify(sprintsRepository).delete(sprint);
     }
 }

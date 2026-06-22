@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import ru.worktechlab.work_task.dto.ApiResponse;
 import ru.worktechlab.work_task.dto.sprints.SprintDtoRequest;
 import ru.worktechlab.work_task.dto.sprints.SprintInfoDTO;
 import ru.worktechlab.work_task.exceptions.BadRequestException;
@@ -69,5 +70,21 @@ public class SprintController {
                                       @Parameter(description = "Данные спринта", required = true)
                                       @RequestBody SprintDtoRequest data) throws NotFoundException, BadRequestException {
         return sprintsService.updateSprint(sprintId, projectId, data);
+    }
+
+    @RolesAllowed({ADMIN, PROJECT_OWNER, POWER_USER})
+    @PutMapping("/project/{projectId}/{sprintId}/archive")
+    @Operation(summary = "Архивирование спринта")
+    public SprintInfoDTO archiveSprint(@PathVariable String projectId,
+                                       @PathVariable String sprintId) throws NotFoundException, BadRequestException {
+        return sprintsService.archiveSprint(sprintId, projectId);
+    }
+
+    @RolesAllowed({ADMIN, PROJECT_OWNER, POWER_USER})
+    @DeleteMapping("/project/{projectId}/{sprintId}")
+    @Operation(summary = "Удаление спринта (задачи переносятся в Backlog)")
+    public ApiResponse deleteSprint(@PathVariable String projectId,
+                                    @PathVariable String sprintId) throws NotFoundException, BadRequestException {
+        return sprintsService.deleteSprint(sprintId, projectId);
     }
 }

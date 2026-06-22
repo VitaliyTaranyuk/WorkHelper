@@ -7,6 +7,7 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import ru.worktechlab.work_task.dto.ApiResponse;
 import ru.worktechlab.work_task.dto.StringIdsDto;
 import ru.worktechlab.work_task.dto.projects.*;
 import ru.worktechlab.work_task.exceptions.BadRequestException;
@@ -124,5 +125,25 @@ public class ProjectController {
             @RequestBody EditProjectRequestDto data
     ) throws NotFoundException, BadRequestException {
         return projectsService.editProject(projectId, data);
+    }
+
+    @RolesAllowed({PROJECT_OWNER})
+    @PutMapping("/{projectId}/archive")
+    @Operation(summary = "Архивирование проекта")
+    public ProjectDto archiveProject(
+            @Parameter(description = "ИД проекта", required = true)
+            @PathVariable String projectId
+    ) throws NotFoundException, BadRequestException {
+        return projectsService.archiveProject(projectId);
+    }
+
+    @RolesAllowed({PROJECT_OWNER})
+    @DeleteMapping("/{projectId}")
+    @Operation(summary = "Удаление проекта")
+    public ApiResponse deleteProject(
+            @Parameter(description = "ИД проекта", required = true)
+            @PathVariable String projectId
+    ) throws NotFoundException, BadRequestException {
+        return projectsService.deleteProject(projectId);
     }
 }

@@ -10,6 +10,7 @@ import {
   StyledVerticalLine,
 } from './Header.styles'
 import { UserPopupMenu } from './Menu/UserPopupMenu'
+import { NotificationBell } from './NotificationBell'
 import { Spacer } from '@/shared/ui/Spacer'
 import { HeaderActions } from '@/widget/HeaderActions'
 import type { HeaderActionsProps } from '@/widget/HeaderActions/HeaderActions'
@@ -31,6 +32,7 @@ export function Header({ headerActions }: HeaderProps) {
         <ProjectName>{activeProject?.name}</ProjectName>
         <Spacer />
         <HeaderActions actions={headerActions} />
+        <NotificationBell />
         <UserProfile />
       </HeaderMainBlock>
     </TopBlock>

@@ -57,4 +57,14 @@ public class TaskStatusController {
     ) throws NotFoundException, BadRequestException {
         return taskStatusService.updateStatuses(projectId, data);
     }
+
+    @RolesAllowed({PROJECT_OWNER})
+    @DeleteMapping("/project/{projectId}/{statusId}")
+    @Operation(summary = "Удаление колонки (задачи переносятся в колонку по умолчанию)")
+    public ru.worktechlab.work_task.dto.ApiResponse deleteStatus(
+            @PathVariable String projectId,
+            @PathVariable long statusId
+    ) throws NotFoundException, BadRequestException {
+        return taskStatusService.deleteStatus(projectId, statusId);
+    }
 }

@@ -4,11 +4,13 @@ import lombok.Getter;
 
 @Getter
 public enum StatusName {
-    TODO("сделать", 1, true, true),
-    IN_PROGRESS("в работе", 2, true, false),
-    REVIEW("ревью", 3, true, false),
-    DONE("готово", 4, true, false),
-    CANCELED("отменена", 5, false, false),
+    // Kanban-колонки. BACKLOG — дефолтная колонка, куда попадают новые задачи.
+    BACKLOG("Бэклог", 1, true, true),
+    TODO("К выполнению", 2, true, false),
+    IN_PROGRESS("В работе", 3, true, false),
+    REVIEW("Ревью", 4, true, false),
+    DONE("Готово", 5, true, false),
+    CANCELED("Отменена", 6, false, false),
     ;
 
     private final String description;

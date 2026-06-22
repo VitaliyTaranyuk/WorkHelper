@@ -37,4 +37,9 @@ public interface UserRepository extends JpaRepository<User, String>, UserFilter 
     @Query(nativeQuery = true,
             value = "select * from users where id = :id and is_active and confirmed_at is not null for update skip locked")
     Optional<User> findActiveUserByIdForUpdate(String id);
+
+    @Query("from User where username = :username")
+    Optional<User> findByUsername(String username);
+
+    boolean existsByUsernameAndIdNot(String username, String id);
 }

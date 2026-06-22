@@ -64,4 +64,7 @@ public class TaskDataDto {
 
     @Schema(description = "Код задачи", example = "ТП-1")
     private String code;
+
+    @Schema(description = "Позиция задачи внутри колонки", example = "0")
+    private int position;
 }

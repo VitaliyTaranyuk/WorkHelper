@@ -92,6 +92,8 @@ export const API_ENDPOINT_PATH = {
 
     UPDATE_STATUS: () => `/tasks/update-status`,
 
+    REORDER: ({ projectId }: ProjectId) => `/tasks/${projectId}/reorder`,
+
     UPDATE_SPRINT: () => `/tasks/update-sprint`,
 
     GET_HISTORY: ({ projectId, taskId }: ProjectId & TaskId) =>
@@ -155,5 +157,12 @@ export const API_ENDPOINT_PATH = {
 
   ROLES: {
     GET_ALL: () => `/roles`,
+  },
+
+  NOTIFICATIONS: {
+    LIST: () => `/notifications`,
+    UNREAD_COUNT: () => `/notifications/unread-count`,
+    MARK_READ: ({ id }: { id: string }) => `/notifications/${id}/read`,
+    MARK_ALL_READ: () => `/notifications/read-all`,
   },
 } as const
