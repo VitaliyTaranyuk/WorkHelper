@@ -95,6 +95,7 @@ public class ProjectsService {
         createDefaultStatuses(project);
         createDefaultSprint(user, project);
         usersProjectsRepository.saveAndFlush(new UsersProject(user, project));
+        roleService.addUserRoles(user, Roles.PROJECT_OWNER);
         // Default statuses, sprint and membership were persisted through their own
         // repositories, so the managed `project` instance still holds empty collections.
         // Refresh it from the DB so the returned DTO contains the full graph (statuses, users).

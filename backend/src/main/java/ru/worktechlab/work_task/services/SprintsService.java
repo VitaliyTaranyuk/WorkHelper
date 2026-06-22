@@ -178,4 +178,12 @@ public class SprintsService {
         log.info("Спринт {} удалён, перенесено задач в Backlog: {}", sprintId, tasks.size());
         return new ApiResponse(String.format("Спринт удалён, задач перенесено в Backlog: %d", tasks.size()));
     }
+
+    @TransactionRequired
+    public List<SprintInfoDTO> getAllSprintsInfo(String projectId) throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        return sprintsRepository.findAllByProject(data.getProject()).stream()
+                .map(sprintMapper::toSprintInfoDto)
+                .toList();
+    }
 }
