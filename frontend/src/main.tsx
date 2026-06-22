@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import NiceModal from '@ebay/nice-modal-react'
+import { Toaster } from 'sonner'
 import { routeTree } from './routeTree.gen'
 import { useAuthStore } from './features/auth/authStore'
 import { AuthLoader } from './features/auth/AuthLoader'
@@ -43,6 +44,7 @@ createRoot(document.getElementById('root')!).render(
         <AuthLoader>
           <NiceModal.Provider>
             <InnerApp />
+            <Toaster position="bottom-right" richColors />
           </NiceModal.Provider>
         </AuthLoader>
       </ThemeProvider>

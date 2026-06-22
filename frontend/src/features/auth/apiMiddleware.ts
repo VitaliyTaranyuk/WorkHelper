@@ -33,12 +33,9 @@ export function addWorkTechApiAuthMiddleware(workTechApi: AxiosInstance) {
         const refreshToken = getRefreshToken()
 
         if (!refreshToken) {
-          // todo: add redirect to login page
-          console.error(
-            'тут должна быть обработка при отсутствии авторизации, например переход на страницу логина ',
-            error,
-          )
-          return
+          clearTokens()
+          window.location.href = '/login'
+          return Promise.reject(error)
         }
 
         originalRequest._retry = true
@@ -64,12 +61,10 @@ export function addWorkTechApiAuthMiddleware(workTechApi: AxiosInstance) {
           // Retry the original request with the new token
           originalRequest.headers.Authorization = `Bearer ${response.data.accessToken!}`
           return axios(originalRequest)
-        } catch (error) {
-          // todo: add redirect to login page
-          console.error(
-            'тут должна быть обработка при отсутствии авторизации, например переход на страницу логина ',
-            error,
-          )
+        } catch {
+          clearTokens()
+          window.location.href = '/login'
+          return Promise.reject(new Error('session expired'))
         }
       }
 

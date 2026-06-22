@@ -1,6 +1,7 @@
 import type { SprintDtoRequest } from '@/data-contracts'
 import { workTechApi } from '@/shared/api/endpoint'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 export function useEditSprint({
   projectId,
@@ -22,6 +23,10 @@ export function useEditSprint({
       queryClient.invalidateQueries({
         queryKey: ['sprints', projectId],
       })
+      toast.success('Спринт обновлён')
+    },
+    onError: () => {
+      toast.error('Не удалось обновить спринт')
     },
   })
 

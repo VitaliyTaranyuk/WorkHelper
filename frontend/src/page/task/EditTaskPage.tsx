@@ -11,6 +11,7 @@ import { Headline } from './styles'
 import { formatToLocaleDate } from '@/shared/utils/date'
 import { useEditTask } from '@/features/task/mutation/useEditTask'
 import { useTaskByCode } from '@/features/task/query/useTaskByCode'
+import { toast } from 'sonner'
 
 export const EditTaskPage = memo(function EditTaskPageInner({
   code,
@@ -64,9 +65,8 @@ function TaskPageForm({ task }: { task: ITaskCard }) {
         },
       })
       form.reset({ ...formValues })
-    } catch (e) {
-      // здесь показыаем тосты об ошибке
-      console.log(e)
+    } catch {
+      toast.error('Не удалось сохранить изменения')
     }
   })
 

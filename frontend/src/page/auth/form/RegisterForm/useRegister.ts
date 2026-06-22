@@ -47,7 +47,7 @@ const registerSchema = z
       .min(3, { message: 'Фамилия должна быть не менее 3 символов' }),
     password: z
       .string()
-      .min(8, { message: 'Пароль должлен быть не менее 8 символов' }),
+      .min(8, { message: 'Пароль должен быть не менее 8 символов' }),
     confirmPassword: z.string(),
   })
   .superRefine(({ password, confirmPassword }, ctx) => {
