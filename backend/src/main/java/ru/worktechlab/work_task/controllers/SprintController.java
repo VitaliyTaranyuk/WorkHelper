@@ -30,7 +30,23 @@ public class SprintController {
         return sprintsService.getActiveSprint(projectId);
     }
 
-    @RolesAllowed({ADMIN, PROJECT_OWNER, POWER_USER})
+    @RolesAllowed({ADMIN, PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @GetMapping("/project/{projectId}/info")
+    @Operation(summary = "Вывести список спринтов проекта (без задач)")
+    public java.util.List<SprintInfoDTO> getAllSprintsInfo(@Parameter(description = "ИД проекта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
+                                                           @PathVariable String projectId) throws NotFoundException {
+        return sprintsService.getAllSprintsInfo(projectId);
+    }
+
+    @RolesAllowed({ADMIN, PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @GetMapping("/project/{projectId}/sprint-list")
+    @Operation(summary = "Вывести список спринтов проекта")
+    public java.util.List<SprintInfoDTO> getSprintList(@Parameter(description = "ИД проекта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
+                                                       @PathVariable String projectId) throws NotFoundException {
+        return sprintsService.getAllSprintsInfo(projectId);
+    }
+
+    @RolesAllowed({ADMIN, PROJECT_OWNER, POWER_USER, PROJECT_MEMBER})
     @PostMapping("/project/{projectId}/create")
     @Operation(summary = "Создание спринта")
     public SprintInfoDTO createSprint(@Parameter(description = "ИД проекта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)

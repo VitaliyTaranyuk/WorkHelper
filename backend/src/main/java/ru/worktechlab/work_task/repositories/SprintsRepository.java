@@ -31,4 +31,7 @@ public interface SprintsRepository extends JpaRepository<Sprint, String> {
 
     @Query("from Sprint where project = :project and defaultSprint = true")
     Optional<Sprint> findDefaultSprintByProject(Project project);
+
+    @Query("from Sprint where project = :project order by defaultSprint desc, active desc, startDate asc, name asc")
+    java.util.List<Sprint> findAllByProject(Project project);
 }

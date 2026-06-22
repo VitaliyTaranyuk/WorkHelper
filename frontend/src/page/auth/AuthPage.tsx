@@ -11,15 +11,22 @@ import { useState } from 'react'
 import { RegisterForm } from './form/RegisterForm/RegisterForm'
 import { SuccessRegisteredPage } from './SuccessRegisteredPage'
 import { LoginForm } from './form/LoginForm/LoginForm'
+import { useAuthStore } from '../../features/auth/authStore'
 
 export function AuthPage({ redirect = '/main' }: { redirect?: string }) {
   const [isRegistered, setIsRegistered] = useState(false)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
 
   const { submit } = useLogin()
   const navigate = useNavigate()
   const matchRoute = useMatchRoute()
   const isRegisterRoute = matchRoute({ to: '/register' })
   const isLoginRoute = matchRoute({ to: '/login' })
+
+  if (isAuthenticated) {
+    navigate({ to: redirect })
+    return null
+  }
 
   const onSwitchChange = () => {
     if (isRegisterRoute) {
