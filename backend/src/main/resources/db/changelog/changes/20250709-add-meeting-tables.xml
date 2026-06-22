@@ -1,0 +1,58 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- Additive: calendar meetings + participants. -->
+    <changeSet id="20250709-add-meeting-table" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="meeting"/></not>
+        </preConditions>
+        <createTable tableName="meeting">
+            <column name="id" type="varchar(255)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="project_id" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(2048)"/>
+            <column name="start_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="end_at" type="timestamp"/>
+            <column name="creator_id" type="varchar(255)"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="meeting" baseColumnNames="project_id"
+                                 constraintName="fk_meeting_project"
+                                 referencedTableName="project" referencedColumnNames="id"/>
+        <addForeignKeyConstraint baseTableName="meeting" baseColumnNames="creator_id"
+                                 constraintName="fk_meeting_creator"
+                                 referencedTableName="users" referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="20250709-add-meeting-participant" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="meeting_participant"/></not>
+        </preConditions>
+        <createTable tableName="meeting_participant">
+            <column name="meeting_id" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="meeting_participant" columnNames="meeting_id, user_id"
+                       constraintName="pk_meeting_participant"/>
+        <addForeignKeyConstraint baseTableName="meeting_participant" baseColumnNames="meeting_id"
+                                 constraintName="fk_mp_meeting"
+                                 referencedTableName="meeting" referencedColumnNames="id"/>
+        <addForeignKeyConstraint baseTableName="meeting_participant" baseColumnNames="user_id"
+                                 constraintName="fk_mp_user"
+                                 referencedTableName="users" referencedColumnNames="id"/>
+    </changeSet>
+
+</databaseChangeLog>

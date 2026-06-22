@@ -27,6 +27,11 @@ export function Sidebar({ className }: SideBarProps) {
             Бэклог
           </MenuLink>
         )}
+        {activeProject && (
+          <MenuLink to={`/project/${activeProject.id}/calendar`}>
+            Календарь
+          </MenuLink>
+        )}
       </BottomMenu>
 
       <StyledVerticalLine size={BLOCK_BORDER_WIDTH_PX} />

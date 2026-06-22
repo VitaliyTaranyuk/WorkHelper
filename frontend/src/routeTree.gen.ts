@@ -18,6 +18,7 @@ import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AuthenticatedTaskCreateRouteImport } from './routes/_authenticated/task/create'
 import { Route as AuthenticatedTaskCodeRouteImport } from './routes/_authenticated/task/$code'
 import { Route as AuthenticatedProjectProjectIdSprintRouteImport } from './routes/_authenticated/project/$projectId/sprint'
+import { Route as AuthenticatedProjectProjectIdCalendarRouteImport } from './routes/_authenticated/project/$projectId/calendar'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -63,6 +64,12 @@ const AuthenticatedProjectProjectIdSprintRoute =
     path: '/project/$projectId/sprint',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedProjectProjectIdCalendarRoute =
+  AuthenticatedProjectProjectIdCalendarRouteImport.update({
+    id: '/project/$projectId/calendar',
+    path: '/project/$projectId/calendar',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -71,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/main': typeof AuthenticatedMainRoute
   '/task/$code': typeof AuthenticatedTaskCodeRoute
   '/task/create': typeof AuthenticatedTaskCreateRoute
+  '/project/$projectId/calendar': typeof AuthenticatedProjectProjectIdCalendarRoute
   '/project/$projectId/sprint': typeof AuthenticatedProjectProjectIdSprintRoute
 }
 export interface FileRoutesByTo {
@@ -80,6 +88,7 @@ export interface FileRoutesByTo {
   '/main': typeof AuthenticatedMainRoute
   '/task/$code': typeof AuthenticatedTaskCodeRoute
   '/task/create': typeof AuthenticatedTaskCreateRoute
+  '/project/$projectId/calendar': typeof AuthenticatedProjectProjectIdCalendarRoute
   '/project/$projectId/sprint': typeof AuthenticatedProjectProjectIdSprintRoute
 }
 export interface FileRoutesById {
@@ -92,6 +101,7 @@ export interface FileRoutesById {
   '/_authenticated/main': typeof AuthenticatedMainRoute
   '/_authenticated/task/$code': typeof AuthenticatedTaskCodeRoute
   '/_authenticated/task/create': typeof AuthenticatedTaskCreateRoute
+  '/_authenticated/project/$projectId/calendar': typeof AuthenticatedProjectProjectIdCalendarRoute
   '/_authenticated/project/$projectId/sprint': typeof AuthenticatedProjectProjectIdSprintRoute
 }
 export interface FileRouteTypes {
@@ -103,6 +113,7 @@ export interface FileRouteTypes {
     | '/main'
     | '/task/$code'
     | '/task/create'
+    | '/project/$projectId/calendar'
     | '/project/$projectId/sprint'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -112,6 +123,7 @@ export interface FileRouteTypes {
     | '/main'
     | '/task/$code'
     | '/task/create'
+    | '/project/$projectId/calendar'
     | '/project/$projectId/sprint'
   id:
     | '__root__'
@@ -123,6 +135,7 @@ export interface FileRouteTypes {
     | '/_authenticated/main'
     | '/_authenticated/task/$code'
     | '/_authenticated/task/create'
+    | '/_authenticated/project/$projectId/calendar'
     | '/_authenticated/project/$projectId/sprint'
   fileRoutesById: FileRoutesById
 }
@@ -197,6 +210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectProjectIdSprintRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/project/$projectId/calendar': {
+      id: '/_authenticated/project/$projectId/calendar'
+      path: '/project/$projectId/calendar'
+      fullPath: '/project/$projectId/calendar'
+      preLoaderRoute: typeof AuthenticatedProjectProjectIdCalendarRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -216,6 +236,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMainRoute: typeof AuthenticatedMainRoute
   AuthenticatedTaskCodeRoute: typeof AuthenticatedTaskCodeRoute
   AuthenticatedTaskCreateRoute: typeof AuthenticatedTaskCreateRoute
+  AuthenticatedProjectProjectIdCalendarRoute: typeof AuthenticatedProjectProjectIdCalendarRoute
   AuthenticatedProjectProjectIdSprintRoute: typeof AuthenticatedProjectProjectIdSprintRoute
 }
 
@@ -223,6 +244,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMainRoute: AuthenticatedMainRoute,
   AuthenticatedTaskCodeRoute: AuthenticatedTaskCodeRoute,
   AuthenticatedTaskCreateRoute: AuthenticatedTaskCreateRoute,
+  AuthenticatedProjectProjectIdCalendarRoute:
+    AuthenticatedProjectProjectIdCalendarRoute,
   AuthenticatedProjectProjectIdSprintRoute:
     AuthenticatedProjectProjectIdSprintRoute,
 }

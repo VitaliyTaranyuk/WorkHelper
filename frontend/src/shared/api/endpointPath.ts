@@ -169,6 +169,13 @@ export const API_ENDPOINT_PATH = {
     GET_ALL: () => `/roles`,
   },
 
+  MEETINGS: {
+    LIST: ({ projectId }: ProjectId) => `/meetings/project/${projectId}`,
+    CREATE: ({ projectId }: ProjectId) => `/meetings/project/${projectId}`,
+    UPDATE: ({ meetingId }: { meetingId: string }) => `/meetings/${meetingId}`,
+    DELETE: ({ meetingId }: { meetingId: string }) => `/meetings/${meetingId}`,
+  },
+
   NOTIFICATIONS: {
     LIST: () => `/notifications`,
     UNREAD_COUNT: () => `/notifications/unread-count`,
