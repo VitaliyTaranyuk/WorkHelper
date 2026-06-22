@@ -23,8 +23,16 @@ export function Sidebar({ className }: SideBarProps) {
 
       <BottomMenu>
         {activeProject && (
+          <MenuLink to="/main">Доска</MenuLink>
+        )}
+        {activeProject && (
+          <MenuLink to={`/project/${activeProject.id}/backlog`}>
+            Backlog
+          </MenuLink>
+        )}
+        {activeProject && (
           <MenuLink to={`/project/${activeProject.id}/sprint`}>
-            Бэклог
+            Спринты
           </MenuLink>
         )}
         {activeProject && (
@@ -32,6 +40,7 @@ export function Sidebar({ className }: SideBarProps) {
             Календарь
           </MenuLink>
         )}
+        <MenuLink to="/settings">Настройки</MenuLink>
       </BottomMenu>
 
       <StyledVerticalLine size={BLOCK_BORDER_WIDTH_PX} />

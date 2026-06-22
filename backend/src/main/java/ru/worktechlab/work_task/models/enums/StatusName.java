@@ -4,8 +4,10 @@ import lombok.Getter;
 
 @Getter
 public enum StatusName {
-    // Kanban-колонки. BACKLOG — дефолтная колонка, куда попадают новые задачи.
-    BACKLOG("Бэклог", 1, true, true),
+    // Kanban-колонки. BACKLOG — дефолтная категория для новых задач, но
+    // отрисовывается как ОТДЕЛЬНЫЙ раздел (страница /backlog), а не как колонка
+    // на основной канбан-доске (viewed=false). Это соответствует Jira/Trello.
+    BACKLOG("Бэклог", 1, false, true),
     TODO("К выполнению", 2, true, false),
     IN_PROGRESS("В работе", 3, true, false),
     REVIEW("Ревью", 4, true, false),

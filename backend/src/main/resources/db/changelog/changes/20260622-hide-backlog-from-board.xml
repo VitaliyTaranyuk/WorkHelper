@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <changeSet id="20260622-hide-backlog-from-board" author="audit">
+        <comment>
+            Backlog теперь — отдельный раздел приложения, а не колонка канбан-доски.
+            Для существующих проектов сбрасываем флаг viewed у BACKLOG-статусов.
+        </comment>
+        <sql>
+            UPDATE task_status
+            SET viewed = false
+            WHERE code = 'BACKLOG'
+              AND viewed = true;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

@@ -17,7 +17,9 @@ import type { HeaderActionsProps } from '@/widget/HeaderActions/HeaderActions'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import IconButton from '@mui/material/IconButton'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import { useBoardEditModeStore } from '@/features/board/boardEditModeStore'
+import { Link } from '@tanstack/react-router'
 type HeaderProps = {
   headerActions: HeaderActionsProps
 }
@@ -45,11 +47,20 @@ export function Header({ headerActions }: HeaderProps) {
           }
           size="small"
         >
-          <SettingsOutlinedIcon fontSize="small" />
+          <EditOutlinedIcon fontSize="small" />
         </IconButton>
         <Spacer />
         <HeaderActions actions={headerActions} />
         <NotificationBell />
+        <IconButton
+          component={Link}
+          to="/settings"
+          aria-label="Настройки"
+          title="Настройки"
+          size="small"
+        >
+          <SettingsOutlinedIcon fontSize="small" />
+        </IconButton>
         <UserProfile />
       </HeaderMainBlock>
     </TopBlock>
