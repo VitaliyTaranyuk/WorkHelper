@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import Badge from '@mui/material/Badge'
 import IconButton from '@mui/material/IconButton'
 import Menu from '@mui/material/Menu'
@@ -17,6 +18,7 @@ import {
 export function NotificationBell() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const open = Boolean(anchorEl)
+  const navigate = useNavigate()
 
   const unreadQuery = useUnreadCount()
   const listQuery = useNotifications(open)
@@ -72,15 +74,31 @@ export function NotificationBell() {
         {notifications.map((n) => (
           <MenuItem
             key={n.id}
-            onClick={() => !n.read && markRead.mutate(n.id)}
+            onClick={() => {
+              if (!n.read) markRead.mutate(n.id)
+              if (n.taskCode) {
+                setAnchorEl(null)
+                navigate({ to: '/task/$code', params: { code: n.taskCode } })
+              }
+            }}
             sx={{
               whiteSpace: 'normal',
+              cursor: n.taskCode ? 'pointer' : 'default',
               backgroundColor: n.read ? 'transparent' : 'rgba(99,102,241,0.08)',
             }}
           >
             <ListItemText
               primary={n.message}
-              secondary={new Date(n.createdAt).toLocaleString()}
+              secondary={
+                n.taskCode
+                  ? `${n.taskCode} · ${new Date(n.createdAt).toLocaleString()}`
+                  : new Date(n.createdAt).toLocaleString()
+              }
+              slotProps={{
+                primary: {
+                  sx: { color: n.taskCode ? 'primary.main' : 'inherit' },
+                },
+              }}
             />
           </MenuItem>
         ))}

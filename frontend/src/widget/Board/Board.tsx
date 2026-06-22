@@ -75,7 +75,8 @@ function BoardInner(props: BoardProps) {
                 >
                   <ColumnHeader>
                     <ColumnTitle>
-                      {status.code} ({statusTasks.length})
+                      {status.code}
+                      {statusTasks.length > 0 ? ` (${statusTasks.length})` : ''}
                     </ColumnTitle>
                   </ColumnHeader>
                   <TaskList>
