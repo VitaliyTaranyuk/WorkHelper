@@ -326,7 +326,7 @@ export function CompactTaskForm(props: CompactTaskFormProps) {
                     onChange={(e) => field.onChange(e.target.value)}
                   >
                     {sortedSprints.map((sprint) => (
-                      <MenuItem value={sprint.id}>
+                      <MenuItem key={sprint.id} value={sprint.id}>
                         {sprint.name} {sprint.isActive && ` (Активный)`}
                       </MenuItem>
                     ))}

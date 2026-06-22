@@ -1,6 +1,7 @@
 import type { UpdateTaskModelDTO } from '@/data-contracts'
 import { workTechApi } from '@/shared/api/endpoint'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 export function useEditTask() {
   const queryClient = useQueryClient()
@@ -27,6 +28,10 @@ export function useEditTask() {
       queryClient.invalidateQueries({
         queryKey: ['sprints', variables.projectId],
       })
+      toast.success('Задача обновлена')
+    },
+    onError: () => {
+      toast.error('Не удалось сохранить изменения')
     },
   })
 

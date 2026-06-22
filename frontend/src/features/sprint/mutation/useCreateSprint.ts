@@ -1,6 +1,7 @@
 import type { SprintDtoRequest } from '@/data-contracts'
 import { workTechApi } from '@/shared/api/endpoint'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 export function useCreateSprint() {
   const queryClient = useQueryClient()
@@ -21,6 +22,10 @@ export function useCreateSprint() {
       queryClient.invalidateQueries({
         queryKey: ['sprints', variables.projectId],
       })
+      toast.success('Спринт создан')
+    },
+    onError: () => {
+      toast.error('Не удалось создать спринт')
     },
   })
 

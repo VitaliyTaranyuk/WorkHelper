@@ -123,7 +123,7 @@ export function Sprint({ sprint, projectId, taskFilter }: SprintProps) {
           <Title>
             {truncateText(sprint.name, SPRINT_TITLE_MAX)}
 
-            {!!sprintTasks.length && (
+            {!!sprint.tasks.length && (
               <ExpandBlock>
                 <ExpandButton
                   onClick={() => setIsExpanded((prev) => !prev)}
@@ -177,8 +177,8 @@ export function Sprint({ sprint, projectId, taskFilter }: SprintProps) {
           )}
         </ControlsBlock>
       </SprintBlock>
-      {!!sprintTasks.length && (
-        <TaskBlock isExpanded={isExpaneded}>
+      <TaskBlock isExpanded={isExpaneded}>
+        {sprintTasks.length > 0 ? (
           <Stack flexDirection={'column'} gap={'8px'} component={'ul'}>
             {sprintTasks.map((task) => (
               <li key={task.id}>
@@ -186,14 +186,22 @@ export function Sprint({ sprint, projectId, taskFilter }: SprintProps) {
                   onEditClick={onTaskEditClick}
                   onMoveToSprintClick={onMoveToSprintClick}
                   onTitleClick={onTitleClick}
-                  key={task.id}
                   task={task}
                 />
               </li>
             ))}
           </Stack>
-        </TaskBlock>
-      )}
+        ) : (
+          <Stack
+            alignItems={'center'}
+            justifyContent={'center'}
+            height={'48px'}
+            sx={{ color: 'text.disabled', fontSize: '14px' }}
+          >
+            {sprint.tasks.length > 0 ? 'Нет задач по фильтру' : 'Нет задач'}
+          </Stack>
+        )}
+      </TaskBlock>
     </SprintContainer>
   )
 }

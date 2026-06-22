@@ -19,19 +19,23 @@ import { modalStyle } from '@/shared/ui/modalStyles'
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useCreateTask } from '@/features/task/mutation/useCreateTask'
+import { Loader } from '@/shared/ui/components/Loader'
 
 export const CreateTaskModal = NiceModal.create(CreateTaskModalInner)
 
 function CreateTaskModalInner() {
   const modal = useModal()
   const { activeProject } = useProjectData()
-  const { data: sprints } = useSprintsInfoQuery({
+  const { data: sprints, isLoading: isSprintsLoading } = useSprintsInfoQuery({
     projectId: activeProject?.id,
   })
   const createTask = useCreateTask()
 
+  const defaultSprint = (sprints || []).find((sprint) => sprint.isDefault)
+  const defaultSprintId = defaultSprint?.id ?? ''
+
   const form = useCreateTaskForm({
-    defaultSprintId: (sprints || []).find((sprint) => sprint.isDefault)!.id,
+    defaultSprintId,
   })
 
   const handleClose = () => {
@@ -86,12 +90,15 @@ function CreateTaskModalInner() {
         <CloseIcon fontSize="small" />
       </IconButton>
       <DialogContent sx={{ padding: 0, marginTop: '16px', overflow: 'hidden' }}>
-        <CompactTaskForm
-          mode="create"
-          // TODO: сделать отдельный стор для user, в useAuth оставить только isAuthenticated
-          onSubmit={onSubmit}
-          form={form}
-        />
+        {isSprintsLoading ? (
+          <Loader isLoading />
+        ) : (
+          <CompactTaskForm
+            mode="create"
+            onSubmit={onSubmit}
+            form={form}
+          />
+        )}
       </DialogContent>
       <DialogActions sx={{ p: 0, mt: '13px' }}>
         <Stack gap={'18px'} direction={'row'} width={'100%'} height={'42px'}>

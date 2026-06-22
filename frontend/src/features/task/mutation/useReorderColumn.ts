@@ -1,6 +1,7 @@
 import { SPRINT_QUERY_KEY } from '@/features/sprint/query/constants'
 import { workTechApi } from '@/shared/api/endpoint'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 export function useReorderColumn() {
   const queryClient = useQueryClient()
@@ -24,6 +25,9 @@ export function useReorderColumn() {
       queryClient.invalidateQueries({
         queryKey: ['sprints', variables.projectId, SPRINT_QUERY_KEY.withTasks],
       })
+    },
+    onError: () => {
+      toast.error('Не удалось сохранить порядок задач')
     },
   })
 }

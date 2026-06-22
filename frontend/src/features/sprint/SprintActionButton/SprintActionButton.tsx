@@ -17,6 +17,7 @@ import {
   ActivateSprintModal,
   type ActivateSprintModalProps,
 } from '@/widget/modal/sprint/ActivateSprintModal'
+import { useNavigate } from '@tanstack/react-router'
 
 type SprintButtonActionProps = {
   className?: string
@@ -24,13 +25,16 @@ type SprintButtonActionProps = {
 }
 
 export function ViewSprintButton(props: SprintButtonActionProps) {
+  const navigate = useNavigate()
+
   const onClick = () => {
-    console.log('ViewSprintButton')
+    navigate({ to: '/main' })
+    if (props.onSuccess) props.onSuccess()
   }
 
   return (
     <IconButton className={props.className} onClick={onClick}>
-      <IconImg iconUrl={iconLook} iconAlt="просмотреть спринт" />
+      <IconImg iconUrl={iconLook} iconAlt="перейти к доске активного спринта" />
     </IconButton>
   )
 }

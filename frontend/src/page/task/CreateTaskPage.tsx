@@ -60,25 +60,29 @@ function CreateTaskForm({
   const createTask = useCreateTask()
 
   const onSubmit = form.handleSubmit(async (formValues) => {
-    await createTask.mutateAsync({
-      priority: formValues.priority,
-      projectId,
-      taskType: formValues.type,
-      title: formValues.taskTitle,
-      sprintId: formValues.sprint,
+    try {
+      await createTask.mutateAsync({
+        priority: formValues.priority,
+        projectId,
+        taskType: formValues.type,
+        title: formValues.taskTitle,
+        sprintId: formValues.sprint,
 
-      ...(formValues.assignee === '-1'
-        ? {}
-        : { assignee: formValues.assignee }),
+        ...(formValues.assignee === '-1'
+          ? {}
+          : { assignee: formValues.assignee }),
 
-      ...(formValues.estimation ? { estimation: formValues.estimation } : {}),
+        ...(formValues.estimation ? { estimation: formValues.estimation } : {}),
 
-      ...(formValues.description
-        ? { description: formValues.description }
-        : {}),
-    })
+        ...(formValues.description
+          ? { description: formValues.description }
+          : {}),
+      })
 
-    onSuccess()
+      onSuccess()
+    } catch {
+      // toast already shown by useCreateTask onError
+    }
   })
 
   return (

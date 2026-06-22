@@ -1,6 +1,7 @@
 import type { TaskModelDTO } from '@/data-contracts'
 import { workTechApi } from '@/shared/api/endpoint'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 export function useCreateTask() {
   const queryClient = useQueryClient()
@@ -17,6 +18,10 @@ export function useCreateTask() {
       queryClient.invalidateQueries({
         queryKey: ['sprints', variables.projectId],
       })
+      toast.success('Задача создана')
+    },
+    onError: () => {
+      toast.error('Не удалось создать задачу')
     },
   })
 

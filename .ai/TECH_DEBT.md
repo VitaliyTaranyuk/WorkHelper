@@ -27,6 +27,19 @@
 
 | ID | Описание | Дата устранения | PR/Commit |
 |----|----------|-----------------|-----------|
+| BUG-011 | `sonner` установлен но `<Toaster>` не подключён → ни одно уведомление не отображалось (HIGH) | 2026-06-22 | `fix/quality-audit-ux-defects` |
+| BUG-012 | `apiMiddleware.ts`: при неудачном refresh-токена только `console.error` без редиректа → пользователь застревал с 401 (HIGH) | 2026-06-22 | `fix/quality-audit-ux-defects` |
+| BUG-013 | `CreateTaskModal`: non-null assertion `find()!.id` → крэш при отсутствии default-спринта (HIGH) | 2026-06-22 | `fix/quality-audit-ux-defects` |
+| BUG-014 | Все мутации без `onError` → ошибки API молча игнорировались (MEDIUM) | 2026-06-22 | `fix/quality-audit-ux-defects` |
+| BUG-015 | `EditTaskPage` catch-блок только `console.log` → ошибка сохранения незаметна (MEDIUM) | 2026-06-22 | `fix/quality-audit-ux-defects` |
+| BUG-016 | `CreateTaskPage` без try/catch в submit → unhandled promise rejection (MEDIUM) | 2026-06-22 | `fix/quality-audit-ux-defects` |
+| BUG-017 | `ViewSprintButton` — заглушка `console.log` → кнопка "просмотреть спринт" не работала (MEDIUM) | 2026-06-22 | `fix/quality-audit-ux-defects` |
+| BUG-018 | `FinishSprintModal` без защиты от двойного сабмита → многократный вызов API (MEDIUM) | 2026-06-22 | `fix/quality-audit-ux-defects` |
+| BUG-019 | `FinishSprintModal` вызывал `updateTasksSprint` при пустом списке незакрытых задач (LOW) | 2026-06-22 | `fix/quality-audit-ux-defects` |
+| BUG-020 | `Sprint` без empty state → при 0 задачах пустое пространство без объяснений (LOW) | 2026-06-22 | `fix/quality-audit-ux-defects` |
+| BUG-021 | `Sprint` expand-кнопка скрывалась при активном фильтре → нельзя свернуть/развернуть (LOW) | 2026-06-22 | `fix/quality-audit-ux-defects` |
+| BUG-022 | `CompactTaskForm` MenuItem спринтов без `key` prop → React предупреждения + непредсказуемый diff (LOW) | 2026-06-22 | `fix/quality-audit-ux-defects` |
+| BUG-023 | `useRegister` опечатка "Пароль должлен" → "Пароль должен" (LOW) | 2026-06-22 | `fix/quality-audit-ux-defects` |
 | BUG-001 | `task_status_id_seq` рассинхрон после seed → невозможно создать проект (CRITICAL) | 2026-06-21 | `20250630-fix-task-status-sequence.xml` |
 | BUG-002 | `users_projects_id_seq` тот же рассинхрон → невозможно создать проект (CRITICAL) | 2026-06-21 | `20250630-fix-task-status-sequence.xml` |
 | BUG-003 | `SprintsRepository.hasActiveSprint` — сломанный native SQL → 500 при активации спринта (HIGH) | 2026-06-21 | SprintsRepository.java |

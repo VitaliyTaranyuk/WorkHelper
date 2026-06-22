@@ -1,6 +1,7 @@
 import { SPRINT_QUERY_KEY } from '@/features/sprint/query/constants'
 import { workTechApi } from '@/shared/api/endpoint'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 export function useUpdateTaskStatus() {
   const queryClient = useQueryClient()
@@ -29,6 +30,9 @@ export function useUpdateTaskStatus() {
       queryClient.invalidateQueries({
         queryKey: ['sprints', variables.projectId, SPRINT_QUERY_KEY.withTasks],
       })
+    },
+    onError: () => {
+      toast.error('Не удалось изменить статус задачи')
     },
   })
 

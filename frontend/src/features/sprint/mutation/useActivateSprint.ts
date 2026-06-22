@@ -1,5 +1,6 @@
 import { workTechApi } from '@/shared/api/endpoint'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 export function useActivateSprint() {
   const queryClient = useQueryClient()
@@ -20,10 +21,13 @@ export function useActivateSprint() {
       queryClient.invalidateQueries({
         queryKey: ['sprints', variables.projectId],
       })
-
       queryClient.invalidateQueries({
         queryKey: ['tasks', variables.projectId],
       })
+      toast.success('Спринт запущен')
+    },
+    onError: () => {
+      toast.error('Не удалось запустить спринт')
     },
   })
 

@@ -1,5 +1,6 @@
 import { workTechApi } from '@/shared/api/endpoint'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 export function useFinishSprint() {
   const queryClient = useQueryClient()
@@ -23,6 +24,10 @@ export function useFinishSprint() {
       queryClient.invalidateQueries({
         queryKey: ['tasks', variables.projectId],
       })
+      toast.success('Спринт завершён')
+    },
+    onError: () => {
+      toast.error('Не удалось завершить спринт')
     },
   })
 

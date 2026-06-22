@@ -41,17 +41,23 @@ function FinishSprintModalInner(props: FinishSprintModalProps) {
     (task) => task.status !== activeProject?.resolveStatus,
   )
 
+  const isSubmitting =
+    finishSprint.isPending || updateTasksSprint.isPending
+
   const handleClose = () => {
+    if (isSubmitting) return
     modal.reject()
     modal.hide()
   }
 
   const onSubmit = async () => {
-    await updateTasksSprint.mutateAsync({
-      projectId: props.projectId,
-      sprintId: selectedSprintId,
-      taskIds: notFinishedTasks.map((task) => task.id),
-    })
+    if (notFinishedTasks.length > 0) {
+      await updateTasksSprint.mutateAsync({
+        projectId: props.projectId,
+        sprintId: selectedSprintId,
+        taskIds: notFinishedTasks.map((task) => task.id),
+      })
+    }
 
     await finishSprint.mutateAsync({
       projectId: props.projectId,
@@ -99,11 +105,11 @@ function FinishSprintModalInner(props: FinishSprintModalProps) {
         <Stack gap={'18px'} direction={'row'} width={'100%'} height={'42px'}>
           <Button
             style={{ width: '50%' }}
-            disabled={!selectedSprintId}
+            disabled={!selectedSprintId || isSubmitting}
             variant="primary"
             onClick={onSubmit}
           >
-            Завершить
+            {isSubmitting ? 'Завершение...' : 'Завершить'}
           </Button>
           <Spacer />
         </Stack>
