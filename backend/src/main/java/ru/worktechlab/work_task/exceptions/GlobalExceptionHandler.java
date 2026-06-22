@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -47,7 +48,23 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<String> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
-        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+        log.error("DataIntegrityViolation", ex);
+        String raw = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+        String safeMessage;
+        if (raw != null && raw.toLowerCase().contains("users_email_key")) {
+            safeMessage = "Пользователь с таким email уже существует";
+        } else if (raw != null && raw.toLowerCase().contains("unique") || raw != null && raw.toLowerCase().contains("duplicate")) {
+            safeMessage = "Запись с такими данными уже существует";
+        } else {
+            safeMessage = "Невозможно выполнить операцию: нарушено ограничение целостности данных";
+        }
+        return new ResponseEntity<>(safeMessage, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<String> handleMessageNotReadable(HttpMessageNotReadableException ex) {
+        log.warn("Malformed request body: {}", ex.getMessage());
+        return new ResponseEntity<>("Некорректный формат запроса", HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(AuthenticationException.class)

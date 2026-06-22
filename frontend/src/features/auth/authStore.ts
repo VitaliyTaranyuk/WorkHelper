@@ -97,6 +97,28 @@ export const useAuthStore = create<AuthState>()(
         await workTechApi.registration.registerUser({
           data,
         })
+        try {
+          const loginResponse = await workTechApi.auth.authenticateUser({
+            data: { email: data.email!, password: data.password! },
+          })
+          if (
+            loginResponse.status >= 200 &&
+            loginResponse.status < 300 &&
+            loginResponse.data?.accessToken
+          ) {
+            saveAccessToken(loginResponse.data.accessToken)
+            saveRefreshToken(loginResponse.data.refreshToken!)
+            const userResponse = await workTechApi.user.getUserProfile()
+            if (userResponse.status >= 200 && userResponse.status < 300) {
+              set({
+                user: mapUserDataDtoToFullUserData(userResponse.data),
+                isAuthenticated: true,
+              })
+            }
+          }
+        } catch {
+          /* mail confirmation enabled — fall back to SuccessRegisteredPage */
+        }
       },
 
       logout: async () => {

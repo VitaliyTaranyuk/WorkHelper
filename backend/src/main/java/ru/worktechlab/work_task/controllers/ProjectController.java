@@ -40,7 +40,7 @@ public class ProjectController {
         return projectsService.getLastProjectId();
     }
 
-    @RolesAllowed({PROJECT_OWNER})
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER, ADMIN})
     @PostMapping("/create")
     @Operation(summary = "Создание проекта")
     public ProjectDto createProject(
