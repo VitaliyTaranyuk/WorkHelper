@@ -16,7 +16,7 @@ public class AssigneeValidator implements ConstraintValidator<ValidAssignee, Str
 
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
-        if (value == null) return false;
+        if (value == null || value.isBlank()) return true;
         Boolean isActive = userRepository.isUserActive(value);
         return Boolean.TRUE.equals(isActive);
     }

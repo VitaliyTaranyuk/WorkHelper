@@ -27,9 +27,8 @@ public class UpdateTaskModelDTO {
     @ValidPriority
     private String priority;
 
-    @Schema(description = "Исполнитель задачи", example = "id пользователя")
+    @Schema(description = "Исполнитель задачи (опционально)", example = "id пользователя")
     @ValidAssignee
-    @NotBlank(message = "ASSIGNEE не может быть пустым")
     private String assignee;
 
     @Schema(description = "Спринт", example = "id спринта")
