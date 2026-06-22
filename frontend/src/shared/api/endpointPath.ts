@@ -78,6 +78,9 @@ export const API_ENDPOINT_PATH = {
     FINISH: ({ projectId, sprintId }: ProjectId & SprintId) =>
       `/sprints/project/${projectId}/${sprintId}/finish`,
 
+    DELETE: ({ projectId, sprintId }: ProjectId & SprintId) =>
+      `/sprints/project/${projectId}/${sprintId}`,
+
     GET_INFO: ({ projectId }: ProjectId) =>
       `/sprints/project/${projectId}/sprint-info`,
 
