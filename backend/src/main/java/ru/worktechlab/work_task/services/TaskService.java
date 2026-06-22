@@ -450,4 +450,15 @@ public class TaskService {
                 .orElseThrow(() -> new NotFoundException(
                         String.format("Статус %d не найден в проекте %s", statusId, project.getName())));
     }
+
+    /** Поиск задачи по человекочитаемому коду в рамках проекта (например JT-1).
+     *  Используется фронтендом для построения URL /task/{code}. */
+    @TransactionRequired
+    public TaskDataDto getTaskByCode(String projectId, String code) throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        TaskModel task = taskRepository.findByCodeAndProject(code, data.getProject())
+                .orElseThrow(() -> new NotFoundException(
+                        String.format("В проекте %s не найдена задача с кодом %s", data.getProject().getName(), code)));
+        return taskMapper.toDo(task);
+    }
 }
