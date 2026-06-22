@@ -19,6 +19,8 @@ import { Route as AuthenticatedTaskCreateRouteImport } from './routes/_authentic
 import { Route as AuthenticatedTaskCodeRouteImport } from './routes/_authenticated/task/$code'
 import { Route as AuthenticatedProjectProjectIdSprintRouteImport } from './routes/_authenticated/project/$projectId/sprint'
 import { Route as AuthenticatedProjectProjectIdCalendarRouteImport } from './routes/_authenticated/project/$projectId/calendar'
+import { Route as AuthenticatedProjectProjectIdBacklogRouteImport } from './routes/_authenticated/project/$projectId/backlog'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -70,14 +72,27 @@ const AuthenticatedProjectProjectIdCalendarRoute =
     path: '/project/$projectId/calendar',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedProjectProjectIdBacklogRoute =
+  AuthenticatedProjectProjectIdBacklogRouteImport.update({
+    id: '/project/$projectId/backlog',
+    path: '/project/$projectId/backlog',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
   '/main': typeof AuthenticatedMainRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/task/$code': typeof AuthenticatedTaskCodeRoute
   '/task/create': typeof AuthenticatedTaskCreateRoute
+  '/project/$projectId/backlog': typeof AuthenticatedProjectProjectIdBacklogRoute
   '/project/$projectId/calendar': typeof AuthenticatedProjectProjectIdCalendarRoute
   '/project/$projectId/sprint': typeof AuthenticatedProjectProjectIdSprintRoute
 }
@@ -86,8 +101,10 @@ export interface FileRoutesByTo {
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
   '/main': typeof AuthenticatedMainRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/task/$code': typeof AuthenticatedTaskCodeRoute
   '/task/create': typeof AuthenticatedTaskCreateRoute
+  '/project/$projectId/backlog': typeof AuthenticatedProjectProjectIdBacklogRoute
   '/project/$projectId/calendar': typeof AuthenticatedProjectProjectIdCalendarRoute
   '/project/$projectId/sprint': typeof AuthenticatedProjectProjectIdSprintRoute
 }
@@ -99,8 +116,10 @@ export interface FileRoutesById {
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/register': typeof AuthRegisterRoute
   '/_authenticated/main': typeof AuthenticatedMainRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/task/$code': typeof AuthenticatedTaskCodeRoute
   '/_authenticated/task/create': typeof AuthenticatedTaskCreateRoute
+  '/_authenticated/project/$projectId/backlog': typeof AuthenticatedProjectProjectIdBacklogRoute
   '/_authenticated/project/$projectId/calendar': typeof AuthenticatedProjectProjectIdCalendarRoute
   '/_authenticated/project/$projectId/sprint': typeof AuthenticatedProjectProjectIdSprintRoute
 }
@@ -111,8 +130,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/main'
+    | '/settings'
     | '/task/$code'
     | '/task/create'
+    | '/project/$projectId/backlog'
     | '/project/$projectId/calendar'
     | '/project/$projectId/sprint'
   fileRoutesByTo: FileRoutesByTo
@@ -121,8 +142,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/main'
+    | '/settings'
     | '/task/$code'
     | '/task/create'
+    | '/project/$projectId/backlog'
     | '/project/$projectId/calendar'
     | '/project/$projectId/sprint'
   id:
@@ -133,8 +156,10 @@ export interface FileRouteTypes {
     | '/_auth/login'
     | '/_auth/register'
     | '/_authenticated/main'
+    | '/_authenticated/settings'
     | '/_authenticated/task/$code'
     | '/_authenticated/task/create'
+    | '/_authenticated/project/$projectId/backlog'
     | '/_authenticated/project/$projectId/calendar'
     | '/_authenticated/project/$projectId/sprint'
   fileRoutesById: FileRoutesById
@@ -217,6 +242,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectProjectIdCalendarRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/project/$projectId/backlog': {
+      id: '/_authenticated/project/$projectId/backlog'
+      path: '/project/$projectId/backlog'
+      fullPath: '/project/$projectId/backlog'
+      preLoaderRoute: typeof AuthenticatedProjectProjectIdBacklogRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -234,16 +273,21 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface AuthenticatedRouteChildren {
   AuthenticatedMainRoute: typeof AuthenticatedMainRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTaskCodeRoute: typeof AuthenticatedTaskCodeRoute
   AuthenticatedTaskCreateRoute: typeof AuthenticatedTaskCreateRoute
+  AuthenticatedProjectProjectIdBacklogRoute: typeof AuthenticatedProjectProjectIdBacklogRoute
   AuthenticatedProjectProjectIdCalendarRoute: typeof AuthenticatedProjectProjectIdCalendarRoute
   AuthenticatedProjectProjectIdSprintRoute: typeof AuthenticatedProjectProjectIdSprintRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMainRoute: AuthenticatedMainRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTaskCodeRoute: AuthenticatedTaskCodeRoute,
   AuthenticatedTaskCreateRoute: AuthenticatedTaskCreateRoute,
+  AuthenticatedProjectProjectIdBacklogRoute:
+    AuthenticatedProjectProjectIdBacklogRoute,
   AuthenticatedProjectProjectIdCalendarRoute:
     AuthenticatedProjectProjectIdCalendarRoute,
   AuthenticatedProjectProjectIdSprintRoute:
