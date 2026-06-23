@@ -21,6 +21,7 @@ export type ITaskCard = {
   assignee?: UserWithAvatar
   creator: UserWithAvatar
   createdAt: string
+  updatedAt?: string
   sprintId: string
   status: TaskStatusShort
   position: number

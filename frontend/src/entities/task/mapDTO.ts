@@ -28,6 +28,7 @@ export function mapTaskMinDTOToTaskCard(taskDTO: TaskDataDto): ITaskCard {
       : undefined,
     creator: mapUserShortDataDtoToUserWithAvatar(taskDTO.creator!),
     createdAt: taskDTO.createdAt!,
+    updatedAt: taskDTO.updatedAt,
     sprintId: taskDTO.sprintId!,
     status: taskDTO.status!,
     position: (taskDTO as { position?: number }).position ?? 0,

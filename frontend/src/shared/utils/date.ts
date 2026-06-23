@@ -58,8 +58,20 @@ export function formatToLocaleDate({
   return dateObj.toLocaleDateString(locale, options)
 }
 
-export function formatDateDDMMYYYY(date: PossbleDateFormat) {
+const INVALID_DATE_PLACEHOLDER = '—'
+
+export function isValidDate(date: PossbleDateFormat | null | undefined): boolean {
+  if (date === null || date === undefined || date === '') return false
   const dateObj = makeDateObj(date)
+  return !Number.isNaN(dateObj.getTime())
+}
+
+export function formatDateDDMMYYYY(
+  date: PossbleDateFormat | null | undefined,
+) {
+  // Защита от некорректных значений: никогда не показываем "NaN-NaN-NaN".
+  if (!isValidDate(date)) return INVALID_DATE_PLACEHOLDER
+  const dateObj = makeDateObj(date as PossbleDateFormat)
   const dd = String(dateObj.getDate()).padStart(2, '0')
   const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
   const yyyy = dateObj.getFullYear()

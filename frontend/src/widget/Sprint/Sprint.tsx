@@ -40,7 +40,7 @@ import {
   TitleBlock,
 } from './Sprint.styles'
 import type { FinishingSprint } from '../modal/sprint/FinishSprintModal/type'
-import { EditTaskModal } from '../modal/task'
+import { TaskCardModal } from '../modal/task'
 import { useModal } from '@ebay/nice-modal-react'
 
 import { useMoveToSprintMenuStore } from '@/features/sprint/MoveToSprintMenu/moveToSprintMenuStore'
@@ -56,10 +56,9 @@ export type SprintProps = {
 }
 
 export function Sprint({ sprint, projectId, taskFilter }: SprintProps) {
-  const editTaskModal = useModal(EditTaskModal)
+  const taskCardModal = useModal(TaskCardModal)
   const { data: sprints } = useSprintsInfoQuery({ projectId })
   const [isExpaneded, setIsExpanded] = useState(true)
-  const redirectPath = encodeURIComponent(window.location.pathname)
   const updateTasksSprint = useUpdateTasksSprint()
 
   const openPopup = useMoveToSprintMenuStore((state) => state.openPopup)
@@ -88,13 +87,8 @@ export function Sprint({ sprint, projectId, taskFilter }: SprintProps) {
   )
 
   const onTaskEditClick = useCallback(
-    (task: ITaskCard) =>
-      window.open(
-        `/task/${task.code}?redirect=${redirectPath}`,
-        '_blank',
-        'noopener,noreferrer',
-      ),
-    [redirectPath],
+    (task: ITaskCard) => taskCardModal.show({ task }),
+    [taskCardModal],
   )
   const onMoveToSprintClick: SprintTaskProps['onMoveToSprintClick'] =
     useCallback(
@@ -118,12 +112,11 @@ export function Sprint({ sprint, projectId, taskFilter }: SprintProps) {
     )
   const onTitleClick = useCallback(
     async (task: ITaskCard) => {
-      await editTaskModal.show({
-        task: { ...task, sprintId: sprint.id },
+      await taskCardModal.show({
+        task: { ...task, sprintId: task.sprintId || sprint.id },
       })
-      // onChangeSprint()
     },
-    [editTaskModal, sprint.id],
+    [taskCardModal, sprint.id],
   )
 
   return (

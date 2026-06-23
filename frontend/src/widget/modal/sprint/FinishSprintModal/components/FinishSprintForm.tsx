@@ -18,6 +18,8 @@ import {
   TasksList,
 } from './FinishSprintForm.styles'
 import { FormItem } from '@/shared/ui/TextFormItem'
+import { useModal } from '@ebay/nice-modal-react'
+import { TaskCardModal } from '@/widget/modal/task'
 
 export type ExternalSprintDataProps = {
   sprint: FinishingSprint
@@ -37,7 +39,7 @@ type FinishSprintFormProps = ExternalSprintDataProps & {
 export function FinishSprintForm(props: FinishSprintFormProps) {
   const { form } = props
   const finishingDate = formatDateForBackend(new Date())
-  const redirectPath = encodeURIComponent(window.location.pathname)
+  const taskCardModal = useModal(TaskCardModal)
 
   return (
     <>
@@ -108,13 +110,7 @@ export function FinishSprintForm(props: FinishSprintFormProps) {
                 <li key={task.id}>
                   <StyledShortSprintTask
                     task={task}
-                    onTitleClick={() =>
-                      window.open(
-                        `/task/${task.code}?redirect=${redirectPath}`,
-                        '_blank',
-                        'noopener,noreferrer',
-                      )
-                    }
+                    onTitleClick={() => taskCardModal.show({ task })}
                   />
                 </li>
               ))}

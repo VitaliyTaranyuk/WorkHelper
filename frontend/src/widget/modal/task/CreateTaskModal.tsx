@@ -4,16 +4,12 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   IconButton,
-  Link,
   Stack,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
-import MoreIcon from '@/shared/assets/icons/more.svg?react'
 import { CompactTaskForm } from '@/features/task/TaskForm/CompactTaskForm'
 import { useCreateTaskForm } from '@/features/task/TaskForm/useTaskForm'
-import { sxStyle } from './TaskModal.styles'
 import { MUIPrimaryButton } from '@/shared/ui/Button'
 import { modalStyle } from '@/shared/ui/modalStyles'
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
@@ -42,8 +38,6 @@ function CreateTaskModalInner() {
     modal.reject()
     modal.hide()
   }
-
-  const redirectPath = encodeURIComponent(window.location.pathname)
 
   const onSubmit = form.handleSubmit(async (formValues) => {
     await createTask.mutateAsync({
@@ -110,17 +104,6 @@ function CreateTaskModalInner() {
           >
             Создать
           </MUIPrimaryButton>
-          <Button
-            fullWidth
-            component={Link}
-            href={`/task/create?redirect=${redirectPath}`}
-            target="_blank"
-            variant="outlined"
-            endIcon={<MoreIcon />}
-            sx={sxStyle.linkButton}
-          >
-            Расширенная версия
-          </Button>
         </Stack>
       </DialogActions>
     </Dialog>
