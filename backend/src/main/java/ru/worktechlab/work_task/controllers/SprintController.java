@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.*;
 import ru.worktechlab.work_task.dto.ApiResponse;
 import ru.worktechlab.work_task.dto.sprints.SprintDtoRequest;
 import ru.worktechlab.work_task.dto.sprints.SprintInfoDTO;
+import ru.worktechlab.work_task.dto.sprints.SprintInfoListDto;
+import ru.worktechlab.work_task.dto.sprints.SprintListDto;
 import ru.worktechlab.work_task.exceptions.BadRequestException;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.services.SprintsService;
@@ -33,17 +35,17 @@ public class SprintController {
     @RolesAllowed({ADMIN, PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
     @GetMapping("/project/{projectId}/info")
     @Operation(summary = "Вывести список спринтов проекта (без задач)")
-    public java.util.List<SprintInfoDTO> getAllSprintsInfo(@Parameter(description = "ИД проекта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
-                                                           @PathVariable String projectId) throws NotFoundException {
+    public SprintInfoListDto getAllSprintsInfo(@Parameter(description = "ИД проекта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
+                                               @PathVariable String projectId) throws NotFoundException {
         return sprintsService.getAllSprintsInfo(projectId);
     }
 
     @RolesAllowed({ADMIN, PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
     @GetMapping("/project/{projectId}/sprint-list")
-    @Operation(summary = "Вывести список спринтов проекта")
-    public java.util.List<SprintInfoDTO> getSprintList(@Parameter(description = "ИД проекта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
-                                                       @PathVariable String projectId) throws NotFoundException {
-        return sprintsService.getAllSprintsInfo(projectId);
+    @Operation(summary = "Вывести список спринтов проекта с задачами")
+    public SprintListDto getSprintList(@Parameter(description = "ИД проекта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
+                                       @PathVariable String projectId) throws NotFoundException {
+        return sprintsService.getSprintsWithTasks(projectId);
     }
 
     @RolesAllowed({ADMIN, PROJECT_OWNER, POWER_USER, PROJECT_MEMBER})
@@ -64,6 +66,26 @@ public class SprintController {
                                         @Parameter(description = "ИД спринта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
                                         @PathVariable String sprintId) throws NotFoundException, BadRequestException {
         return sprintsService.activateSprint(sprintId, projectId);
+    }
+
+    @RolesAllowed({ADMIN, PROJECT_OWNER, POWER_USER})
+    @PutMapping("/project/{projectId}/{sprintId}/pause")
+    @Operation(summary = "Приостановка спринта")
+    public SprintInfoDTO pauseSprint(@Parameter(description = "ИД проекта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
+                                     @PathVariable String projectId,
+                                     @Parameter(description = "ИД спринта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
+                                     @PathVariable String sprintId) throws NotFoundException, BadRequestException {
+        return sprintsService.pauseSprint(sprintId, projectId);
+    }
+
+    @RolesAllowed({ADMIN, PROJECT_OWNER, POWER_USER})
+    @PutMapping("/project/{projectId}/{sprintId}/resume")
+    @Operation(summary = "Возобновление спринта")
+    public SprintInfoDTO resumeSprint(@Parameter(description = "ИД проекта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
+                                      @PathVariable String projectId,
+                                      @Parameter(description = "ИД спринта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
+                                      @PathVariable String sprintId) throws NotFoundException, BadRequestException {
+        return sprintsService.resumeSprint(sprintId, projectId);
     }
 
     @RolesAllowed({ADMIN, PROJECT_OWNER, POWER_USER})

@@ -3,6 +3,7 @@ package ru.worktechlab.work_task.models.tables;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import ru.worktechlab.work_task.models.enums.SprintStatus;
 
 import java.time.LocalDate;
 
@@ -28,6 +29,8 @@ public class Sprint {
     private LocalDate finishedAt;
     @Column(name = "is_active")
     private boolean active;
+    @Column(nullable = false)
+    private boolean paused = false;
     @Column
     private boolean defaultSprint;
     @Column(nullable = false)
@@ -74,21 +77,44 @@ public class Sprint {
 
     public void activate() {
         this.active = true;
+        this.paused = false;
         this.finisher = null;
         this.finishedAt = null;
+    }
+
+    public void pause() {
+        this.paused = true;
+    }
+
+    public void resume() {
+        this.paused = false;
     }
 
     public void finish(User finisher) {
         this.finisher = finisher;
         this.finishedAt = LocalDate.now();
+        // Завершённый спринт перестаёт быть активным/приостановленным — иначе он
+        // продолжал бы считаться текущим спринтом проекта (active=true).
+        this.active = false;
+        this.paused = false;
     }
 
     public void archive() {
         this.archived = true;
         this.active = false;
+        this.paused = false;
     }
 
     public void restore() {
         this.archived = false;
+    }
+
+    /** Состояние спринта, выведенное из флагов (единый источник истины). */
+    @Transient
+    public SprintStatus getStatus() {
+        if (finishedAt != null) return SprintStatus.COMPLETED;
+        if (paused) return SprintStatus.PAUSED;
+        if (active) return SprintStatus.ACTIVE;
+        return SprintStatus.DRAFT;
     }
 }

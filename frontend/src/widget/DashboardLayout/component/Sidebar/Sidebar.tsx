@@ -23,19 +23,6 @@ export function Sidebar({ className }: SideBarProps) {
 
       <BottomMenu>
         {activeProject && (
-          <MenuLink to="/main">Доска</MenuLink>
-        )}
-        {activeProject && (
-          <MenuLink to={`/project/${activeProject.id}/backlog`}>
-            Backlog
-          </MenuLink>
-        )}
-        {activeProject && (
-          <MenuLink to={`/project/${activeProject.id}/sprint`}>
-            Спринты
-          </MenuLink>
-        )}
-        {activeProject && (
           <MenuLink to={`/project/${activeProject.id}/calendar`}>
             Календарь
           </MenuLink>

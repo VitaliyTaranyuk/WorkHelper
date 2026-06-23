@@ -80,6 +80,48 @@ export function activateSprint({
 }
 
 /**
+ * @name PauseSprint
+ * @summary Приостановить спринт
+ * @request PUT:/sprints/project/{projectId}/{sprintId}/pause
+ */
+export function pauseSprint({
+  projectId,
+  sprintId,
+  otherParams = {},
+}: {
+  projectId: string
+  sprintId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<ActivateSprintData>({
+    method: 'PUT',
+    url: API_ENDPOINT_PATH.SPRINTS.PAUSE({ projectId, sprintId }),
+    ...otherParams,
+  })
+}
+
+/**
+ * @name ResumeSprint
+ * @summary Возобновить спринт
+ * @request PUT:/sprints/project/{projectId}/{sprintId}/resume
+ */
+export function resumeSprint({
+  projectId,
+  sprintId,
+  otherParams = {},
+}: {
+  projectId: string
+  sprintId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<ActivateSprintData>({
+    method: 'PUT',
+    url: API_ENDPOINT_PATH.SPRINTS.RESUME({ projectId, sprintId }),
+    ...otherParams,
+  })
+}
+
+/**
  * @name FinishSprint
  * @summary Завершить спринт
  * @request PUT:/sprints/project/{projectId}/{sprintId}/finish

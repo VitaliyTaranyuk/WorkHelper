@@ -77,6 +77,12 @@ export const API_ENDPOINT_PATH = {
     ACTIVATE: ({ projectId, sprintId }: ProjectId & SprintId) =>
       `/sprints/project/${projectId}/${sprintId}/activate`,
 
+    PAUSE: ({ projectId, sprintId }: ProjectId & SprintId) =>
+      `/sprints/project/${projectId}/${sprintId}/pause`,
+
+    RESUME: ({ projectId, sprintId }: ProjectId & SprintId) =>
+      `/sprints/project/${projectId}/${sprintId}/resume`,
+
     FINISH: ({ projectId, sprintId }: ProjectId & SprintId) =>
       `/sprints/project/${projectId}/${sprintId}/finish`,
 

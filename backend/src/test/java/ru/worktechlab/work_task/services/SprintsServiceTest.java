@@ -195,6 +195,87 @@ class SprintsServiceTest {
     }
 
     @Test
+    void pauseSprint_shouldSetPaused_whenSprintActive() throws Exception {
+        org.springframework.test.util.ReflectionTestUtils.setField(sprint, "active", true);
+        UserAndProjectData data = new UserAndProjectData(project, owner);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsRepository.findSprintByIdForUpdate("sprint-1", "project-1")).thenReturn(Optional.of(sprint));
+        when(sprintsRepository.findById("sprint-1")).thenReturn(Optional.of(sprint));
+        when(sprintMapper.toSprintInfoDto(sprint)).thenReturn(mock(SprintInfoDTO.class));
+
+        sprintsService.pauseSprint("sprint-1", "project-1");
+
+        assertThat(sprint.isPaused()).isTrue();
+    }
+
+    @Test
+    void pauseSprint_shouldThrow_whenSprintNotActive() throws Exception {
+        org.springframework.test.util.ReflectionTestUtils.setField(sprint, "active", false);
+        UserAndProjectData data = new UserAndProjectData(project, owner);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsRepository.findSprintByIdForUpdate("sprint-1", "project-1")).thenReturn(Optional.of(sprint));
+
+        assertThatThrownBy(() -> sprintsService.pauseSprint("sprint-1", "project-1"))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void resumeSprint_shouldClearPaused_whenSprintPaused() throws Exception {
+        org.springframework.test.util.ReflectionTestUtils.setField(sprint, "active", true);
+        org.springframework.test.util.ReflectionTestUtils.setField(sprint, "paused", true);
+        UserAndProjectData data = new UserAndProjectData(project, owner);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsRepository.findSprintByIdForUpdate("sprint-1", "project-1")).thenReturn(Optional.of(sprint));
+        when(sprintsRepository.findById("sprint-1")).thenReturn(Optional.of(sprint));
+        when(sprintMapper.toSprintInfoDto(sprint)).thenReturn(mock(SprintInfoDTO.class));
+
+        sprintsService.resumeSprint("sprint-1", "project-1");
+
+        assertThat(sprint.isPaused()).isFalse();
+    }
+
+    @Test
+    void resumeSprint_shouldThrow_whenSprintNotPaused() throws Exception {
+        org.springframework.test.util.ReflectionTestUtils.setField(sprint, "paused", false);
+        UserAndProjectData data = new UserAndProjectData(project, owner);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsRepository.findSprintByIdForUpdate("sprint-1", "project-1")).thenReturn(Optional.of(sprint));
+
+        assertThatThrownBy(() -> sprintsService.resumeSprint("sprint-1", "project-1"))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void finishSprint_shouldDeactivateSprint() throws Exception {
+        org.springframework.test.util.ReflectionTestUtils.setField(sprint, "active", true);
+        UserAndProjectData data = new UserAndProjectData(project, owner);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsRepository.findSprintByIdForUpdate("sprint-1", "project-1")).thenReturn(Optional.of(sprint));
+        when(sprintsRepository.findById("sprint-1")).thenReturn(Optional.of(sprint));
+        when(taskRepository.findAllBySprint(sprint)).thenReturn(List.of());
+        when(sprintMapper.toSprintInfoDto(sprint)).thenReturn(mock(SprintInfoDTO.class));
+
+        sprintsService.finishSprint("sprint-1", "project-1");
+
+        assertThat(sprint.isActive()).isFalse();
+        assertThat(sprint.getFinishedAt()).isNotNull();
+        assertThat(sprint.getStatus()).isEqualTo(ru.worktechlab.work_task.models.enums.SprintStatus.COMPLETED);
+    }
+
+    @Test
+    void sprintStatus_shouldReflectLifecycle() {
+        assertThat(sprint.getStatus()).isEqualTo(ru.worktechlab.work_task.models.enums.SprintStatus.DRAFT);
+        sprint.activate();
+        assertThat(sprint.getStatus()).isEqualTo(ru.worktechlab.work_task.models.enums.SprintStatus.ACTIVE);
+        sprint.pause();
+        assertThat(sprint.getStatus()).isEqualTo(ru.worktechlab.work_task.models.enums.SprintStatus.PAUSED);
+        sprint.resume();
+        assertThat(sprint.getStatus()).isEqualTo(ru.worktechlab.work_task.models.enums.SprintStatus.ACTIVE);
+        sprint.finish(owner);
+        assertThat(sprint.getStatus()).isEqualTo(ru.worktechlab.work_task.models.enums.SprintStatus.COMPLETED);
+    }
+
+    @Test
     void deleteSprint_shouldMoveTasksToBacklogAndDelete() throws Exception {
         Sprint backlog = TestFixtures.defaultSprint("backlog-1", project, owner);
         UserAndProjectData data = new UserAndProjectData(project, owner);

@@ -2,10 +2,10 @@ import { workTechApi } from '@/shared/api/endpoint'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-export function useActivateSprint() {
+export function usePauseSprint() {
   const queryClient = useQueryClient()
 
-  const mutation = useMutation({
+  return useMutation({
     mutationFn: ({
       projectId,
       sprintId,
@@ -13,7 +13,7 @@ export function useActivateSprint() {
       projectId: string
       sprintId: string
     }) =>
-      workTechApi.sprint.activateSprint({
+      workTechApi.sprint.pauseSprint({
         projectId,
         sprintId,
       }),
@@ -22,17 +22,12 @@ export function useActivateSprint() {
         queryKey: ['sprints', variables.projectId],
       })
       queryClient.invalidateQueries({
-        queryKey: ['tasks', variables.projectId],
-      })
-      queryClient.invalidateQueries({
         queryKey: ['activeSprint', variables.projectId],
       })
-      toast.success('Спринт запущен')
+      toast.success('Спринт приостановлен')
     },
     onError: () => {
-      toast.error('Не удалось запустить спринт')
+      toast.error('Не удалось приостановить спринт')
     },
   })
-
-  return mutation
 }

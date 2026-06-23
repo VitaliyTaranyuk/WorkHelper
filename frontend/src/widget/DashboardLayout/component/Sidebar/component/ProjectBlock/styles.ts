@@ -34,17 +34,32 @@ export const ProjectList = styled.ul`
   flex-direction: column;
 `
 
-export const SprintLink = styled(Link)`
+export const SubLink = styled(Link)`
   display: flex;
   align-items: center;
-  height: 19px;
-  padding-left: 60px;
+  gap: 6px;
+  min-height: 18px;
+  padding-left: 46px;
 
   ${css(TEXT_STYLES.headline.h5)};
+  color: ${COLOR.text.tertiary};
 
-  &:disabled {
-    opacity: 0.5;
+  &:hover {
+    opacity: 0.8;
   }
+`
+
+export const SubLinkMuted = styled(SubLink)`
+  color: rgba(150, 150, 150, 1);
+  font-style: italic;
+`
+
+export const SprintStatusDot = styled.span<{ color: string }>`
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: ${({ color }) => color};
 `
 
 export const ProjectLink = styled(Link, {

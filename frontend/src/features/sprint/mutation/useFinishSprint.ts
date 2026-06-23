@@ -24,6 +24,9 @@ export function useFinishSprint() {
       queryClient.invalidateQueries({
         queryKey: ['tasks', variables.projectId],
       })
+      queryClient.invalidateQueries({
+        queryKey: ['activeSprint', variables.projectId],
+      })
       toast.success('Спринт завершён')
     },
     onError: () => {
