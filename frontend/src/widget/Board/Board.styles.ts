@@ -20,16 +20,19 @@ export const BoardContainer = styled.div`
 `
 
 /**
- * Колонка адаптивна: растёт и заполняет доступную ширину (flex-grow), но не уже
- * комфортных 300px и не шире 560px. Когда колонок много и они не помещаются —
- * min-width удерживает читаемую ширину и включается горизонтальный скролл.
+ * Колонка имеет фиксированную комфортную ширину (как в Jira/Trello/ClickUp):
+ * это сохраняет высокую плотность информации и не «размазывает» интерфейс на
+ * широких мониторах. Лишнее пространство не растягивает колонки — вместо этого
+ * на типичном мониторе помещается комфортное число колонок (1920 → ~5),
+ * а при их избытке доска скроллится горизонтально внутри себя.
  */
+export const BOARD_COLUMN_WIDTH = 300
+
 export const BoardColumn = styled.div`
   display: flex;
   flex-direction: column;
-  flex: 1 1 0;
-  min-width: 300px;
-  max-width: 560px;
+  flex: 0 0 ${BOARD_COLUMN_WIDTH}px;
+  width: ${BOARD_COLUMN_WIDTH}px;
   min-height: 0;
   background-color: ${COLOR.background[100]};
   padding: 14px 12px;
