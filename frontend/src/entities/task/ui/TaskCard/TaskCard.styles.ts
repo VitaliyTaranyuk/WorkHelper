@@ -3,21 +3,23 @@ import { COLOR, TEXT_STYLES } from '@/shared/ui/theme/constants'
 import styled from '@emotion/styled'
 
 export const Card = styled.div`
-  width: 252px;
-  min-height: 78px;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 84px;
   display: flex;
   flex-direction: column;
-  padding: 8px 10px;
+  gap: 6px;
+  padding: 12px 14px;
   background-color: ${COLOR.background[200]};
   border-radius: 16px;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   transition:
     transform 0.12s ease,
     box-shadow 0.12s ease;
 
   :hover {
-    transform: scale(1.03);
+    transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(15, 23, 42, 0.16);
   }
 `
