@@ -390,8 +390,12 @@ export interface SprintInfoDTO {
   creator: UserShortDataDto;
   /** Флаг, показывающий активен ли спринт */
   active: boolean;
+  /** Флаг, показывающий приостановлен ли спринт */
+  paused?: boolean;
   /** Флаг, показывающий дефолтный спринт */
   defaultSprint: boolean;
+  /** Состояние спринта: DRAFT | ACTIVE | PAUSED | COMPLETED */
+  status?: "DRAFT" | "ACTIVE" | "PAUSED" | "COMPLETED";
 }
 
 export interface ProjectDto {
@@ -858,8 +862,12 @@ export interface SprintMinDto {
   name: string;
   /** Флаг, показывающий активен ли спринт */
   active: boolean;
+  /** Флаг, показывающий приостановлен ли спринт */
+  paused?: boolean;
   /** Флаг, показывающий дефолтный спринт */
   defaultSprint: boolean;
+  /** Состояние спринта: DRAFT | ACTIVE | PAUSED | COMPLETED */
+  status?: "DRAFT" | "ACTIVE" | "PAUSED" | "COMPLETED";
   /** Цель спринта */
   goal?: string;
   /**

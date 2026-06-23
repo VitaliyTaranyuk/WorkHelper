@@ -9,7 +9,13 @@ import {
   FinishSprintButton,
   StartSprintButton,
   ViewSprintButton,
+  PauseSprintButton,
+  ResumeSprintButton,
 } from '@/features/sprint/SprintActionButton'
+import {
+  SPRINT_STATUS_COLOR,
+  SPRINT_STATUS_LABEL,
+} from '@/entities/sprint/status'
 import { Stack } from '@mui/material'
 import IconButton from '@mui/material/IconButton'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
@@ -139,9 +145,20 @@ export function Sprint({ sprint, projectId, taskFilter }: SprintProps) {
             )}
           </Title>
 
-          {(sprintDateRange || sprint.isActive) && (
+          {(sprintDateRange || !sprint.isDefault) && (
             <SprintDate>
-              {sprintDateRange} {sprint.isActive && 'Активный'}
+              {sprintDateRange}
+              {!sprint.isDefault && (
+                <span
+                  style={{
+                    marginLeft: sprintDateRange ? 8 : 0,
+                    color: SPRINT_STATUS_COLOR[sprint.status],
+                    fontWeight: 600,
+                  }}
+                >
+                  {SPRINT_STATUS_LABEL[sprint.status]}
+                </span>
+              )}
             </SprintDate>
           )}
         </TitleBlock>
@@ -153,31 +170,48 @@ export function Sprint({ sprint, projectId, taskFilter }: SprintProps) {
           </TaskSumInfo>
           {!sprint.isDefault && (
             <ButtonBlock>
-              {sprint.isActive ? (
+              {/* Просмотр доски — для запущенных/приостановленных */}
+              {(sprint.status === 'ACTIVE' || sprint.status === 'PAUSED') && (
                 <ViewSprintButton />
-              ) : (
-                <EditSprintButton
-                  modalProps={{
-                    projectId,
-                    sprint,
-                  }}
+              )}
+
+              {/* Запуск — только для черновика */}
+              {sprint.status === 'DRAFT' && (
+                <StartSprintButton modalProps={{ sprint }} />
+              )}
+
+              {/* Пауза / Возобновление */}
+              {sprint.status === 'ACTIVE' && (
+                <PauseSprintButton
+                  projectId={projectId}
+                  sprintId={sprint.id}
                 />
               )}
-              {sprint.isActive ? (
+              {sprint.status === 'PAUSED' && (
+                <ResumeSprintButton
+                  projectId={projectId}
+                  sprintId={sprint.id}
+                />
+              )}
+
+              {/* Завершение — для запущенных/приостановленных */}
+              {(sprint.status === 'ACTIVE' || sprint.status === 'PAUSED') && (
                 <FinishSprintButton
                   modalProps={{
                     projectId,
                     sprint: mapToActiveSprint(sprint),
                   }}
                 />
-              ) : (
-                <StartSprintButton
-                  modalProps={{
-                    sprint,
-                  }}
-                />
               )}
-              {!sprint.isActive && (
+
+              {/* Редактирование — для всех незавершённых */}
+              {sprint.status !== 'COMPLETED' && (
+                <EditSprintButton modalProps={{ projectId, sprint }} />
+              )}
+
+              {/* Удаление — для черновика и завершённого (не для активного/паузы) */}
+              {(sprint.status === 'DRAFT' ||
+                sprint.status === 'COMPLETED') && (
                 <IconButton
                   size="small"
                   aria-label="Удалить спринт"

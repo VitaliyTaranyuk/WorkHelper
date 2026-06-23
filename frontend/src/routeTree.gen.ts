@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedMainRouteImport } from './routes/_authenticated/main'
 import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
@@ -20,7 +21,6 @@ import { Route as AuthenticatedTaskCodeRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedProjectProjectIdSprintRouteImport } from './routes/_authenticated/project/$projectId/sprint'
 import { Route as AuthenticatedProjectProjectIdCalendarRouteImport } from './routes/_authenticated/project/$projectId/calendar'
 import { Route as AuthenticatedProjectProjectIdBacklogRouteImport } from './routes/_authenticated/project/$projectId/backlog'
-import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -34,6 +34,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedMainRoute = AuthenticatedMainRouteImport.update({
   id: '/main',
@@ -78,11 +83,6 @@ const AuthenticatedProjectProjectIdBacklogRoute =
     path: '/project/$projectId/backlog',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -193,6 +193,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/main': {
       id: '/_authenticated/main'
       path: '/main'
@@ -247,13 +254,6 @@ declare module '@tanstack/react-router' {
       path: '/project/$projectId/backlog'
       fullPath: '/project/$projectId/backlog'
       preLoaderRoute: typeof AuthenticatedProjectProjectIdBacklogRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/settings': {
-      id: '/_authenticated/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
   }

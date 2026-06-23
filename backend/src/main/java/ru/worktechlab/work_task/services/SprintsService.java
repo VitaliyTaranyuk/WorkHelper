@@ -9,9 +9,13 @@ import ru.worktechlab.work_task.dto.ApiResponse;
 import ru.worktechlab.work_task.dto.UserAndProjectData;
 import ru.worktechlab.work_task.dto.sprints.SprintDtoRequest;
 import ru.worktechlab.work_task.dto.sprints.SprintInfoDTO;
+import ru.worktechlab.work_task.dto.sprints.SprintInfoListDto;
+import ru.worktechlab.work_task.dto.sprints.SprintListDto;
+import ru.worktechlab.work_task.dto.sprints.SprintMinDto;
 import ru.worktechlab.work_task.exceptions.BadRequestException;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.mappers.SprintMapper;
+import ru.worktechlab.work_task.mappers.TaskMapper;
 import ru.worktechlab.work_task.models.tables.Project;
 import ru.worktechlab.work_task.models.tables.Sprint;
 import ru.worktechlab.work_task.models.tables.TaskModel;
@@ -29,6 +33,7 @@ public class SprintsService {
     private final SprintMapper sprintMapper;
     private final CheckerUtil checkerUtil;
     private final TaskRepository taskRepository;
+    private final TaskMapper taskMapper;
 
     @TransactionRequired
     public SprintInfoDTO getActiveSprint(String projectId) throws NotFoundException {
@@ -73,6 +78,34 @@ public class SprintsService {
         sprintsRepository.flush();
         Sprint dbSprint = findSprintById(sprint.getId());
         return sprintMapper.toSprintInfoDto(dbSprint);
+    }
+
+    @TransactionRequired
+    public SprintInfoDTO pauseSprint(String sprintId,
+                                     String projectId) throws NotFoundException, BadRequestException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        checkerUtil.checkExtendedPermission(data.getUser(), data.getProject());
+        Sprint sprint = findSprintByIdForUpdate(sprintId, data.getProject());
+        if (sprint.getFinishedAt() != null)
+            throw new BadRequestException("Завершённый спринт нельзя приостановить");
+        if (!sprint.isActive())
+            throw new BadRequestException("Приостановить можно только активный спринт");
+        sprint.pause();
+        sprintsRepository.flush();
+        return sprintMapper.toSprintInfoDto(findSprintById(sprint.getId()));
+    }
+
+    @TransactionRequired
+    public SprintInfoDTO resumeSprint(String sprintId,
+                                      String projectId) throws NotFoundException, BadRequestException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        checkerUtil.checkExtendedPermission(data.getUser(), data.getProject());
+        Sprint sprint = findSprintByIdForUpdate(sprintId, data.getProject());
+        if (!sprint.isPaused())
+            throw new BadRequestException("Возобновить можно только приостановленный спринт");
+        sprint.resume();
+        sprintsRepository.flush();
+        return sprintMapper.toSprintInfoDto(findSprintById(sprint.getId()));
     }
 
     @TransactionRequired
@@ -198,10 +231,42 @@ public class SprintsService {
     }
 
     @TransactionRequired
-    public List<SprintInfoDTO> getAllSprintsInfo(String projectId) throws NotFoundException {
+    public SprintInfoListDto getAllSprintsInfo(String projectId) throws NotFoundException {
         UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
-        return sprintsRepository.findAllByProject(data.getProject()).stream()
+        List<SprintInfoDTO> sprints = sprintsRepository.findAllByProject(data.getProject()).stream()
                 .map(sprintMapper::toSprintInfoDto)
                 .toList();
+        return new SprintInfoListDto(sprints);
+    }
+
+    /**
+     * Список спринтов проекта вместе с их задачами — для разделов Backlog и
+     * "Спринты проекта". Возвращается в форме {"sprints": [...]}, которую ждёт фронтенд.
+     */
+    @TransactionRequired
+    public SprintListDto getSprintsWithTasks(String projectId) throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        List<SprintMinDto> sprints = sprintsRepository.findAllByProject(data.getProject()).stream()
+                .map(this::toSprintMinDtoWithTasks)
+                .toList();
+        return new SprintListDto(sprints);
+    }
+
+    private SprintMinDto toSprintMinDtoWithTasks(Sprint sprint) {
+        List<TaskModel> tasks = taskRepository.findAllBySprint(sprint).stream()
+                .filter(task -> !task.isArchived())
+                .toList();
+        return new SprintMinDto(
+                sprint.getId(),
+                sprint.getName(),
+                sprint.getGoal(),
+                sprint.getStartDate(),
+                sprint.getEndDate(),
+                sprint.isActive(),
+                sprint.isPaused(),
+                sprint.isDefaultSprint(),
+                sprint.getStatus(),
+                taskMapper.toDo(tasks)
+        );
     }
 }

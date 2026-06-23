@@ -5,4 +5,6 @@ export {
   FinishSprintButton,
   StartSprintButton,
   ViewSprintButton,
+  PauseSprintButton,
+  ResumeSprintButton,
 } from './SprintActionButton'
