@@ -18,6 +18,8 @@ import {
   TasksList,
 } from './FinishSprintForm.styles'
 import { FormItem } from '@/shared/ui/TextFormItem'
+import { useModal } from '@ebay/nice-modal-react'
+import { ExpandedTaskModal } from '@/widget/modal/task/ExpandedTaskModal'
 
 export type ExternalSprintDataProps = {
   sprint: FinishingSprint
@@ -37,7 +39,7 @@ type FinishSprintFormProps = ExternalSprintDataProps & {
 export function FinishSprintForm(props: FinishSprintFormProps) {
   const { form } = props
   const finishingDate = formatDateForBackend(new Date())
-  const redirectPath = encodeURIComponent(window.location.pathname)
+  const expandedTaskModal = useModal(ExpandedTaskModal)
 
   return (
     <>
@@ -109,11 +111,7 @@ export function FinishSprintForm(props: FinishSprintFormProps) {
                   <StyledShortSprintTask
                     task={task}
                     onTitleClick={() =>
-                      window.open(
-                        `/task/${task.code}?redirect=${redirectPath}`,
-                        '_blank',
-                        'noopener,noreferrer',
-                      )
+                      expandedTaskModal.show({ mode: 'edit', task })
                     }
                   />
                 </li>

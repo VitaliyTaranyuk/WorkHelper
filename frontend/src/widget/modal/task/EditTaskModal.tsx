@@ -6,7 +6,6 @@ import {
   DialogActions,
   Button,
   IconButton,
-  Link,
   Stack,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
@@ -23,6 +22,7 @@ import { useProjectData } from '@/features/project/query/useProjectData'
 import { formatDateDDMMYYYY } from "@/shared/utils/date"
 import { useEditTask } from '@/features/task/mutation/useEditTask'
 import { assertIsDefined } from '@/shared/utils/typeChecking'
+import { ExpandedTaskModal } from './ExpandedTaskModal'
 
 export const EditTaskModal = NiceModal.create(EditTaskModalInner)
 
@@ -32,6 +32,7 @@ type EditTaskModalInnerProps = {
 
 function EditTaskModalInner(props: EditTaskModalInnerProps) {
   const modal = useModal()
+  const expandedModal = useModal(ExpandedTaskModal)
   const { activeProject } = useProjectData()
   const editTask = useEditTask()
   const form = useEditTaskForm({ task: props.task })
@@ -39,6 +40,14 @@ function EditTaskModalInner(props: EditTaskModalInnerProps) {
   const handleClose = () => {
     modal.reject()
     modal.hide()
+  }
+
+  const openExpanded = () => {
+    // Открываем расширенную версию поверх текущего интерфейса (без новой вкладки
+    // и без перехода на маршрут). Компактную модалку закрываем, чтобы не было
+    // двух наложенных диалогов.
+    modal.hide()
+    expandedModal.show({ mode: 'edit', task: props.task })
   }
 
   const onSubmit = form.handleSubmit(async (formValues) => {
@@ -68,8 +77,6 @@ function EditTaskModalInner(props: EditTaskModalInnerProps) {
     modal.resolve(formValues)
     modal.hide()
   })
-
-  const redirectPath = encodeURIComponent(window.location.pathname)
 
   return (
     <Dialog
@@ -119,9 +126,7 @@ function EditTaskModalInner(props: EditTaskModalInnerProps) {
           </MUIPrimaryButton>
           <Button
             fullWidth
-            component={Link}
-            href={`/task/${props.task.code}?redirect=${redirectPath}`}
-            target="_blank"
+            onClick={openExpanded}
             variant="outlined"
             endIcon={<MoreIcon />}
             sx={sxStyle.linkButton}
