@@ -67,4 +67,10 @@ public class TaskDataDto {
 
     @Schema(description = "Позиция задачи внутри колонки", example = "0")
     private int position;
+
+    @Schema(description = "Дата создания задачи")
+    private java.time.LocalDateTime createdAt;
+
+    @Schema(description = "Дата последнего изменения задачи")
+    private java.time.LocalDateTime updatedAt;
 }

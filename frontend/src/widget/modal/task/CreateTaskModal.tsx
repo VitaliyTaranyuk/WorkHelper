@@ -4,28 +4,23 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   IconButton,
   Stack,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
-import MoreIcon from '@/shared/assets/icons/more.svg?react'
 import { CompactTaskForm } from '@/features/task/TaskForm/CompactTaskForm'
 import { useCreateTaskForm } from '@/features/task/TaskForm/useTaskForm'
-import { sxStyle } from './TaskModal.styles'
 import { MUIPrimaryButton } from '@/shared/ui/Button'
 import { modalStyle } from '@/shared/ui/modalStyles'
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useCreateTask } from '@/features/task/mutation/useCreateTask'
 import { Loader } from '@/shared/ui/components/Loader'
-import { ExpandedTaskModal } from './ExpandedTaskModal'
 
 export const CreateTaskModal = NiceModal.create(CreateTaskModalInner)
 
 function CreateTaskModalInner() {
   const modal = useModal()
-  const expandedModal = useModal(ExpandedTaskModal)
   const { activeProject } = useProjectData()
   const { data: sprints, isLoading: isSprintsLoading } = useSprintsInfoQuery({
     projectId: activeProject?.id,
@@ -42,16 +37,6 @@ function CreateTaskModalInner() {
   const handleClose = () => {
     modal.reject()
     modal.hide()
-  }
-
-  const openExpanded = () => {
-    if (!activeProject) return
-    modal.hide()
-    expandedModal.show({
-      mode: 'create',
-      projectId: activeProject.id,
-      defaultSprintId,
-    })
   }
 
   const onSubmit = form.handleSubmit(async (formValues) => {
@@ -119,15 +104,6 @@ function CreateTaskModalInner() {
           >
             Создать
           </MUIPrimaryButton>
-          <Button
-            fullWidth
-            onClick={openExpanded}
-            variant="outlined"
-            endIcon={<MoreIcon />}
-            sx={sxStyle.linkButton}
-          >
-            Расширенная версия
-          </Button>
         </Stack>
       </DialogActions>
     </Dialog>

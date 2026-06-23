@@ -1,2 +1,2 @@
 export { CreateTaskModal } from './CreateTaskModal'
-export { EditTaskModal } from './EditTaskModal'
+export { TaskCardModal } from './TaskCardModal'

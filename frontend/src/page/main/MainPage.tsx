@@ -3,7 +3,7 @@ import { Board } from '@/widget/Board'
 import { useTaskFilter } from '@/features/task/hook/useTaskFilter/useTaskFilter'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { TaskFilter } from '@/widget/TaskFilter'
-import { EditTaskModal } from '@/widget/modal/task'
+import { TaskCardModal } from '@/widget/modal/task'
 import type { OnReorder } from '@/widget/Board/Board'
 import { useActiveSprintTasks } from '@/features/task/query/useActiveSprintTasks'
 import { useReorderColumn } from '@/features/task/mutation/useReorderColumn'
@@ -12,7 +12,7 @@ import { TASK_FILTER } from '@/entities/task/constants'
 
 export function MainPage() {
   const { activeProject } = useProjectData()
-  const modal = useModal(EditTaskModal)
+  const modal = useModal(TaskCardModal)
   const { currentFilters, updateFilters, taskFilter } = useTaskFilter({
     initialFilters: TASK_FILTER,
   })

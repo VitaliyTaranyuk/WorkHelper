@@ -12,9 +12,8 @@ type CreateTaskDetailsProps = {
 }
 
 /**
- * Полное (расширенное) представление создания задачи: форма в fullMode + кнопка
- * создания. Единая реализация для отдельной страницы (CreateTaskPage) и большого
- * модального окна (ExpandedTaskModal).
+ * Представление создания задачи на отдельной странице (CreateTaskPage,
+ * маршрут /task/create) — форма в fullMode + кнопка создания.
  */
 export function CreateTaskDetails({
   projectId,

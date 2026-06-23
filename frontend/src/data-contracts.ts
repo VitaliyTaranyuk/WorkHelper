@@ -231,10 +231,20 @@ export interface TaskDataDto {
    */
   code: string;
   /**
+   * Позиция задачи внутри колонки
+   * @format int32
+   */
+  position?: number;
+  /**
    * Дата создания задачи
    * @format date-time
    */
-  createdAt: string;
+  createdAt?: string;
+  /**
+   * Дата последнего изменения задачи
+   * @format date-time
+   */
+  updatedAt?: string;
 }
 
 export interface TaskStatusShortDto {

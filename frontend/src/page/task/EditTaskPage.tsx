@@ -5,7 +5,7 @@ import { useProjectData } from '@/features/project/query/useProjectData'
 import { Loader } from '@/shared/ui/components/Loader'
 import { Headline } from './styles'
 import { useTaskByCode } from '@/features/task/query/useTaskByCode'
-import { EditTaskDetails } from '@/features/task/EditTaskDetails'
+import { TaskCardContent } from '@/features/task/TaskCardContent'
 import { useNavigate } from '@tanstack/react-router'
 import type { ITaskCard } from '@/entities/task/types'
 
@@ -26,19 +26,19 @@ export const EditTaskPage = memo(function EditTaskPageInner({
       <BackButton />
 
       {taskByCodeQuery.isLoading && <Loader isLoading={true} />}
-      {taskByCodeQuery.data && <TaskPageForm task={taskByCodeQuery.data} />}
+      {taskByCodeQuery.data && <TaskPageBody task={taskByCodeQuery.data} />}
     </>
   )
 })
 
-function TaskPageForm({ task }: { task: ITaskCard }) {
+function TaskPageBody({ task }: { task: ITaskCard }) {
   const navigate = useNavigate()
 
   return (
-    <Stack mt={'10px'} maxWidth={560}>
+    <Stack mt={'10px'}>
       <Headline>{task.code}</Headline>
       <Stack mt={2}>
-        <EditTaskDetails
+        <TaskCardContent
           task={task}
           onDeleted={() => navigate({ to: '/main' })}
         />

@@ -19,7 +19,7 @@ import {
 } from './FinishSprintForm.styles'
 import { FormItem } from '@/shared/ui/TextFormItem'
 import { useModal } from '@ebay/nice-modal-react'
-import { ExpandedTaskModal } from '@/widget/modal/task/ExpandedTaskModal'
+import { TaskCardModal } from '@/widget/modal/task'
 
 export type ExternalSprintDataProps = {
   sprint: FinishingSprint
@@ -39,7 +39,7 @@ type FinishSprintFormProps = ExternalSprintDataProps & {
 export function FinishSprintForm(props: FinishSprintFormProps) {
   const { form } = props
   const finishingDate = formatDateForBackend(new Date())
-  const expandedTaskModal = useModal(ExpandedTaskModal)
+  const taskCardModal = useModal(TaskCardModal)
 
   return (
     <>
@@ -110,9 +110,7 @@ export function FinishSprintForm(props: FinishSprintFormProps) {
                 <li key={task.id}>
                   <StyledShortSprintTask
                     task={task}
-                    onTitleClick={() =>
-                      expandedTaskModal.show({ mode: 'edit', task })
-                    }
+                    onTitleClick={() => taskCardModal.show({ task })}
                   />
                 </li>
               ))}

@@ -13,6 +13,8 @@ public interface TaskMapper {
 
     @Mapping(source = "project.id", target = "projectId")
     @Mapping(source = "sprint.id", target = "sprintId")
+    @Mapping(source = "creationDate", target = "createdAt")
+    @Mapping(source = "updateDate", target = "updatedAt")
     TaskDataDto toDo(TaskModel taskModel);
 
     List<TaskDataDto> toDo(List<TaskModel> tasks);

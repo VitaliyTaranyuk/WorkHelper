@@ -2,7 +2,6 @@ import { memo, useMemo } from 'react'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { TaskCard } from '@/entities/task'
-import type { CompactEditFormTask } from '@/features/task/TaskForm/useTaskForm'
 import type { ITaskCard } from '@/entities/task/types'
 import type { NiceModalHandler } from '@ebay/nice-modal-react'
 import {
@@ -30,7 +29,7 @@ import { ProjectHistoryModal } from '@/widget/modal/project/ProjectHistoryModal'
 import HistoryIcon from '@mui/icons-material/History'
 
 export type BoardProps = {
-  editTaskModal: NiceModalHandler<{ task: CompactEditFormTask }>
+  editTaskModal: NiceModalHandler<{ task: ITaskCard }>
   tasks: ITaskCard[]
   onReorder: OnReorder
 }
@@ -162,11 +161,6 @@ function BoardInner(props: BoardProps) {
                   </ColumnHeader>
                   <TaskList>
                     {statusTasks.map((task, idx) => {
-                      const modalTask: CompactEditFormTask = {
-                        ...task,
-                        sprintId: task.sprintId || '',
-                      }
-
                       return (
                         <Draggable
                           draggableId={task.id}
@@ -182,9 +176,7 @@ function BoardInner(props: BoardProps) {
                               <TaskCard
                                 {...task}
                                 onTitleClick={() =>
-                                  props.editTaskModal.show({
-                                    task: modalTask,
-                                  })
+                                  props.editTaskModal.show({ task })
                                 }
                               />
                             </div>
