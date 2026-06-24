@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!--
+        Унифицировать дефолтные имена колонок и Backlog-спринта.
+        Никаких "переводов" — отображаемое имя = code, и это то, что пользователь
+        видит как название сущности. Меняем ТОЛЬКО непереименованные пользователем
+        записи (где code до сих пор равен оригинальному ENUM-name или старому
+        русскому description), чтобы не перетереть пользовательский ввод.
+    -->
+
+    <changeSet id="20260624-status-code-unify-1" author="audit">
+        <comment>Дефолтные статусы получают human-readable имя в code (= description)</comment>
+        <sql>
+            UPDATE task_status SET code = 'Backlog'     WHERE code IN ('BACKLOG', 'Бэклог')          AND default_task_status = true;
+            UPDATE task_status SET code = 'To Do'       WHERE code IN ('TODO', 'К выполнению');
+            UPDATE task_status SET code = 'In Progress' WHERE code IN ('IN_PROGRESS', 'В работе');
+            UPDATE task_status SET code = 'Review'      WHERE code IN ('REVIEW', 'Ревью');
+            UPDATE task_status SET code = 'Done'        WHERE code IN ('DONE', 'Готово');
+            UPDATE task_status SET code = 'Canceled'    WHERE code IN ('CANCELED', 'Отменена');
+        </sql>
+    </changeSet>
+
+    <changeSet id="20260624-status-description-sync" author="audit">
+        <comment>description = code для дефолтных, чтобы убрать второе расходящееся имя</comment>
+        <sql>
+            UPDATE task_status SET description = code
+            WHERE code IN ('Backlog','To Do','In Progress','Review','Done','Canceled');
+        </sql>
+    </changeSet>
+
+    <changeSet id="20260624-default-sprint-rename" author="audit">
+        <comment>Default sprint: переименовать "Бэклог" → "Backlog" только если не переименован пользователем</comment>
+        <sql>
+            UPDATE sprint SET name = 'Backlog'
+            WHERE name = 'Бэклог' AND default_sprint = true;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

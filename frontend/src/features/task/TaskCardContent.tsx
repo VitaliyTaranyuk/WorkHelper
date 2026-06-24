@@ -233,7 +233,9 @@ export function TaskCardContent({ task, onDeleted }: TaskCardContentProps) {
             >
               {projectStatuses.map((s) => (
                 <MenuItem key={s.id} value={s.id}>
-                  {s.description || s.code}
+                  {/* code — единое отображаемое имя колонки, заданное
+                      пользователем. Никаких подмен на description / переводов. */}
+                  {s.code}
                 </MenuItem>
               ))}
             </Select>
