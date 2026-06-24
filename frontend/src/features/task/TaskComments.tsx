@@ -3,7 +3,6 @@ import {
   Button,
   IconButton,
   Stack,
-  TextField,
   Typography,
 } from '@mui/material'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
@@ -12,6 +11,8 @@ import {
   useDeleteComment,
   useTaskComments,
 } from './useTaskComments'
+import { MentionTextField } from '@/features/user/MentionTextField'
+import { formatUserName } from '@/entities/user/utils'
 
 type Props = { projectId: string; taskId: string }
 
@@ -35,14 +36,14 @@ export function TaskComments({ projectId, taskId }: Props) {
       </Typography>
 
       <Stack direction="row" gap={1}>
-        <TextField
+        <MentionTextField
           size="small"
           fullWidth
-          placeholder="Добавить комментарий (@username — упоминание)"
+          placeholder="Добавить комментарий — введите @ для упоминания"
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={setText}
           multiline
-          maxRows={4}
+          maxRows={6}
         />
         <Button
           variant="contained"
@@ -67,14 +68,20 @@ export function TaskComments({ projectId, taskId }: Props) {
             gap={1}
             sx={{ p: 1.25, borderRadius: 2, backgroundColor: 'rgba(99,102,241,0.06)' }}
           >
-            <Stack sx={{ flex: 1 }}>
+            <Stack sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="caption" color="text.secondary">
-                {c.user ? `${c.user.firstName} ${c.user.lastName ?? ''}` : ''}
+                {formatUserName(c.user)}
                 {c.createdAt
                   ? ` · ${new Date(c.createdAt).toLocaleString('ru-RU')}`
                   : ''}
               </Typography>
-              <Typography variant="body2">{c.comment}</Typography>
+              <Typography
+                variant="body2"
+                component="div"
+                sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+              >
+                {renderWithMentions(c.comment ?? '')}
+              </Typography>
             </Stack>
             {c.commentId && (
               <IconButton
@@ -89,5 +96,42 @@ export function TaskComments({ projectId, taskId }: Props) {
         ))}
       </Stack>
     </Stack>
+  )
+}
+
+/**
+ * Подсвечивает @username-токены в тексте комментария. Не превращает в ссылку
+ * (на фронте нет публичной user-страницы), но визуально выделяет, чтобы не
+ * сливалось с обычным текстом — стандарт Linear/Slack/Jira.
+ */
+function renderWithMentions(text: string) {
+  const parts: Array<string | { mention: string }> = []
+  // Тот же regex, что и backend (Unicode-aware).
+  const re = /@([\p{L}\p{N}._-]{2,32})/gu
+  let last = 0
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index))
+    parts.push({ mention: m[1] })
+    last = m.index + m[0].length
+  }
+  if (last < text.length) parts.push(text.slice(last))
+  return parts.map((p, i) =>
+    typeof p === 'string' ? (
+      <span key={i}>{p}</span>
+    ) : (
+      <span
+        key={i}
+        style={{
+          color: '#684FE3',
+          fontWeight: 500,
+          backgroundColor: 'rgba(104,79,227,0.08)',
+          padding: '0 4px',
+          borderRadius: 4,
+        }}
+      >
+        @{p.mention}
+      </span>
+    ),
   )
 }

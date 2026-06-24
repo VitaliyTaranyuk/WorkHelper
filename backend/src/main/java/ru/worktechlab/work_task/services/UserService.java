@@ -43,6 +43,9 @@ public class UserService {
         Gender gender = Gender.valueOf(registerDto.getGender());
         User user = new User(registerDto.getLastName(), registerDto.getFirstName(), registerDto.getMiddleName(), registerDto.getEmail(),
                 registerDto.getPhone(), Collections.singletonList(defaultRole), registerDto.getBirthDate(), gender, passwordEncoder.encode(registerDto.getPassword()));
+        // Авто-username из email — чтобы новый пользователь сразу был упоминаемым
+        // (@username) без отдельного шага профиля. Уникальность гарантирована.
+        user.setUsername(generateUniqueUsername(registerDto.getEmail(), registerDto.getFirstName()));
         if (mailParams.isEnable()) {
             user.setConfirmationToken(UUID.randomUUID().toString());
             userRepository.saveAndFlush(user);
@@ -52,6 +55,33 @@ public class UserService {
             user.setActive(true);
             userRepository.saveAndFlush(user);
         }
+    }
+
+    /**
+     * Генерирует уникальный username (email-префикс / firstName fallback) с
+     * резолвом коллизий через суффикс -2, -3, …. Допускает Unicode-буквы.
+     */
+    public String generateUniqueUsername(String email, String firstNameFallback) {
+        String base = null;
+        if (email != null && email.contains("@")) {
+            base = email.substring(0, email.indexOf('@'));
+        }
+        if (base == null || base.isBlank()) base = firstNameFallback;
+        if (base == null || base.isBlank()) base = "user";
+        String slug = base.toLowerCase()
+                .replaceAll("[^\\p{L}\\p{N}_.-]", "")
+                .replaceAll("^[._-]+", "")
+                .replaceAll("[._-]+$", "");
+        if (slug.isBlank()) slug = "user";
+        if (slug.length() > 32) slug = slug.substring(0, 32);
+        String candidate = slug;
+        int i = 2;
+        while (userRepository.findByUsername(candidate).isPresent()) {
+            String suffix = "-" + (i++);
+            int maxBase = 32 - suffix.length();
+            candidate = (slug.length() > maxBase ? slug.substring(0, maxBase) : slug) + suffix;
+        }
+        return candidate;
     }
 
     @TransactionMandatory
@@ -118,6 +148,55 @@ public class UserService {
                 .sorted(Comparator.comparing(User::getLastName)
                         .thenComparing(User::getFirstName))
                 .toList();
+    }
+
+    /**
+     * Единый picker пользователей для assignee / @mention / коммент-автокомплита.
+     * Доступен всем участникам проекта (PROJECT_MEMBER+), в отличие от
+     * GET /users (только админ). Возвращает только активных и подтверждённых.
+     * Фильтр q работает по firstName/lastName/displayName/username/email.
+     */
+    @TransactionRequired
+    public List<UserPickerDto> pickerSearch(String q, int limit) {
+        String needle = q == null ? "" : q.trim().toLowerCase();
+        int cap = Math.max(1, Math.min(limit, 50));
+        return userRepository.getUsers().stream()
+                .filter(User::isActive)
+                .filter(u -> matchesQuery(u, needle))
+                .sorted(Comparator.comparing(
+                                (User u) -> safeLower(u.getLastName()))
+                        .thenComparing(u -> safeLower(u.getFirstName())))
+                .limit(cap)
+                .map(this::toPickerDto)
+                .toList();
+    }
+
+    private boolean matchesQuery(User u, String needle) {
+        if (needle.isEmpty()) return true;
+        return safeLower(u.getFirstName()).contains(needle)
+                || safeLower(u.getLastName()).contains(needle)
+                || safeLower(u.getDisplayName()).contains(needle)
+                || safeLower(u.getUsername()).contains(needle)
+                || safeLower(u.getEmail()).contains(needle);
+    }
+
+    private UserPickerDto toPickerDto(User u) {
+        return new UserPickerDto(
+                u.getId(),
+                nullToEmpty(u.getFirstName()),
+                nullToEmpty(u.getLastName()),
+                nullToEmpty(u.getDisplayName()),
+                nullToEmpty(u.getUsername()),
+                nullToEmpty(u.getEmail())
+        );
+    }
+
+    private static String safeLower(String s) {
+        return s == null ? "" : s.toLowerCase();
+    }
+
+    private static String nullToEmpty(String s) {
+        return s == null ? "" : s;
     }
 
     @TransactionRequired

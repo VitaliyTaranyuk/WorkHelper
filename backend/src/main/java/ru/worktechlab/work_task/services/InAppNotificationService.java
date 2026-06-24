@@ -31,7 +31,9 @@ import java.util.regex.Pattern;
 public class InAppNotificationService {
 
     public static final String TYPE_MENTION = "MENTION";
-    private static final Pattern MENTION = Pattern.compile("@([a-zA-Z0-9_]{3,32})");
+    // Username допускает Unicode-буквы/цифры + . _ - длиной 2..32, чтобы
+    // распознавать упоминания вроде @виталий или @maria.k наряду с @ivanov.
+    private static final Pattern MENTION = Pattern.compile("@([\\p{L}\\p{N}._-]{2,32})");
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
