@@ -20,19 +20,32 @@ export const BoardContainer = styled.div`
 `
 
 /**
- * Колонка имеет фиксированную комфортную ширину (как в Jira/Trello/ClickUp):
- * это сохраняет высокую плотность информации и не «размазывает» интерфейс на
- * широких мониторах. Лишнее пространство не растягивает колонки — вместо этого
- * на типичном мониторе помещается комфортное число колонок (1920 → ~5),
- * а при их избытке доска скроллится горизонтально внутри себя.
+ * Гибридная адаптация ширины колонок (паттерн Linear/Monday/ClickUp):
+ *
+ * - flex-basis 300px = минимальная комфортная ширина (Jira-стандарт);
+ * - flex-grow 1     = при малом числе колонок они РАСТУТ и заполняют рабочую
+ *                     область, чтобы не было огромной пустоты справа;
+ * - max-width 460px = верхний кап (близко к ширине колонок Linear ~420),
+ *                     чтобы при 2–3 колонках они не «размазывались» по всему
+ *                     ultrawide-монитору;
+ * - flex-shrink 0   = когда колонок много и сумма ширин превышает контейнер,
+ *                     колонки НЕ сжимаются ниже basis и доска уезжает в
+ *                     горизонтальный скролл внутри BoardContainer.
+ *
+ * Поведение на 1920×1080 (рабочая область ≈1500px):
+ *   3 кол × 460 = 1380 (≈8% свободного места — приемлемо),
+ *   4 кол × ~375 = заполняет полностью,
+ *   5 кол × 300 = заполняет полностью,
+ *   6+ кол → горизонтальный скролл.
  */
-export const BOARD_COLUMN_WIDTH = 300
+export const BOARD_COLUMN_MIN_WIDTH = 300
+export const BOARD_COLUMN_MAX_WIDTH = 460
 
 export const BoardColumn = styled.div`
   display: flex;
   flex-direction: column;
-  flex: 0 0 ${BOARD_COLUMN_WIDTH}px;
-  width: ${BOARD_COLUMN_WIDTH}px;
+  flex: 1 0 ${BOARD_COLUMN_MIN_WIDTH}px;
+  max-width: ${BOARD_COLUMN_MAX_WIDTH}px;
   min-height: 0;
   background-color: ${COLOR.background[100]};
   padding: 14px 12px;

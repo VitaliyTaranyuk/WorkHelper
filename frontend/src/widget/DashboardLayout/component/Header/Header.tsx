@@ -26,7 +26,20 @@ type HeaderProps = {
 
 export function Header({ headerActions }: HeaderProps) {
   const { activeProject } = useProjectData()
-  const { editMode, toggle } = useBoardEditModeStore()
+  const { editMode, isDirty, toggle } = useBoardEditModeStore()
+
+  const safeToggle = () => {
+    if (editMode && isDirty) {
+      if (
+        !window.confirm(
+          'Несохранённые изменения конфигурации колонок будут потеряны. Выйти из режима редактирования?',
+        )
+      ) {
+        return
+      }
+    }
+    toggle()
+  }
 
   return (
     <TopBlock>
@@ -38,7 +51,7 @@ export function Header({ headerActions }: HeaderProps) {
         <ProjectName>{activeProject?.name}</ProjectName>
         <IconButton
           aria-label="Редактирование доски"
-          onClick={toggle}
+          onClick={safeToggle}
           color={editMode ? 'primary' : 'default'}
           title={
             editMode

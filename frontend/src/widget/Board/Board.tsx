@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   DragDropContext,
   Droppable,
@@ -7,7 +7,7 @@ import {
 } from '@hello-pangea/dnd'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { TaskCard } from '@/entities/task'
-import type { ITaskCard } from '@/entities/task/types'
+import type { ITaskCard, TaskStatus } from '@/entities/task/types'
 import type { NiceModalHandler } from '@ebay/nice-modal-react'
 import {
   BoardContainer,
@@ -27,6 +27,8 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import AddIcon from '@mui/icons-material/Add'
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
+import CloseIcon from '@mui/icons-material/Close'
 import {
   useCreateStatus,
   useDeleteStatus,
@@ -36,7 +38,7 @@ import { useBoardEditModeStore } from '@/features/board/boardEditModeStore'
 import { useModal } from '@ebay/nice-modal-react'
 import { ProjectHistoryModal } from '@/widget/modal/project/ProjectHistoryModal'
 import HistoryIcon from '@mui/icons-material/History'
-import type { TaskStatus } from '@/entities/task/types'
+import { toast } from 'sonner'
 
 export type BoardProps = {
   editTaskModal: NiceModalHandler<{ task: ITaskCard }>
@@ -64,31 +66,98 @@ export const Board = memo(BoardInner)
 function BoardInner(props: BoardProps) {
   const { activeProject } = useProjectData()
 
+  const editMode = useBoardEditModeStore((s) => s.editMode)
+  const setDirty = useBoardEditModeStore((s) => s.setDirty)
+  const isDirty = useBoardEditModeStore((s) => s.isDirty)
+  const setEditMode = useBoardEditModeStore((s) => s.setEditMode)
+
+  /**
+   * Локальный черновик конфигурации колонок, активен только в editMode.
+   * - draftOrderIds: новый порядок видимых колонок (null = порядок не менялся)
+   * - draftVisibility: переопределения viewed (Map<statusId, boolean>); пустая
+   *   карта означает «не менялась»
+   * Add/rename/delete колонок применяются мгновенно, как раньше — они требуют
+   * отдельных запросов и редко комбинируются с reorder.
+   */
+  const [draftOrderIds, setDraftOrderIds] = useState<number[] | null>(null)
+  const [draftVisibility, setDraftVisibility] = useState<Map<number, boolean>>(
+    () => new Map(),
+  )
+
+  // Синхронизация флага isDirty (для Header)
+  useEffect(() => {
+    const dirty = draftOrderIds !== null || draftVisibility.size > 0
+    setDirty(dirty)
+  }, [draftOrderIds, draftVisibility, setDirty])
+
+  // Сброс черновика при выходе из editMode без сохранения
+  // (если был dirty — Header показывает confirm, пользователь явно отказался)
+  useEffect(() => {
+    if (!editMode) {
+      setDraftOrderIds(null)
+      setDraftVisibility(new Map())
+    }
+  }, [editMode])
+
+  // Очистка при unmount
+  useEffect(() => {
+    return () => {
+      setDirty(false)
+    }
+  }, [setDirty])
+
+  // Защита от случайной потери: предупреждение при закрытии вкладки/перезагрузке
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
+
+  const allStatuses = useMemo(
+    () => activeProject?.statuses ?? [],
+    [activeProject?.statuses],
+  )
+
+  /** Эффективный viewed с учётом черновика. */
+  const effectiveViewed = useCallback(
+    (s: TaskStatus) => draftVisibility.get(s.id) ?? s.viewed,
+    [draftVisibility],
+  )
+
+  const visibleStatuses = useMemo(() => {
+    if (!allStatuses.length) return []
+    const visible = allStatuses.filter(effectiveViewed)
+
+    if (editMode && draftOrderIds) {
+      const idx = new Map(draftOrderIds.map((id, i) => [id, i]))
+      return [...visible].sort((a, b) => {
+        const ai = idx.get(a.id)
+        const bi = idx.get(b.id)
+        if (ai !== undefined && bi !== undefined) return ai - bi
+        if (ai !== undefined) return -1
+        if (bi !== undefined) return 1
+        return a.priority - b.priority
+      })
+    }
+    return [...visible].sort((a, b) => a.priority - b.priority)
+  }, [allStatuses, draftOrderIds, editMode, effectiveViewed])
+
+  const hiddenColumns = useMemo(
+    () => allStatuses.filter((s) => !effectiveViewed(s) && !s.defaultTaskStatus),
+    [allStatuses, effectiveViewed],
+  )
+
   const tasksByStatus = useMemo(
     () =>
       getTasksByStatus({
         tasks: props.tasks,
-        projectStatuses: activeProject?.statuses,
+        projectStatuses: allStatuses,
       }),
-    [activeProject?.statuses, props.tasks],
-  )
-
-  const visibleStatuses = useMemo(() => {
-    if (!activeProject?.statuses) {
-      return []
-    }
-
-    return [...activeProject.statuses]
-      .sort((a, b) => a.priority - b.priority)
-      .filter((status) => status.viewed)
-  }, [activeProject?.statuses])
-
-  const hiddenColumns = useMemo(
-    () =>
-      (activeProject?.statuses ?? []).filter(
-        (s) => !s.viewed && !s.defaultTaskStatus,
-      ),
-    [activeProject?.statuses],
+    [allStatuses, props.tasks],
   )
 
   const { handleDragEnd } = useDragTask({
@@ -99,7 +168,6 @@ function BoardInner(props: BoardProps) {
   const createStatus = useCreateStatus()
   const deleteStatus = useDeleteStatus()
   const updateStatuses = useUpdateStatuses()
-  const editMode = useBoardEditModeStore((state) => state.editMode)
   const historyModal = useModal(ProjectHistoryModal)
 
   const toReq = (s: TaskStatus, overrides: Partial<StatusReq> = {}): StatusReq => ({
@@ -116,7 +184,7 @@ function BoardInner(props: BoardProps) {
     if (!activeProject) return
     const name = window.prompt('Название новой колонки')?.trim()
     if (!name) return
-    const maxPriority = activeProject.statuses.reduce(
+    const maxPriority = allStatuses.reduce(
       (max, s) => Math.max(max, s.priority),
       0,
     )
@@ -142,83 +210,193 @@ function BoardInner(props: BoardProps) {
     if (!activeProject) return
     const next = window.prompt('Новое название колонки', currentCode)?.trim()
     if (!next || next === currentCode) return
-    const statuses = activeProject.statuses.map((s) =>
+    // Rename применяется мгновенно — не часть черновика конфигурации.
+    const statuses = allStatuses.map((s) =>
       toReq(s, s.id === statusId ? { code: next } : {}),
     )
     updateStatuses.mutate({ projectId: activeProject.id, statuses })
   }
 
-  const setColumnVisibility = (statusId: number, viewed: boolean) => {
-    if (!activeProject) return
-    const statuses = activeProject.statuses.map((s) =>
-      toReq(s, s.id === statusId ? { viewed } : {}),
-    )
-    updateStatuses.mutate({ projectId: activeProject.id, statuses })
+  /** Локально пометить колонку как скрытую/видимую в черновике. */
+  const toggleVisibilityDraft = (statusId: number, viewed: boolean) => {
+    setDraftVisibility((prev) => {
+      const next = new Map(prev)
+      // Если возвращаем к исходному значению — удаляем переопределение
+      const source = allStatuses.find((s) => s.id === statusId)?.viewed
+      if (source === viewed) next.delete(statusId)
+      else next.set(statusId, viewed)
+      return next
+    })
   }
 
-  const reorderColumns = (fromIdx: number, toIdx: number) => {
-    if (!activeProject) return
-    const reordered = [...visibleStatuses]
-    const [moved] = reordered.splice(fromIdx, 1)
+  /** Локально переставить колонки в черновике. */
+  const reorderColumnsDraft = (fromIdx: number, toIdx: number) => {
+    const baseOrder = draftOrderIds ?? visibleStatuses.map((s) => s.id)
+    const next = [...baseOrder]
+    const [moved] = next.splice(fromIdx, 1)
     if (!moved) return
-    reordered.splice(toIdx, 0, moved)
+    next.splice(toIdx, 0, moved)
+    setDraftOrderIds(next)
+  }
 
-    // Видимые колонки получают приоритеты выше всех скрытых, сохраняя новый
-    // порядок; скрытые (в т.ч. Backlog) не трогаем.
-    const hiddenMax = (activeProject.statuses ?? [])
-      .filter((s) => !s.viewed)
-      .reduce((max, s) => Math.max(max, s.priority), 0)
-    const newPriorityById = new Map(
-      reordered.map((s, i) => [s.id, hiddenMax + 1 + i]),
+  /** Применить черновик на бэкенд. */
+  const handleSaveDraft = async () => {
+    if (!activeProject) return
+    if (!isDirty) return
+
+    // Финальный порядок: видимые в порядке черновика, скрытые сохраняют свой
+    // относительный порядок; видимым назначаем приоритеты выше скрытых, чтобы
+    // не создать коллизии с unique-constraint (project, priority).
+    const finalOrderedVisible =
+      draftOrderIds ?? visibleStatuses.map((s) => s.id)
+
+    const hiddenSorted = [...allStatuses]
+      .filter((s) => !(draftVisibility.get(s.id) ?? s.viewed))
+      .sort((a, b) => a.priority - b.priority)
+
+    const hiddenPriorityById = new Map(
+      hiddenSorted.map((s, i) => [s.id, i + 1]),
     )
-    const statuses = activeProject.statuses.map((s) =>
-      toReq(
-        s,
-        newPriorityById.has(s.id)
-          ? { priority: newPriorityById.get(s.id) }
-          : {},
-      ),
+    const baseOffset = hiddenSorted.length + 1
+    const visiblePriorityById = new Map(
+      finalOrderedVisible.map((id, i) => [id, baseOffset + i]),
     )
-    updateStatuses.mutate({ projectId: activeProject.id, statuses })
+
+    const statuses = allStatuses.map((s) => {
+      const viewedOverride = draftVisibility.get(s.id) ?? s.viewed
+      const priority =
+        visiblePriorityById.get(s.id) ?? hiddenPriorityById.get(s.id) ?? s.priority
+      return toReq(s, { priority, viewed: viewedOverride })
+    })
+
+    try {
+      await updateStatuses.mutateAsync({
+        projectId: activeProject.id,
+        statuses,
+      })
+      setDraftOrderIds(null)
+      setDraftVisibility(new Map())
+      toast.success('Изменения колонок сохранены')
+    } catch {
+      toast.error('Не удалось сохранить изменения колонок')
+    }
+  }
+
+  const handleCancelDraft = () => {
+    if (!isDirty) return
+    if (
+      !window.confirm(
+        'Отменить несохранённые изменения порядка и видимости колонок?',
+      )
+    ) {
+      return
+    }
+    setDraftOrderIds(null)
+    setDraftVisibility(new Map())
+  }
+
+  const handleRestoreColumn = (statusId: number) => {
+    toggleVisibilityDraft(statusId, true)
   }
 
   const onDragEndAll = (result: DropResult) => {
     if (!result.destination) return
     if (result.type === 'COLUMN') {
       if (result.source.index === result.destination.index) return
-      reorderColumns(result.source.index, result.destination.index)
+      reorderColumnsDraft(result.source.index, result.destination.index)
       return
     }
     handleDragEnd(result)
   }
 
-  if (!activeProject?.statuses) {
-    return null
-  }
+  if (!activeProject?.statuses) return null
 
   return (
     <DragDropContext onDragEnd={onDragEndAll}>
-      {editMode && hiddenColumns.length > 0 && (
+      {editMode && (
         <Stack
           direction="row"
           gap={1}
           alignItems="center"
           flexWrap="wrap"
-          sx={{ mb: 1 }}
+          sx={{
+            mb: 1,
+            p: 1,
+            borderRadius: '12px',
+            backgroundColor: isDirty
+              ? 'rgba(255, 235, 175, .85)'
+              : 'rgba(246, 246, 246, .85)',
+            border: isDirty
+              ? '1px solid rgba(237, 108, 2, .35)'
+              : '1px solid transparent',
+          }}
         >
-          <span style={{ fontSize: 13, color: 'rgba(120,116,134,1)' }}>
-            Скрытые колонки:
+          <span style={{ fontSize: 13, fontWeight: 500 }}>
+            {isDirty
+              ? 'Есть несохранённые изменения колонок'
+              : 'Режим редактирования доски'}
           </span>
-          {hiddenColumns.map((s) => (
-            <Chip
-              key={s.id}
-              label={s.code}
+          <div style={{ flex: 1 }} />
+          {hiddenColumns.length > 0 && (
+            <Stack direction="row" gap={0.5} alignItems="center" flexWrap="wrap">
+              <span style={{ fontSize: 12, color: 'rgba(120,116,134,1)' }}>
+                Скрыты:
+              </span>
+              {hiddenColumns.map((s) => (
+                <Chip
+                  key={s.id}
+                  label={s.code}
+                  size="small"
+                  onClick={() => handleRestoreColumn(s.id)}
+                  variant="outlined"
+                  icon={<AddIcon fontSize="small" />}
+                />
+              ))}
+            </Stack>
+          )}
+          <Stack direction="row" gap={1}>
+            <Button
               size="small"
-              onClick={() => setColumnVisibility(s.id, true)}
               variant="outlined"
-              icon={<AddIcon fontSize="small" />}
-            />
-          ))}
+              color="inherit"
+              startIcon={<CloseIcon />}
+              onClick={handleCancelDraft}
+              disabled={!isDirty || updateStatuses.isPending}
+              sx={{ textTransform: 'none' }}
+            >
+              Отменить
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              color="primary"
+              startIcon={<SaveOutlinedIcon />}
+              onClick={handleSaveDraft}
+              disabled={!isDirty || updateStatuses.isPending}
+              sx={{ textTransform: 'none' }}
+            >
+              Сохранить
+            </Button>
+            <Button
+              size="small"
+              variant="text"
+              color="inherit"
+              onClick={() => {
+                if (isDirty) {
+                  if (
+                    !window.confirm(
+                      'Несохранённые изменения колонок будут потеряны. Закрыть режим редактирования?',
+                    )
+                  )
+                    return
+                }
+                setEditMode(false)
+              }}
+              sx={{ textTransform: 'none' }}
+            >
+              Закрыть
+            </Button>
+          </Stack>
         </Stack>
       )}
 
@@ -245,9 +423,7 @@ function BoardInner(props: BoardProps) {
                     >
                       <ColumnHeader
                         {...(editMode ? colDrag.dragHandleProps : {})}
-                        style={
-                          editMode ? { cursor: 'grab' } : undefined
-                        }
+                        style={editMode ? { cursor: 'grab' } : undefined}
                       >
                         <Stack
                           direction="row"
@@ -285,7 +461,7 @@ function BoardInner(props: BoardProps) {
                                 size="small"
                                 aria-label="Скрыть колонку"
                                 onClick={() =>
-                                  setColumnVisibility(status.id, false)
+                                  toggleVisibilityDraft(status.id, false)
                                 }
                               >
                                 <VisibilityOffOutlinedIcon fontSize="inherit" />
