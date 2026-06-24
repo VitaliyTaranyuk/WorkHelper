@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -59,6 +60,15 @@ public class GlobalExceptionHandler {
             safeMessage = "Невозможно выполнить операцию: нарушено ограничение целостности данных";
         }
         return new ResponseEntity<>(safeMessage, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<String> handleUploadTooLarge(MaxUploadSizeExceededException ex) {
+        log.warn("Upload rejected — too large: {}", ex.getMessage());
+        return new ResponseEntity<>(
+                "Файл слишком большой. Максимальный размер вложения — 25 MB.",
+                HttpStatus.PAYLOAD_TOO_LARGE
+        );
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
