@@ -20,8 +20,14 @@ spring:
     allowed:
       origins: ${ORIGIN_CORS:"http://91.211.249.37:30080"}
       local: ${LOCAL_CORS:"http://localhost:3000"}
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 30MB
 
 app:
+  attachments:
+    storage-dir: ${ATTACHMENTS_DIR:/var/lib/workhelper/attachments}
   mail:
     enable: ${ENABLE_EMAIL_SENDING:false}
     login: ${EMAIL_LOGIN:email@mail.ru}

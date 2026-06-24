@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ProjectsService {
 
-    private static final String DEFAULT_SPRINT_NAME = "Бэклог";
+    private static final String DEFAULT_SPRINT_NAME = "Backlog";
 
     private final UsersProjectsRepository usersProjectsRepository;
     private final ProjectRepository projectRepository;
@@ -111,9 +111,13 @@ public class ProjectsService {
 
     @TransactionMandatory
     public void createDefaultStatuses(Project project) {
+        // code = description: единое отображаемое имя колонки.
+        // Никаких "локализованных" словарей — пользователь видит исходное имя
+        // как мы его задали при создании проекта. Дальнейшие переименования
+        // переписывают именно это поле.
         taskStatusRepository.saveAllAndFlush(Arrays.stream(StatusName.values())
                 .map(status -> new TaskStatus(
-                        status.getPriority(), status.name(), status.getDescription(), status.isViewed(), status.isDefaultTaskStatus(), project)
+                        status.getPriority(), status.getDescription(), status.getDescription(), status.isViewed(), status.isDefaultTaskStatus(), project)
                 )
                 .toList());
     }

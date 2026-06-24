@@ -26,17 +26,43 @@ import { useDeleteTask } from './mutation/useDeleteTask'
 import { useUpdateTaskStatus } from './mutation/useUpdateTaskStatus'
 import { TaskComments } from './TaskComments'
 import { TaskHistory } from './TaskHistory'
-import { getFullName } from '@/entities/user/utils'
+import { TaskAttachments } from './TaskAttachments'
+import { formatUserName, getFullName } from '@/entities/user/utils'
 import { ESTIMATION_MAX } from '@/entities/task/constants'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
 import type { ITaskCard } from '@/entities/task/types'
 import type { User } from '@/entities/user/types'
 import { toast } from 'sonner'
+import {
+  extractFieldErrors,
+  extractGeneralError,
+} from '@/shared/api/extractFieldErrors'
 
 type TaskCardContentProps = {
   task: ITaskCard
   /** Вызывается после успешного удаления задачи (закрыть модалку / уйти со страницы). */
   onDeleted?: () => void
+}
+
+/**
+ * Маппинг backend-полей (из MethodArgumentNotValidException) на form-поля
+ * RHF. Backend кидает имя поля DTO (title, taskType, sprintId, ...), а
+ * useEditTaskForm в проекте использует другие имена (taskTitle, type, sprint).
+ */
+const BACKEND_TO_FORM_FIELD: Record<
+  string,
+  'taskTitle' | 'priority' | 'type' | 'estimation' | 'assignee' | 'sprint' | 'description'
+> = {
+  title: 'taskTitle',
+  taskTitle: 'taskTitle',
+  priority: 'priority',
+  taskType: 'type',
+  type: 'type',
+  estimation: 'estimation',
+  assignee: 'assignee',
+  sprintId: 'sprint',
+  sprint: 'sprint',
+  description: 'description',
 }
 
 /**
@@ -106,8 +132,26 @@ export function TaskCardContent({ task, onDeleted }: TaskCardContentProps) {
         },
       })
       form.reset({ ...formValues })
-    } catch {
-      toast.error('Не удалось сохранить изменения')
+    } catch (err) {
+      // Jira/Linear UX: показываем причину рядом с полем, не общий toast.
+      const fieldErrors = extractFieldErrors(err)
+      if (fieldErrors) {
+        for (const [backendField, message] of Object.entries(fieldErrors)) {
+          const formField = BACKEND_TO_FORM_FIELD[backendField]
+          if (formField) {
+            form.setError(formField, { type: 'server', message })
+          }
+        }
+        // Поля, которые не маппятся (например status) — добавляем сводку в toast,
+        // чтобы пользователь увидел причину.
+        const unmapped = Object.entries(fieldErrors)
+          .filter(([k]) => !BACKEND_TO_FORM_FIELD[k])
+          .map(([k, v]) => `${k}: ${v}`)
+        if (unmapped.length) toast.error(unmapped.join('; '))
+      } else {
+        const general = extractGeneralError(err)
+        toast.error(general ?? 'Не удалось сохранить изменения')
+      }
     }
   })
 
@@ -160,13 +204,37 @@ export function TaskCardContent({ task, onDeleted }: TaskCardContentProps) {
 
         <Stack gap={0.5}>
           <FormCaption>Описание</FormCaption>
+          {/* Большие тексты (тех. задания, спецификации, 500+ строк) должны
+              быть полностью читаемы/редактируемы. Решение по образцу Jira/Linear:
+              минимум 8 строк, рост до 24 строк, дальше — внутренний скролл
+              textarea (overflow: auto в самом input). Карточку не распирает. */}
           <TextField
             fullWidth
             multiline
             minRows={8}
-            sx={{ '& .MuiInputBase-root': { padding: '12px 11px' } }}
+            maxRows={24}
+            slotProps={{
+              htmlInput: {
+                style: { overflowY: 'auto', resize: 'vertical' },
+                maxLength: 4096,
+              },
+            }}
+            sx={{
+              '& .MuiInputBase-root': { padding: '12px 11px' },
+              '& textarea': {
+                lineHeight: 1.5,
+                fontFamily:
+                  'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+                fontSize: 13,
+              },
+            }}
+            error={Boolean(errors.description)}
+            helperText={
+              errors.description?.message ??
+              `${(form.watch('description') ?? '').length}/4096`
+            }
             {...form.register('description')}
-            placeholder="Опишите задачу"
+            placeholder="Опишите задачу — поддерживаются длинные тексты, переносы строк, markdown"
           />
         </Stack>
 
@@ -190,6 +258,13 @@ export function TaskCardContent({ task, onDeleted }: TaskCardContentProps) {
             Удалить задачу
           </Button>
         </Stack>
+
+        <Divider />
+
+        {/* Вложения — сразу под описанием, компактный список (Jira/ClickUp). */}
+        {activeProject && (
+          <TaskAttachments projectId={activeProject.id} taskId={task.id} />
+        )}
 
         <Divider />
 
@@ -233,7 +308,9 @@ export function TaskCardContent({ task, onDeleted }: TaskCardContentProps) {
             >
               {projectStatuses.map((s) => (
                 <MenuItem key={s.id} value={s.id}>
-                  {s.description || s.code}
+                  {/* code — единое отображаемое имя колонки, заданное
+                      пользователем. Никаких подмен на description / переводов. */}
+                  {s.code}
                 </MenuItem>
               ))}
             </Select>
@@ -355,11 +432,7 @@ export function TaskCardContent({ task, onDeleted }: TaskCardContentProps) {
           <MetaRow label="Проект" value={activeProject?.name ?? '—'} />
           <MetaRow
             label="Автор"
-            value={
-              task.creator
-                ? `${task.creator.lastName} ${task.creator.firstName}`
-                : '—'
-            }
+            value={formatUserName(task.creator) || '—'}
           />
           <MetaRow
             label="Создана"

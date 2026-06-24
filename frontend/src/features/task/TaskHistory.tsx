@@ -1,13 +1,9 @@
 import { Stack, Typography } from '@mui/material'
 import { useTaskHistory } from './useTaskHistory'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
+import { formatUserName } from '@/entities/user/utils'
 
 type Props = { projectId: string; taskId: string }
-
-function userName(u?: { firstName?: string; lastName?: string }) {
-  if (!u) return ''
-  return [u.lastName, u.firstName].filter(Boolean).join(' ')
-}
 
 export function TaskHistory({ projectId, taskId }: Props) {
   const { data: history, isLoading } = useTaskHistory({ projectId, taskId })
@@ -40,7 +36,7 @@ export function TaskHistory({ projectId, taskId }: Props) {
           }}
         >
           <Typography variant="caption" color="text.secondary">
-            {formatDateDDMMYYYY(entry.createdAt)} · {userName(entry.user)}
+            {formatDateDDMMYYYY(entry.createdAt)} · {formatUserName(entry.user)}
           </Typography>
           <Typography variant="body2">
             {entry.fieldName ? `${entry.fieldName}: ` : ''}

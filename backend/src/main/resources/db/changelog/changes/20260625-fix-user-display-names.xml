@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!--
+        Нормализация имён тестовых учётных записей: убираем "Иванов ????"-артефакты
+        из seed-данных (test1..test6@mail.ru), где firstName были описательными
+        ("Пользователь, доп.функц.", "Пользователь1" и т.п.). Никаких ссылок на
+        несуществующих пользователей и пустых имён.
+    -->
+    <changeSet id="20260625-normalize-seed-users" author="audit">
+        <sql>
+            UPDATE users SET first_name = 'Админ',         last_name = 'Иванов' WHERE email = 'test1@mail.ru';
+            UPDATE users SET first_name = 'Иван',          last_name = 'Иванов' WHERE email = 'test2@mail.ru';
+            UPDATE users SET first_name = 'Пётр',          last_name = 'Петров' WHERE email = 'test3@mail.ru';
+            UPDATE users SET first_name = 'Сидор',         last_name = 'Сидоров' WHERE email = 'test4@mail.ru';
+            UPDATE users SET first_name = 'Михаил',        last_name = 'Михайлов' WHERE email = 'test5@mail.ru';
+            UPDATE users SET first_name = 'Алексей',       last_name = 'Алексеев' WHERE email = 'test6@mail.ru';
+
+            -- Защита: ни one пользователь не должен иметь пустого имени.
+            UPDATE users SET first_name = 'Без' WHERE first_name IS NULL OR TRIM(first_name) = '';
+            UPDATE users SET last_name  = 'имени' WHERE last_name  IS NULL OR TRIM(last_name)  = '';
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

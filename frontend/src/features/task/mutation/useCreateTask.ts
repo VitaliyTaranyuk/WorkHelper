@@ -20,9 +20,9 @@ export function useCreateTask() {
       })
       toast.success('Задача создана')
     },
-    onError: () => {
-      toast.error('Не удалось создать задачу')
-    },
+    // onError намеренно не показывает общий toast — формы создания задачи
+    // (CreateTaskModal / CreateTaskDetails) сами ловят ошибку и подсвечивают
+    // конкретные поля. Generic-toast скрывал бы реальную причину.
   })
 
   return mutation

@@ -6,7 +6,11 @@ import { toast } from 'sonner'
 export function useEditTask() {
   const queryClient = useQueryClient()
 
-  const mutation = useMutation({
+  // ВАЖНО: onError намеренно НЕ показывает обобщённый toast
+  // «Не удалось сохранить». Карточка задачи (TaskCardContent) сама ловит
+  // ошибку, парсит field-errors backend и подсвечивает конкретные поля по
+  // образцу Jira/Linear/ClickUp.
+  return useMutation({
     mutationFn: ({
       projectId,
       taskId,
@@ -30,10 +34,5 @@ export function useEditTask() {
       })
       toast.success('Задача обновлена')
     },
-    onError: () => {
-      toast.error('Не удалось сохранить изменения')
-    },
   })
-
-  return mutation
 }

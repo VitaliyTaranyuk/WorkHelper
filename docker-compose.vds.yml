@@ -6,6 +6,8 @@ services:
     env_file: .env.vds
     ports:
       - "127.0.0.1:8080:8080"
+    volumes:
+      - /var/lib/workhelper/attachments:/var/lib/workhelper/attachments
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-s", "http://localhost:8080/work-task/api/v1/auth/login"]
