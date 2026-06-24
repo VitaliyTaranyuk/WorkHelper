@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <changeSet id="20260626-create-task-attachment" author="audit">
+        <createTable tableName="task_attachment">
+            <column name="id" type="VARCHAR(36)">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="task_id" type="VARCHAR(36)">
+                <constraints nullable="false" foreignKeyName="fk_attachment_task" references="task_model(id)"/>
+            </column>
+            <column name="uploaded_by_id" type="VARCHAR(36)">
+                <constraints nullable="false" foreignKeyName="fk_attachment_user" references="users(id)"/>
+            </column>
+            <column name="file_name" type="VARCHAR(512)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content_type" type="VARCHAR(128)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="size_bytes" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="storage_path" type="VARCHAR(1024)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="uploaded_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="task_attachment" indexName="idx_attachment_task">
+            <column name="task_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
