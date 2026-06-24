@@ -26,7 +26,7 @@ import { useDeleteTask } from './mutation/useDeleteTask'
 import { useUpdateTaskStatus } from './mutation/useUpdateTaskStatus'
 import { TaskComments } from './TaskComments'
 import { TaskHistory } from './TaskHistory'
-import { getFullName } from '@/entities/user/utils'
+import { formatUserName, getFullName } from '@/entities/user/utils'
 import { ESTIMATION_MAX } from '@/entities/task/constants'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
 import type { ITaskCard } from '@/entities/task/types'
@@ -357,11 +357,7 @@ export function TaskCardContent({ task, onDeleted }: TaskCardContentProps) {
           <MetaRow label="Проект" value={activeProject?.name ?? '—'} />
           <MetaRow
             label="Автор"
-            value={
-              task.creator
-                ? `${task.creator.lastName} ${task.creator.firstName}`
-                : '—'
-            }
+            value={formatUserName(task.creator) || '—'}
           />
           <MetaRow
             label="Создана"

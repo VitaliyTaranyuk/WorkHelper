@@ -5,14 +5,17 @@ import {
   DefaultAvatar,
   AvatarLetter,
 } from './Avatar.styles'
+import { formatUserName, getUserInitials } from '@/entities/user/utils'
 
 export type AvatarSize = 'm' | 'l'
 
 type AvatarProps = {
   username?: {
-    lastName: string
-    firstName: string
-  }
+    lastName?: string | null
+    firstName?: string | null
+    displayName?: string | null
+    email?: string | null
+  } | null
   size?: AvatarSize
   avatarUrl?: string | null
 }
@@ -20,23 +23,13 @@ type AvatarProps = {
 type AvatarContentProps = Omit<AvatarProps, 'size'>
 
 const AvatarContent = ({ username, avatarUrl }: AvatarContentProps) => {
-  if (avatarUrl && username) {
-    return (
-      <AvatarImage
-        src={avatarUrl}
-        alt={`${username.lastName} ${username.firstName}`}
-      />
-    )
-  } else if (username) {
-    return (
-      <AvatarLetter title={`${username.lastName} ${username.firstName}`}>
-        {username.lastName[0]}
-        {username.firstName[0]}
-      </AvatarLetter>
-    )
-  }
+  if (!username) return <DefaultAvatar>{'?'}</DefaultAvatar>
 
-  return <DefaultAvatar>{'?'}</DefaultAvatar>
+  const fullName = formatUserName(username)
+  const initials = getUserInitials(username)
+
+  if (avatarUrl) return <AvatarImage src={avatarUrl} alt={fullName} />
+  return <AvatarLetter title={fullName}>{initials}</AvatarLetter>
 }
 
 export const Avatar = memo(
