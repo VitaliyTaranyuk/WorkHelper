@@ -21,6 +21,7 @@ import ru.worktechlab.work_task.dto.task_link.LinkDto;
 import ru.worktechlab.work_task.dto.task_link.LinkResponseDto;
 import ru.worktechlab.work_task.dto.tasks.BulkTaskRequestDTO;
 import ru.worktechlab.work_task.dto.tasks.ReorderColumnDTO;
+import ru.worktechlab.work_task.dto.tasks.ReorderSprintDTO;
 import ru.worktechlab.work_task.dto.tasks.TaskDataDto;
 import ru.worktechlab.work_task.dto.tasks.TaskModelDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateStatusRequestDTO;
@@ -284,6 +285,14 @@ public class TaskController {
     public ApiResponse reorderColumn(@PathVariable String projectId,
                                      @Valid @RequestBody ReorderColumnDTO dto) throws NotFoundException {
         return taskService.reorderColumn(projectId, dto);
+    }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @PutMapping("/{projectId}/reorder-sprint")
+    @Operation(summary = "Перенести задачу в спринт с сохранением позиции (drag-and-drop в списке задач)")
+    public ApiResponse reorderSprint(@PathVariable String projectId,
+                                     @Valid @RequestBody ReorderSprintDTO dto) throws NotFoundException {
+        return taskService.reorderSprint(projectId, dto);
     }
 
     @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
