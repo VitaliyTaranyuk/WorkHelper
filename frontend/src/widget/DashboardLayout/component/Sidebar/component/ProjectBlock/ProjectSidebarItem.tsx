@@ -41,9 +41,10 @@ export function ProjectSidebarItem({
         })
       : ''
 
-  const sprintLabel = activeSprint
-    ? [activeSprint.name, sprintDateRange].filter(Boolean).join(' · ')
-    : ''
+  // ТП-11: в левом меню показываем только даты активного спринта (от — до),
+  // без названия. Название — фоллбэк, если даты не заданы, чтобы строка
+  // не оставалась пустой.
+  const sprintLabel = activeSprint ? sprintDateRange || activeSprint.name : ''
 
   return (
     <ProjectListItem>
