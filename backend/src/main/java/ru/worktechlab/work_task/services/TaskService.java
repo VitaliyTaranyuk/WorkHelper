@@ -30,6 +30,7 @@ import ru.worktechlab.work_task.models.enums.LinkTypeName;
 import ru.worktechlab.work_task.models.tables.*;
 import ru.worktechlab.work_task.repositories.CommentRepository;
 import ru.worktechlab.work_task.repositories.LinkRepository;
+import ru.worktechlab.work_task.repositories.TaskAttachmentRepository;
 import ru.worktechlab.work_task.repositories.TaskRepository;
 import ru.worktechlab.work_task.utils.CheckerUtil;
 import ru.worktechlab.work_task.utils.NormalizedLinkData;
@@ -58,6 +59,8 @@ public class TaskService {
     private final LinkMapper linkMapper;
     private final InAppNotificationService inAppNotificationService;
     private final TaskPlacementService taskPlacementService;
+    private final TaskAttachmentRepository taskAttachmentRepository;
+    private final AttachmentStorage attachmentStorage;
 
     @TransactionRequired
     public TaskDataDto updateTask(String projectId,
@@ -337,6 +340,14 @@ public class TaskService {
         List<Link> links = linkRepository.findLinksByTaskId(task.getId());
         if (!links.isEmpty())
             linkRepository.deleteAll(links);
+        // Вложения: без явной очистки FK task_attachment блокировал удаление
+        // задачи (400 «нарушено ограничение целостности данных»). Сначала
+        // метаданные, затем файлы с диска (ошибки файлов не блокируют операцию).
+        List<TaskAttachment> attachments = taskAttachmentRepository.findByTaskIdOrderByUploadedAtDesc(task.getId());
+        if (!attachments.isEmpty()) {
+            taskAttachmentRepository.deleteAll(attachments);
+            attachments.forEach(a -> attachmentStorage.deleteQuietly(a.getStoragePath()));
+        }
         taskRepository.delete(task); // комментарии удаляются каскадом (orphanRemoval)
     }
 
