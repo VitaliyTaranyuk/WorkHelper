@@ -147,8 +147,10 @@ function BoardInner(props: BoardProps) {
     return [...visible].sort((a, b) => a.priority - b.priority)
   }, [allStatuses, draftOrderIds, editMode, effectiveViewed])
 
+  // ТП-49: скрытого BACKLOG-статуса больше нет — чипы «Скрыты» показывают
+  // все невидимые колонки (default-колонка всегда видима).
   const hiddenColumns = useMemo(
-    () => allStatuses.filter((s) => !effectiveViewed(s) && !s.defaultTaskStatus),
+    () => allStatuses.filter((s) => !effectiveViewed(s)),
     [allStatuses, effectiveViewed],
   )
 
@@ -200,7 +202,7 @@ function BoardInner(props: BoardProps) {
     if (!activeProject) return
     if (
       window.confirm(
-        `Удалить колонку «${code}»? Её задачи перейдут в Backlog.`,
+        `Удалить колонку «${code}»? Её задачи перейдут в первую колонку доски.`,
       )
     ) {
       deleteStatus.mutate({ projectId: activeProject.id, statusId })

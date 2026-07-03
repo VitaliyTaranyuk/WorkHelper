@@ -15,15 +15,14 @@ import java.util.Comparator;
 import java.util.Optional;
 
 /**
- * Инвариант размещения задачи: Backlog-спринт (defaultSprint) и Backlog-статус
- * (defaultTaskStatus) должны меняться согласованно.
+ * Размещение задач: спринт и статус — независимые оси (ТП-49).
  *
- * Backlog отображается отдельным разделом (статус BACKLOG скрыт с доски,
- * viewed=false), поэтому комбинация «задача в обычном спринте со статусом
- * Backlog» не видна ни на доске, ни в разделе Backlog — задача «теряется».
- * Этот сервис — единственное место, где связка статус↔спринт приводится
- * к согласованному виду при создании задачи, переносе между спринтами,
- * смене статуса, удалении/архивации спринта и удалении колонки.
+ * Бэклог — это СПРИНТ (defaultSprint), а не статус и не колонка доски:
+ * задача в бэклоге имеет обычный статус (по умолчанию — первая колонка),
+ * но на доску не попадает, потому что доска показывает только задачи
+ * доскового спринта (активный; без активного — kanban-режим по Backlog-
+ * спринту). Скрытого BACKLOG-статуса больше не существует (миграция
+ * 20260705 перевела задачи и удалила его).
  */
 @Service
 @Slf4j
@@ -43,6 +42,17 @@ public class TaskPlacementService {
         return Optional.ofNullable(sprintsRepository.getSprintInfoByProjectId(project));
     }
 
+    /**
+     * Спринт, задачи которого показывает доска: активный; если активного нет —
+     * Backlog-спринт (kanban-режим без спринтов).
+     */
+    @TransactionMandatory
+    public Sprint boardSprint(Project project) throws NotFoundException {
+        Optional<Sprint> active = activeSprint(project);
+        return active.isPresent() ? active.get() : defaultSprint(project);
+    }
+
+    /** Статус по умолчанию — фолбэк для новых задач и удаляемых колонок. */
     public TaskStatus defaultStatus(Project project) throws NotFoundException {
         return project.getStatuses().stream()
                 .filter(TaskStatus::isDefaultTaskStatus)
@@ -51,12 +61,7 @@ public class TaskPlacementService {
                         String.format("Не найден дефолтный статус для проекта %s", project.getName())));
     }
 
-    /**
-     * Первая (по приоритету) видимая колонка доски — статус для задач,
-     * попадающих в работу. Дефолтный статус НЕ исключается: в проектах со
-     * старой схемой (default = видимый "To Do") первая колонка и есть
-     * дефолтная; в новой схеме default (BACKLOG) скрыт и отсекается viewed.
-     */
+    /** Первая (по приоритету) видимая колонка доски. */
     public TaskStatus firstBoardStatus(Project project) throws NotFoundException {
         return project.getStatuses().stream()
                 .filter(TaskStatus::isViewed)
@@ -67,8 +72,8 @@ public class TaskPlacementService {
 
     /**
      * Завершающая колонка доски — последняя видимая не-default (max priority).
-     * Единая точка для архивации Done-задач при завершении спринта и раздела
-     * «Завершённые» (ТП-33). TD-012: заменить эвристику явным флагом.
+     * Единая точка для архивации Done-задач при завершении спринта и
+     * раздела «Завершённые» (ТП-33). TD-012: заменить эвристику явным флагом.
      */
     public Optional<TaskStatus> completedBoardStatus(Project project) {
         return project.getStatuses().stream()
@@ -77,18 +82,17 @@ public class TaskPlacementService {
                 .max(Comparator.comparingInt(TaskStatus::getPriority));
     }
 
-    /** Статус новой задачи в зависимости от спринта: Backlog-спринт → Backlog-статус, иначе первая колонка доски. */
+    /** Статус новой задачи: первая колонка доски (спринт на статус не влияет, ТП-49). */
     public TaskStatus initialStatusFor(Sprint sprint, Project project) throws NotFoundException {
-        return sprint.isDefaultSprint() ? defaultStatus(project) : firstBoardStatus(project);
+        return firstBoardStatus(project);
     }
 
     /**
-     * Статус новой задачи с учётом явно выбранной колонки доски (ТП-36).
-     * В Backlog-спринте выбор колонки не применяется — статус фиксирован
-     * инвариантом; для обычного спринта допустима только видимая колонка.
+     * Статус новой задачи с учётом явно выбранной колонки доски (ТП-36):
+     * допустима только видимая колонка; без выбора — первая колонка.
      */
     public TaskStatus initialStatusFor(Sprint sprint, Project project, Long requestedStatusId) throws NotFoundException {
-        if (requestedStatusId == null || sprint.isDefaultSprint())
+        if (requestedStatusId == null)
             return initialStatusFor(sprint, project);
         return project.getStatuses().stream()
                 .filter(TaskStatus::isViewed)
@@ -98,51 +102,25 @@ public class TaskPlacementService {
                         "Колонка %d не найдена среди видимых колонок проекта %s", requestedStatusId, project.getName())));
     }
 
-    /**
-     * Перенос задачи в спринт с синхронизацией статуса:
-     * в Backlog-спринт — статус сбрасывается в Backlog;
-     * из Backlog в обычный спринт — задача попадает в первую колонку доски.
-     */
+    /** Перенос задачи в спринт: статус не меняется — оси независимы (ТП-49). */
     @TransactionMandatory
     public void placeInSprint(TaskModel task, Sprint target, Project project) throws NotFoundException {
         if (task.getSprint() == null || !task.getSprint().getId().equals(target.getId()))
             task.setSprint(target);
-        if (target.isDefaultSprint()) {
-            if (!task.getStatus().isDefaultTaskStatus())
-                task.setStatus(defaultStatus(project));
-        } else if (task.getStatus().isDefaultTaskStatus()) {
-            task.setStatus(firstBoardStatus(project));
-        }
         task.touch();
     }
 
-    /**
-     * Смена статуса с синхронизацией спринта:
-     * статус Backlog → задача возвращается в Backlog-спринт;
-     * статус доски у задачи из Backlog-спринта → задача переходит в активный спринт
-     * (если активного спринта нет — остаётся в Backlog-спринте: kanban-режим без спринтов).
-     */
+    /** Смена статуса задачи: спринт не меняется — оси независимы (ТП-49). */
     @TransactionMandatory
     public void applyStatusChange(TaskModel task, TaskStatus newStatus, Project project) throws NotFoundException {
         if (task.getStatus() == null || task.getStatus().getId() != newStatus.getId())
             task.setStatus(newStatus);
-        if (newStatus.isDefaultTaskStatus()) {
-            if (task.getSprint() != null && !task.getSprint().isDefaultSprint())
-                task.setSprint(defaultSprint(project));
-        } else if (task.getSprint() != null && task.getSprint().isDefaultSprint()) {
-            activeSprint(project).ifPresent(task::setSprint);
-        }
         task.touch();
     }
 
-    /** Полный возврат задачи в Backlog (спринт + статус). */
+    /** Возврат задачи в бэклог = перенос в Backlog-спринт (статус сохраняется). */
     @TransactionMandatory
     public void moveToBacklog(TaskModel task, Project project) throws NotFoundException {
-        Sprint backlog = defaultSprint(project);
-        if (!backlog.getId().equals(task.getSprint() == null ? null : task.getSprint().getId()))
-            task.setSprint(backlog);
-        if (!task.getStatus().isDefaultTaskStatus())
-            task.setStatus(defaultStatus(project));
-        task.touch();
+        placeInSprint(task, defaultSprint(project), project);
     }
 }

@@ -23,8 +23,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 /**
- * Инвариант «Backlog-спринт ⟺ Backlog-статус»: задача не должна оказаться
- * в комбинации, невидимой ни на доске (статус viewed=false), ни в разделе Backlog.
+ * ТП-49: спринт и статус — независимые оси. Бэклог — это спринт, а не статус:
+ * переносы между спринтами не трогают статус, смена статуса не трогает спринт.
  */
 @ExtendWith(MockitoExtension.class)
 class TaskPlacementServiceTest {
@@ -38,9 +38,9 @@ class TaskPlacementServiceTest {
     private Project project;
     private Sprint backlog;
     private Sprint sprint;
-    private TaskStatus backlogStatus;
-    private TaskStatus todoStatus;
+    private TaskStatus todoStatus;      // default, первая колонка
     private TaskStatus inProgressStatus;
+    private TaskStatus canceledStatus;  // скрытая
 
     @BeforeEach
     void setUp() {
@@ -49,49 +49,34 @@ class TaskPlacementServiceTest {
         backlog = TestFixtures.defaultSprint("backlog-1", project, owner);
         sprint = TestFixtures.sprint("sprint-1", project, owner);
 
-        // BACKLOG — дефолтный и скрытый с доски; TODO — первая видимая колонка
-        backlogStatus = new TaskStatus(1, "BACKLOG", "Backlog", false, true, project);
-        ReflectionTestUtils.setField(backlogStatus, "id", 1L);
-        todoStatus = new TaskStatus(2, "TODO", "To Do", true, false, project);
-        ReflectionTestUtils.setField(todoStatus, "id", 2L);
-        inProgressStatus = new TaskStatus(3, "IN_PROGRESS", "In Progress", true, false, project);
-        ReflectionTestUtils.setField(inProgressStatus, "id", 3L);
+        todoStatus = new TaskStatus(1, "To Do", "To Do", true, true, true, project);
+        ReflectionTestUtils.setField(todoStatus, "id", 1L);
+        inProgressStatus = new TaskStatus(2, "In Progress", "In Progress", true, false, true, project);
+        ReflectionTestUtils.setField(inProgressStatus, "id", 2L);
+        canceledStatus = new TaskStatus(5, "Canceled", "Canceled", false, false, true, project);
+        ReflectionTestUtils.setField(canceledStatus, "id", 5L);
 
-        project.getStatuses().add(backlogStatus);
         project.getStatuses().add(todoStatus);
         project.getStatuses().add(inProgressStatus);
+        project.getStatuses().add(canceledStatus);
     }
 
     @Test
-    void initialStatusFor_shouldReturnBacklogStatus_forDefaultSprint() throws Exception {
-        assertThat(placement.initialStatusFor(backlog, project)).isEqualTo(backlogStatus);
-    }
-
-    @Test
-    void initialStatusFor_shouldReturnFirstBoardColumn_forRegularSprint() throws Exception {
+    void initialStatusFor_shouldReturnFirstBoardColumn_forAnySprint() throws Exception {
+        // спринт не влияет на статус — и для бэклога, и для обычного спринта
+        assertThat(placement.initialStatusFor(backlog, project)).isEqualTo(todoStatus);
         assertThat(placement.initialStatusFor(sprint, project)).isEqualTo(todoStatus);
     }
 
     @Test
-    void initialStatusFor_withRequestedStatus_shouldReturnRequestedVisibleColumn() throws Exception {
-        assertThat(placement.initialStatusFor(sprint, project, 3L)).isEqualTo(inProgressStatus);
-    }
-
-    @Test
-    void initialStatusFor_withRequestedStatus_shouldIgnoreRequest_forDefaultSprint() throws Exception {
-        // в Backlog-спринте выбор колонки не применяется — статус фиксирован инвариантом
-        assertThat(placement.initialStatusFor(backlog, project, 3L)).isEqualTo(backlogStatus);
-    }
-
-    @Test
-    void initialStatusFor_withNullRequestedStatus_shouldFallBackToFirstColumn() throws Exception {
-        assertThat(placement.initialStatusFor(sprint, project, null)).isEqualTo(todoStatus);
+    void initialStatusFor_withRequestedStatus_shouldApplyForBacklogSprintToo() throws Exception {
+        assertThat(placement.initialStatusFor(backlog, project, 2L)).isEqualTo(inProgressStatus);
+        assertThat(placement.initialStatusFor(sprint, project, 2L)).isEqualTo(inProgressStatus);
     }
 
     @Test
     void initialStatusFor_withHiddenRequestedStatus_shouldThrow() {
-        // скрытая колонка (BACKLOG, id=1) не может быть выбрана при создании
-        assertThatThrownBy(() -> placement.initialStatusFor(sprint, project, 1L))
+        assertThatThrownBy(() -> placement.initialStatusFor(sprint, project, 5L))
                 .isInstanceOf(NotFoundException.class);
     }
 
@@ -102,55 +87,41 @@ class TaskPlacementServiceTest {
     }
 
     @Test
-    void completedBoardStatus_shouldReturnLastVisibleNonDefaultColumn() {
-        // последняя видимая не-default колонка: In Progress (priority 3)
-        assertThat(placement.completedBoardStatus(project)).contains(inProgressStatus);
-    }
-
-    @Test
-    void completedBoardStatus_shouldBeEmpty_whenNoVisibleColumns() {
-        Project empty = TestFixtures.project("project-empty", owner);
-        empty.getStatuses().add(backlogStatus);
-
-        assertThat(placement.completedBoardStatus(empty)).isEmpty();
-    }
-
-    @Test
-    void firstBoardStatus_shouldReturnVisibleDefault_forLegacyProjects() throws Exception {
-        // старая схема: default-статус "To Do" видим и является первой колонкой
-        Project legacy = TestFixtures.project("project-legacy", owner);
-        TaskStatus visibleDefault = new TaskStatus(1, "To Do", "To Do", true, true, legacy);
-        ReflectionTestUtils.setField(visibleDefault, "id", 10L);
-        TaskStatus inProgress = new TaskStatus(2, "In Progress", "In Progress", true, false, legacy);
-        ReflectionTestUtils.setField(inProgress, "id", 11L);
-        legacy.getStatuses().add(visibleDefault);
-        legacy.getStatuses().add(inProgress);
-
-        assertThat(placement.firstBoardStatus(legacy)).isEqualTo(visibleDefault);
-    }
-
-    @Test
     void firstBoardStatus_shouldThrow_whenNoVisibleColumns() {
         Project empty = TestFixtures.project("project-2", owner);
-        empty.getStatuses().add(backlogStatus);
+        empty.getStatuses().add(canceledStatus);
 
         assertThatThrownBy(() -> placement.firstBoardStatus(empty))
                 .isInstanceOf(NotFoundException.class);
     }
 
     @Test
-    void placeInSprint_toBacklog_shouldResetStatusToBacklog() throws Exception {
+    void completedBoardStatus_shouldReturnLastVisibleNonDefaultColumn() {
+        assertThat(placement.completedBoardStatus(project)).contains(inProgressStatus);
+    }
+
+    @Test
+    void completedBoardStatus_shouldBeEmpty_whenNoVisibleColumns() {
+        Project empty = TestFixtures.project("project-empty", owner);
+        empty.getStatuses().add(canceledStatus);
+
+        assertThat(placement.completedBoardStatus(empty)).isEmpty();
+    }
+
+    @Test
+    void placeInSprint_shouldKeepStatus_whenMovingToBacklog() throws Exception {
+        // ТП-49: перенос в бэклог сохраняет статус задачи
         TaskModel task = TestFixtures.task("task-1", owner, project, sprint, inProgressStatus);
 
         placement.placeInSprint(task, backlog, project);
 
         assertThat(task.getSprint()).isEqualTo(backlog);
-        assertThat(task.getStatus()).isEqualTo(backlogStatus);
+        assertThat(task.getStatus()).isEqualTo(inProgressStatus);
     }
 
     @Test
-    void placeInSprint_fromBacklog_shouldMoveTaskToFirstBoardColumn() throws Exception {
-        TaskModel task = TestFixtures.task("task-1", owner, project, backlog, backlogStatus);
+    void placeInSprint_shouldKeepStatus_whenMovingFromBacklog() throws Exception {
+        TaskModel task = TestFixtures.task("task-1", owner, project, backlog, todoStatus);
 
         placement.placeInSprint(task, sprint, project);
 
@@ -159,45 +130,9 @@ class TaskPlacementServiceTest {
     }
 
     @Test
-    void placeInSprint_betweenRegularSprints_shouldKeepBoardStatus() throws Exception {
-        Sprint other = TestFixtures.sprint("sprint-2", project, owner);
-        TaskModel task = TestFixtures.task("task-1", owner, project, sprint, inProgressStatus);
-
-        placement.placeInSprint(task, other, project);
-
-        assertThat(task.getSprint()).isEqualTo(other);
-        assertThat(task.getStatus()).isEqualTo(inProgressStatus);
-    }
-
-    @Test
-    void applyStatusChange_toBacklogStatus_shouldReturnTaskToBacklogSprint() throws Exception {
-        TaskModel task = TestFixtures.task("task-1", owner, project, sprint, inProgressStatus);
-        when(sprintsRepository.findDefaultSprintByProject(project)).thenReturn(Optional.of(backlog));
-
-        placement.applyStatusChange(task, backlogStatus, project);
-
-        assertThat(task.getStatus()).isEqualTo(backlogStatus);
-        assertThat(task.getSprint()).isEqualTo(backlog);
-    }
-
-    @Test
-    void applyStatusChange_fromBacklog_shouldMoveTaskToActiveSprint() throws Exception {
-        Sprint active = TestFixtures.sprint("sprint-2", project, owner);
-        active.activate();
-        TaskModel task = TestFixtures.task("task-1", owner, project, backlog, backlogStatus);
-        when(sprintsRepository.getSprintInfoByProjectId(project)).thenReturn(active);
-
-        placement.applyStatusChange(task, todoStatus, project);
-
-        assertThat(task.getStatus()).isEqualTo(todoStatus);
-        assertThat(task.getSprint()).isEqualTo(active);
-    }
-
-    @Test
-    void applyStatusChange_fromBacklog_withoutActiveSprint_shouldKeepBacklogSprint() throws Exception {
-        // kanban-режим: спринты не используются, задача выходит на доску из Backlog
-        TaskModel task = TestFixtures.task("task-1", owner, project, backlog, backlogStatus);
-        when(sprintsRepository.getSprintInfoByProjectId(project)).thenReturn(null);
+    void applyStatusChange_shouldKeepSprint() throws Exception {
+        // ТП-49: смена статуса не выдёргивает задачу из её спринта
+        TaskModel task = TestFixtures.task("task-1", owner, project, backlog, todoStatus);
 
         placement.applyStatusChange(task, inProgressStatus, project);
 
@@ -206,13 +141,30 @@ class TaskPlacementServiceTest {
     }
 
     @Test
-    void moveToBacklog_shouldSetDefaultSprintAndStatus() throws Exception {
+    void moveToBacklog_shouldChangeOnlySprint() throws Exception {
         TaskModel task = TestFixtures.task("task-1", owner, project, sprint, inProgressStatus);
         when(sprintsRepository.findDefaultSprintByProject(project)).thenReturn(Optional.of(backlog));
 
         placement.moveToBacklog(task, project);
 
         assertThat(task.getSprint()).isEqualTo(backlog);
-        assertThat(task.getStatus()).isEqualTo(backlogStatus);
+        assertThat(task.getStatus()).isEqualTo(inProgressStatus);
+    }
+
+    @Test
+    void boardSprint_shouldPreferActiveSprint() throws Exception {
+        Sprint active = TestFixtures.sprint("sprint-2", project, owner);
+        when(sprintsRepository.getSprintInfoByProjectId(project)).thenReturn(active);
+
+        assertThat(placement.boardSprint(project)).isEqualTo(active);
+    }
+
+    @Test
+    void boardSprint_shouldFallBackToBacklog_whenNoActiveSprint() throws Exception {
+        // kanban-режим: без активного спринта доска показывает Backlog-спринт
+        when(sprintsRepository.getSprintInfoByProjectId(project)).thenReturn(null);
+        when(sprintsRepository.findDefaultSprintByProject(project)).thenReturn(Optional.of(backlog));
+
+        assertThat(placement.boardSprint(project)).isEqualTo(backlog);
     }
 }

@@ -184,16 +184,12 @@ public class TaskStatusService {
         if (status.isSystemStatus())
             throw new BadRequestException("Дефолтную колонку нельзя удалить — её можно переименовать или скрыть");
         TaskStatus defaultStatus = taskPlacementService.defaultStatus(data.getProject());
-        // Trello UX: задачи удаляемой колонки не теряются — активные уходят в Backlog
-        // целиком (статус + спринт), архивные лишь получают валидный статус.
+        // ТП-49: задачи удаляемой колонки не теряются — получают статус по
+        // умолчанию (первая колонка); спринт не меняется (оси независимы).
         List<TaskModel> tasks = taskRepository.findAllByStatus(status);
         for (TaskModel task : tasks) {
-            if (task.isArchived()) {
-                task.setStatus(defaultStatus);
-                task.touch();
-            } else {
-                taskPlacementService.moveToBacklog(task, data.getProject());
-            }
+            task.setStatus(defaultStatus);
+            task.touch();
         }
         taskRepository.flush();
         projectHistoryService.record(projectId, ProjectHistoryService.COLUMN_DELETE, status.getCode(), null, data.getUser());

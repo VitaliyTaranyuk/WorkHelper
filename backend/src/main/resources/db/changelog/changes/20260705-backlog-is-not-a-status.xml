@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- ТП-49: бэклог — это спринт, а не статус. Скрытые BACKLOG-статусы
+         (code 'BACKLOG'/'Backlog', а также скрытые default-статусы новой
+         схемы) удаляются; их задачи получают первую видимую колонку своего
+         проекта; признак default переезжает на первую видимую колонку. -->
+
+    <changeSet id="20260705-move-backlog-tasks-to-first-column" author="cloud-code">
+        <sql>
+            UPDATE task_model t
+            SET status_id = (
+                SELECT ts.id FROM task_status ts
+                WHERE ts.project_id = t.project_id AND ts.viewed = TRUE
+                ORDER BY ts.priority ASC
+                LIMIT 1)
+            WHERE t.status_id IN (
+                SELECT b.id FROM task_status b
+                WHERE LOWER(b.code) = 'backlog'
+                   OR (b.viewed = FALSE AND b.default_task_status = TRUE));
+        </sql>
+    </changeSet>
+
+    <changeSet id="20260705-reassign-default-status" author="cloud-code">
+        <sql>
+            -- default переезжает на первую видимую колонку в проектах, где
+            -- default был скрытым (новая схема) или носил имя backlog
+            UPDATE task_status ts
+            SET default_task_status = TRUE
+            WHERE ts.id = (
+                SELECT ts2.id FROM task_status ts2
+                WHERE ts2.project_id = ts.project_id AND ts2.viewed = TRUE
+                ORDER BY ts2.priority ASC
+                LIMIT 1)
+              AND EXISTS (
+                SELECT 1 FROM task_status b
+                WHERE b.project_id = ts.project_id
+                  AND b.default_task_status = TRUE
+                  AND (b.viewed = FALSE OR LOWER(b.code) = 'backlog'));
+
+            UPDATE task_status
+            SET default_task_status = FALSE
+            WHERE default_task_status = TRUE
+              AND (viewed = FALSE OR LOWER(code) = 'backlog');
+        </sql>
+    </changeSet>
+
+    <changeSet id="20260705-delete-backlog-statuses" author="cloud-code">
+        <sql>
+            DELETE FROM task_status
+            WHERE LOWER(code) = 'backlog' AND viewed = FALSE;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
