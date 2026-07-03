@@ -22,7 +22,9 @@ public class UpdateProfileRequest {
     private String displayName;
 
     @Schema(description = "Username (уникальный, латиница/цифры/_)", example = "ivanov")
-    @Pattern(regexp = "^[a-z0-9_]{3,32}$", message = "Username: 3-32 символа, строчная латиница, цифры, _")
+    // 2-32: usernames, сгенерированные из префикса email (например "vt"),
+    // бывают двухсимвольными — политика и regex упоминаний должны совпадать
+    @Pattern(regexp = "^[a-z0-9_]{2,32}$", message = "Username: 2-32 символа, строчная латиница, цифры, _")
     @Size(max = 32)
     private String username;
 }

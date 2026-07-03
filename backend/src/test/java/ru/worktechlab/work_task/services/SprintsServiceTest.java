@@ -347,13 +347,57 @@ class SprintsServiceTest {
     }
 
     @Test
+    void finishSprint_shouldArchiveDoneTasks_byLastVisibleColumn() throws Exception {
+        org.springframework.test.util.ReflectionTestUtils.setField(sprint, "active", true);
+        Sprint backlog = TestFixtures.defaultSprint("backlog-1", project, owner);
+        var backlogStatus = new ru.worktechlab.work_task.models.tables.TaskStatus(1, "Backlog", "Backlog", false, true, project);
+        var todo = new ru.worktechlab.work_task.models.tables.TaskStatus(2, "To Do", "To Do", true, false, project);
+        // код "Done" (не "DONE") — как у реально создаваемых проектов;
+        // завершающая колонка определяется по max priority среди видимых
+        var done = new ru.worktechlab.work_task.models.tables.TaskStatus(5, "Done", "Done", true, false, project);
+        var canceled = new ru.worktechlab.work_task.models.tables.TaskStatus(6, "Canceled", "Canceled", false, false, project);
+        org.springframework.test.util.ReflectionTestUtils.setField(backlogStatus, "id", 1L);
+        org.springframework.test.util.ReflectionTestUtils.setField(todo, "id", 2L);
+        org.springframework.test.util.ReflectionTestUtils.setField(done, "id", 5L);
+        org.springframework.test.util.ReflectionTestUtils.setField(canceled, "id", 6L);
+        project.getStatuses().addAll(List.of(backlogStatus, todo, done, canceled));
+
+        UserAndProjectData data = new UserAndProjectData(project, owner);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsRepository.findSprintByIdForUpdate("sprint-1", "project-1")).thenReturn(Optional.of(sprint));
+        when(sprintsRepository.findById("sprint-1")).thenReturn(Optional.of(sprint));
+        when(sprintsRepository.findDefaultSprintByProject(project)).thenReturn(Optional.of(backlog));
+        when(sprintMapper.toSprintInfoDto(sprint)).thenReturn(mock(SprintInfoDTO.class));
+
+        TaskModel doneTask = TestFixtures.task("task-1", owner, project, sprint, done);
+        TaskModel unfinished = TestFixtures.task("task-2", owner, project, sprint, todo);
+        when(taskRepository.findAllBySprint(sprint)).thenReturn(List.of(doneTask, unfinished));
+
+        sprintsService.finishSprint("sprint-1", "project-1");
+
+        // Done-задача архивируется и сохраняет спринт; незавершённая уходит в Backlog
+        assertThat(doneTask.isArchived()).isTrue();
+        assertThat(doneTask.getCompletedDate()).isNotNull();
+        assertThat(doneTask.getSprint()).isEqualTo(sprint);
+        assertThat(unfinished.isArchived()).isFalse();
+        assertThat(unfinished.getSprint()).isEqualTo(backlog);
+        assertThat(unfinished.getStatus()).isEqualTo(backlogStatus);
+    }
+
+    @Test
     void finishSprint_shouldMoveUnfinishedTasksToBacklog() throws Exception {
         org.springframework.test.util.ReflectionTestUtils.setField(sprint, "active", true);
         Sprint backlog = TestFixtures.defaultSprint("backlog-1", project, owner);
         var backlogStatus = TestFixtures.defaultStatus(project);
         var boardStatus = TestFixtures.status("IN_PROGRESS", project);
+        // последняя видимая колонка — Done; задача в IN_PROGRESS не завершена
+        var doneStatus = new ru.worktechlab.work_task.models.tables.TaskStatus(5, "Done", "Done", true, false, project);
+        org.springframework.test.util.ReflectionTestUtils.setField(backlogStatus, "id", 1L);
+        org.springframework.test.util.ReflectionTestUtils.setField(boardStatus, "id", 2L);
+        org.springframework.test.util.ReflectionTestUtils.setField(doneStatus, "id", 5L);
         project.getStatuses().add(backlogStatus);
         project.getStatuses().add(boardStatus);
+        project.getStatuses().add(doneStatus);
 
         UserAndProjectData data = new UserAndProjectData(project, owner);
         when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);

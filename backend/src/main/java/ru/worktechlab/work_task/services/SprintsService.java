@@ -19,6 +19,7 @@ import ru.worktechlab.work_task.mappers.TaskMapper;
 import ru.worktechlab.work_task.models.tables.Project;
 import ru.worktechlab.work_task.models.tables.Sprint;
 import ru.worktechlab.work_task.models.tables.TaskModel;
+import ru.worktechlab.work_task.models.tables.TaskStatus;
 import ru.worktechlab.work_task.repositories.SprintsRepository;
 import ru.worktechlab.work_task.repositories.TaskRepository;
 import ru.worktechlab.work_task.utils.CheckerUtil;
@@ -129,8 +130,21 @@ public class SprintsService {
 
     @TransactionMandatory
     public void archiveDoneTasks(Sprint sprint) {
+        // Завершающая колонка — последняя видимая колонка доски (max priority).
+        // Нельзя сравнивать по строковому коду ("DONE"): код — отображаемое имя,
+        // у создаваемых проектов он "Done", и пользователь может переименовать.
+        Long doneStatusId = sprint.getProject().getStatuses().stream()
+                .filter(TaskStatus::isViewed)
+                .filter(s -> !s.isDefaultTaskStatus())
+                .max(java.util.Comparator.comparingInt(TaskStatus::getPriority))
+                .map(TaskStatus::getId)
+                .orElse(null);
+        if (doneStatusId == null) {
+            log.warn("Спринт {}: не найдена завершающая колонка, Done-задачи не архивированы", sprint.getId());
+            return;
+        }
         List<TaskModel> doneTasks = taskRepository.findAllBySprint(sprint).stream()
-                .filter(task -> "DONE".equals(task.getStatus().getCode()) && !task.isArchived())
+                .filter(task -> task.getStatus().getId() == doneStatusId && !task.isArchived())
                 .toList();
         doneTasks.forEach(task -> {
             task.setArchived(true);

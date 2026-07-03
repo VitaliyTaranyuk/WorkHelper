@@ -25,6 +25,7 @@ import ru.worktechlab.work_task.dto.tasks.TaskDataDto;
 import ru.worktechlab.work_task.dto.tasks.TaskModelDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateStatusRequestDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateTaskModelDTO;
+import ru.worktechlab.work_task.dto.tasks.UpdateTasksSprintRequestDto;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.services.TaskHistoryService;
 import ru.worktechlab.work_task.services.TaskService;
@@ -295,8 +296,8 @@ public class TaskController {
     @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
     @PutMapping("/update-sprint")
     @Operation(summary = "Перенести задачи между спринтами (wrapper над /bulk/move-sprint)")
-    public ApiResponse updateTasksSprint(@Valid @RequestBody BulkTaskRequestDTO dto) throws NotFoundException {
-        return taskService.bulkMoveSprint(dto);
+    public ApiResponse updateTasksSprint(@Valid @RequestBody UpdateTasksSprintRequestDto dto) throws NotFoundException {
+        return taskService.bulkMoveSprint(dto.toBulkRequest());
     }
 
     @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})

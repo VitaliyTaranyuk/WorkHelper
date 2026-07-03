@@ -31,7 +31,9 @@ import java.util.regex.Pattern;
 public class InAppNotificationService {
 
     public static final String TYPE_MENTION = "MENTION";
-    private static final Pattern MENTION = Pattern.compile("@([a-zA-Z0-9_]{3,32})");
+    // Нижняя граница 2 — как в политике username (UpdateProfileRequest):
+    // usernames из префикса email (например "vt") двухсимвольные.
+    private static final Pattern MENTION = Pattern.compile("@([a-zA-Z0-9_]{2,32})");
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
