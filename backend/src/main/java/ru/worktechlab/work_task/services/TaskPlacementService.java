@@ -71,6 +71,22 @@ public class TaskPlacementService {
     }
 
     /**
+     * Статус новой задачи с учётом явно выбранной колонки доски (ТП-36).
+     * В Backlog-спринте выбор колонки не применяется — статус фиксирован
+     * инвариантом; для обычного спринта допустима только видимая колонка.
+     */
+    public TaskStatus initialStatusFor(Sprint sprint, Project project, Long requestedStatusId) throws NotFoundException {
+        if (requestedStatusId == null || sprint.isDefaultSprint())
+            return initialStatusFor(sprint, project);
+        return project.getStatuses().stream()
+                .filter(TaskStatus::isViewed)
+                .filter(s -> s.getId() == requestedStatusId)
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException(String.format(
+                        "Колонка %d не найдена среди видимых колонок проекта %s", requestedStatusId, project.getName())));
+    }
+
+    /**
      * Перенос задачи в спринт с синхронизацией статуса:
      * в Backlog-спринт — статус сбрасывается в Backlog;
      * из Backlog в обычный спринт — задача попадает в первую колонку доски.

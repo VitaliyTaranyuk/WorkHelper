@@ -18,6 +18,9 @@ export function useCreateTask() {
       queryClient.invalidateQueries({
         queryKey: ['sprints', variables.projectId],
       })
+      // Создателю приходит уведомление о создании задачи (ТП-36) —
+      // обновляем колокольчик сразу, не дожидаясь 30-секундного refetch.
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
       toast.success('Задача создана')
     },
     // onError намеренно не показывает общий toast — формы создания задачи

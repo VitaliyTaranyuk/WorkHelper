@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 public class InAppNotificationService {
 
     public static final String TYPE_MENTION = "MENTION";
+    public static final String TYPE_TASK_CREATED = "TASK_CREATED";
     // Username допускает Unicode-буквы/цифры + . _ - длиной 2..32 (нижняя
     // граница 2 — как в политике username: префиксы email вроде "vt"), чтобы
     // распознавать упоминания вроде @виталий или @maria.k наряду с @ivanov.
@@ -55,6 +56,19 @@ public class InAppNotificationService {
             });
         }
         notificationRepository.flush();
+    }
+
+    /**
+     * Уведомление создателю о создании задачи (ТП-36): колокольчик показывает
+     * запись с кликабельной ссылкой на карточку (переход по taskCode).
+     */
+    @TransactionMandatory
+    public void createTaskCreatedNotification(User creator, TaskModel task) {
+        String message = String.format("Создана задача %s «%s»", task.getCode(), task.getTitle());
+        notificationRepository.save(new Notification(creator, creator, TYPE_TASK_CREATED, message,
+                task.getId(), task.getCode(), null));
+        notificationRepository.flush();
+        log.debug("TASK_CREATED notification for creator {} (task {})", creator.getId(), task.getCode());
     }
 
     @TransactionRequired

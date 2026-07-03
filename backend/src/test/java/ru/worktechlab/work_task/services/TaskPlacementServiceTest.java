@@ -73,6 +73,35 @@ class TaskPlacementServiceTest {
     }
 
     @Test
+    void initialStatusFor_withRequestedStatus_shouldReturnRequestedVisibleColumn() throws Exception {
+        assertThat(placement.initialStatusFor(sprint, project, 3L)).isEqualTo(inProgressStatus);
+    }
+
+    @Test
+    void initialStatusFor_withRequestedStatus_shouldIgnoreRequest_forDefaultSprint() throws Exception {
+        // в Backlog-спринте выбор колонки не применяется — статус фиксирован инвариантом
+        assertThat(placement.initialStatusFor(backlog, project, 3L)).isEqualTo(backlogStatus);
+    }
+
+    @Test
+    void initialStatusFor_withNullRequestedStatus_shouldFallBackToFirstColumn() throws Exception {
+        assertThat(placement.initialStatusFor(sprint, project, null)).isEqualTo(todoStatus);
+    }
+
+    @Test
+    void initialStatusFor_withHiddenRequestedStatus_shouldThrow() {
+        // скрытая колонка (BACKLOG, id=1) не может быть выбрана при создании
+        assertThatThrownBy(() -> placement.initialStatusFor(sprint, project, 1L))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void initialStatusFor_withUnknownRequestedStatus_shouldThrow() {
+        assertThatThrownBy(() -> placement.initialStatusFor(sprint, project, 999L))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
     void firstBoardStatus_shouldReturnVisibleDefault_forLegacyProjects() throws Exception {
         // старая схема: default-статус "To Do" видим и является первой колонкой
         Project legacy = TestFixtures.project("project-legacy", owner);

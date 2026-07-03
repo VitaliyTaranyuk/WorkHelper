@@ -33,6 +33,7 @@ export function useCreateTaskForm({
       estimation: null,
       assignee: NOT_ASSIGNED_OPTION.value,
       sprint: defaultSprintId,
+      status: null,
     },
   })
 

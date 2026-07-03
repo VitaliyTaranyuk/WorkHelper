@@ -102,7 +102,9 @@ public class TaskService {
         log.debug("Processing create-task with model: {}", taskDTO);
         UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(taskDTO.getProjectId(), false, false);
         TaskModel task = convertToEntity(taskDTO, data.getUser(), data.getProject());
+        placeOnTopOfColumn(task);
         taskRepository.saveAndFlush(task);
+        inAppNotificationService.createTaskCreatedNotification(data.getUser(), task);
         return taskMapper.toDo(task);
     }
 
@@ -114,10 +116,17 @@ public class TaskService {
             assignee = checkerUtil.findAndCheckActiveUser(taskDTO.getAssignee(), project);
         Sprint sprint = sprintsService.resolveSprintForTask(taskDTO.getSprintId(), project);
         // Статус согласован со спринтом: Backlog-спринт → Backlog-статус, обычный
-        // спринт → первая колонка доски (иначе задача в спринте была бы невидима).
-        TaskStatus status = taskPlacementService.initialStatusFor(sprint, project);
+        // спринт → выбранная колонка (statusId) или первая колонка доски
+        // (иначе задача в спринте была бы невидима).
+        TaskStatus status = taskPlacementService.initialStatusFor(sprint, project, taskDTO.getStatusId());
         return new TaskModel(taskDTO.getTitle(), taskDTO.getDescription(), taskDTO.getPriority(), user, assignee, project,
                 sprint, taskDTO.getTaskType(), taskDTO.getEstimation(), status, getTaskCode(project));
+    }
+
+    /** Новая задача встаёт в самый верх своей колонки: позиция меньше минимальной существующей. */
+    private void placeOnTopOfColumn(TaskModel task) {
+        Integer minPosition = taskRepository.findMinPositionByProjectAndStatus(task.getProject(), task.getStatus());
+        task.setPosition(minPosition == null ? 0 : minPosition - 1);
     }
 
     private String getTaskCode(Project project) {

@@ -29,6 +29,10 @@ public interface TaskRepository extends JpaRepository<TaskModel, String>, TaskFi
 
     @Query("from TaskModel where code = :code and project = :project")
     Optional<TaskModel> findByCodeAndProject(String code, Project project);
+
+    /** Минимальная позиция карточки в колонке — для вставки новой задачи в самый верх (ТП-36). */
+    @Query("select min(t.position) from TaskModel t where t.project = :project and t.status = :status and t.archived = false")
+    Integer findMinPositionByProjectAndStatus(Project project, TaskStatus status);
 }
 
 
