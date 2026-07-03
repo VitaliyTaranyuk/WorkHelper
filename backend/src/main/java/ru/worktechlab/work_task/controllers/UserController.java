@@ -11,6 +11,7 @@ import ru.worktechlab.work_task.dto.StringIdsDto;
 import ru.worktechlab.work_task.dto.users.UpdateProfileRequest;
 import ru.worktechlab.work_task.dto.users.UpdateUserRequest;
 import ru.worktechlab.work_task.dto.users.UserDataDto;
+import ru.worktechlab.work_task.dto.users.UserPickerDto;
 import ru.worktechlab.work_task.dto.users.UserShortDataDto;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.services.UserService;
@@ -32,6 +33,21 @@ public class UserController {
     @GetMapping
     public List<UserShortDataDto> getAllUsers() {
         return userService.getAllUsers();
+    }
+
+    /**
+     * Единый источник для assignee picker / @mention autocomplete / комментариев.
+     * Доступен всем участникам проекта. Только активные подтверждённые
+     * пользователи; поиск по firstName/lastName/displayName/username/email.
+     */
+    @RolesAllowed({ADMIN, PROJECT_OWNER, PROJECT_MEMBER, POWER_USER})
+    @Operation(summary = "Picker: активные пользователи для assignee / @mention")
+    @GetMapping("/picker")
+    public List<UserPickerDto> picker(
+            @RequestParam(value = "q", required = false) String q,
+            @RequestParam(value = "limit", required = false, defaultValue = "20") int limit
+    ) {
+        return userService.pickerSearch(q, limit);
     }
 
 //    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER})

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!--
+        Бэкфил username для существующих пользователей: новые seed/admin/
+        зарегистрированные ранее без username — не были упоминаемы (@username).
+        Берём email-префикс (всё до @), нижний регистр. Уникальность сохраняем
+        приоритетом по дате confirmed_at; в случае коллизий новые получат -2/-3
+        при регистрации через сервис, но в seed-данных коллизий нет (vt/mk/ek/
+        admin/ivanov/petrov/sidorov/mikhailov/alekseev/test4/test5/test6).
+    -->
+    <changeSet id="20260627-backfill-usernames" author="audit">
+        <sql>
+            UPDATE users
+            SET username = LOWER(split_part(email, '@', 1))
+            WHERE (username IS NULL OR username = '')
+              AND email IS NOT NULL
+              AND POSITION('@' IN email) > 0;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
