@@ -296,7 +296,8 @@ class SprintsServiceTest {
     }
 
     @Test
-    void deleteSprint_shouldResetBoardStatusToBacklogStatus() throws Exception {
+    void deleteSprint_shouldKeepTaskStatus_whenMovedToBacklog() throws Exception {
+        // ТП-49: бэклог — спринт, а не статус; перенос сохраняет статус задачи
         Sprint backlog = TestFixtures.defaultSprint("backlog-1", project, owner);
         var backlogStatus = TestFixtures.defaultStatus(project);
         var boardStatus = TestFixtures.status("IN_PROGRESS", project);
@@ -313,7 +314,7 @@ class SprintsServiceTest {
         sprintsService.deleteSprint("sprint-1", "project-1");
 
         assertThat(task.getSprint()).isEqualTo(backlog);
-        assertThat(task.getStatus()).isEqualTo(backlogStatus);
+        assertThat(task.getStatus()).isEqualTo(boardStatus);
     }
 
     @Test
@@ -340,7 +341,8 @@ class SprintsServiceTest {
 
         assertThat(sprint.isArchived()).isTrue();
         assertThat(activeTask.getSprint()).isEqualTo(backlog);
-        assertThat(activeTask.getStatus()).isEqualTo(backlogStatus);
+        // ТП-49: перенос в бэклог сохраняет статус задачи
+        assertThat(activeTask.getStatus()).isEqualTo(boardStatus);
         // архивная задача сохраняет историческую связь со спринтом и статус
         assertThat(archivedTask.getSprint()).isEqualTo(sprint);
         assertThat(archivedTask.getStatus()).isEqualTo(boardStatus);
@@ -381,7 +383,8 @@ class SprintsServiceTest {
         assertThat(doneTask.getSprint()).isEqualTo(sprint);
         assertThat(unfinished.isArchived()).isFalse();
         assertThat(unfinished.getSprint()).isEqualTo(backlog);
-        assertThat(unfinished.getStatus()).isEqualTo(backlogStatus);
+        // ТП-49: статус незавершённой задачи сохраняется при уходе в бэклог
+        assertThat(unfinished.getStatus()).isEqualTo(todo);
     }
 
     @Test
@@ -412,6 +415,7 @@ class SprintsServiceTest {
         sprintsService.finishSprint("sprint-1", "project-1");
 
         assertThat(unfinished.getSprint()).isEqualTo(backlog);
-        assertThat(unfinished.getStatus()).isEqualTo(backlogStatus);
+        // ТП-49: статус сохраняется — бэклог не статус
+        assertThat(unfinished.getStatus()).isEqualTo(boardStatus);
     }
 }

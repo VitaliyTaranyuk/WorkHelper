@@ -60,7 +60,8 @@ export function CreateTaskContent({
   )
 
   // Видимые колонки доски в порядке отображения — выбор колонки для новой
-  // задачи (ТП-36). В Backlog-спринте колонка не выбирается.
+  // задачи (ТП-36). ТП-49: статус не зависит от спринта, колонка выбирается
+  // и для задач бэклога (там она проявится при выводе задачи на доску).
   const boardStatuses = useMemo(
     () =>
       orderBy(
@@ -69,22 +70,15 @@ export function CreateTaskContent({
       ),
     [activeProject?.statuses],
   )
-  const selectedSprintId = form.watch('sprint')
-  const isBacklogSprint = Boolean(
-    sortedSprints.find((s) => s.id === selectedSprintId)?.isDefault,
-  )
 
-  // Синхронизация значения колонки с выбранным спринтом: Backlog — колонки
-  // нет (null), обычный спринт — по умолчанию первая колонка доски.
+  // Значение по умолчанию — первая колонка доски (как на бэкенде).
   const statusValue = form.watch('status')
   useEffect(() => {
-    if (isBacklogSprint) {
-      if (statusValue != null) form.setValue('status', null)
-    } else if (statusValue == null && boardStatuses.length > 0) {
+    if (statusValue == null && boardStatuses.length > 0) {
       form.setValue('status', boardStatuses[0].id)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isBacklogSprint, statusValue, boardStatuses])
+  }, [statusValue, boardStatuses])
 
   if (isProjectLoading || isSprintsLoading) {
     return <Loader isLoading />
@@ -256,7 +250,7 @@ export function CreateTaskContent({
           </FormControl>
         </Stack>
 
-        {!isBacklogSprint && boardStatuses.length > 0 && (
+        {boardStatuses.length > 0 && (
           <Stack gap={0.5}>
             <FormCaption>Колонка</FormCaption>
             <FormControl fullWidth size="small">

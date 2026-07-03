@@ -420,6 +420,8 @@ class TaskServiceTest {
         ReflectionTestUtils.setField(creator, "lastProjectId", "project-1");
         when(userService.findUserById("user-1")).thenReturn(creator);
         when(projectsService.findProjectById("project-1")).thenReturn(project);
+        // ТП-49: доска фильтрует по досковому спринту
+        when(taskPlacementService.boardSprint(project)).thenReturn(sprint);
         project.getTasks().add(task);
         when(commentRepository.findLatestCommentPerTask(project.getId()))
                 .thenReturn(List.<Object[]>of(new Object[]{"task-1", "[Cloud Code][ВОПРОС] нужен ваш ответ"}));

@@ -91,6 +91,10 @@ public class TaskService {
         if (user.getLastProjectId() == null)
             throw new NotFoundException("У вас нет посещенных проектов");
         Project project = projectsService.findProjectById(user.getLastProjectId());
+        // ТП-49: доска показывает только задачи доскового спринта (активный;
+        // без активного — Backlog-спринт, kanban-режим). Задачи бэклога на
+        // доску не попадают — бэклог не колонка, а спринт (раздел «Задачи»).
+        Sprint boardSprint = taskPlacementService.boardSprint(project);
         // ТП-45: задачи, у которых последний комментарий помечен [вопрос],
         // получают индикатор «ждёт ответа» на карточке доски.
         Set<String> awaitingReplyTaskIds = findAwaitingReplyTaskIds(project.getId());
@@ -98,6 +102,8 @@ public class TaskService {
         // в отдельную группу «Не назначено» вместо отбрасывания.
         Map<String, List<TaskModel>> tasksByUserId = project.getTasks().stream()
                 .filter(task -> !task.isArchived()) // завершённые/архивные не показываем на активной доске
+                .filter(task -> task.getSprint() != null
+                        && boardSprint.getId().equals(task.getSprint().getId()))
                 .collect(Collectors.groupingBy(
                         task -> task.getAssignee() != null ? task.getAssignee().getId() : ""));
         return tasksByUserId.values().stream()
@@ -140,9 +146,8 @@ public class TaskService {
         if (taskDTO.getAssignee() != null)
             assignee = checkerUtil.findAndCheckActiveUser(taskDTO.getAssignee(), project);
         Sprint sprint = sprintsService.resolveSprintForTask(taskDTO.getSprintId(), project);
-        // Статус согласован со спринтом: Backlog-спринт → Backlog-статус, обычный
-        // спринт → выбранная колонка (statusId) или первая колонка доски
-        // (иначе задача в спринте была бы невидима).
+        // ТП-49: статус не зависит от спринта — выбранная колонка (statusId)
+        // или первая колонка доски.
         TaskStatus status = taskPlacementService.initialStatusFor(sprint, project, taskDTO.getStatusId());
         return new TaskModel(taskDTO.getTitle(), taskDTO.getDescription(), taskDTO.getPriority(), user, assignee, project,
                 sprint, taskDTO.getTaskType(), taskDTO.getEstimation(), status, getTaskCode(project));
