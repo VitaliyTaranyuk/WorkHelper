@@ -1,5 +1,5 @@
 import { Box, Stack } from '@mui/material'
-import { CompactTaskForm } from '@/features/task/TaskForm/CompactTaskForm'
+import { CreateTaskContent } from '@/features/task/CreateTaskContent'
 import { useCreateTaskForm } from '@/features/task/TaskForm/useTaskForm'
 import { MUIPrimaryButton } from '@/shared/ui/Button'
 import { useCreateTask } from '@/features/task/mutation/useCreateTask'
@@ -50,8 +50,8 @@ export function CreateTaskDetails({
   })
 
   return (
-    <Stack maxWidth={560}>
-      <CompactTaskForm fullMode mode="create" onSubmit={onSubmit} form={form} />
+    <Stack maxWidth={960}>
+      <CreateTaskContent onSubmit={onSubmit} form={form} />
       <Stack gap={'18px'} direction={'row'} width={'100%'} height={'42px'} mt={2}>
         <MUIPrimaryButton
           disabled={!form.formState.isValid || form.formState.isSubmitting}

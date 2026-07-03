@@ -67,8 +67,24 @@ public class TaskStatusService {
         Project project = data.getProject();
         checkerUtil.checkProjectOwner(data.getProject(), data.getUser());
         checkHasDefaultValue(project, requestStatusesDto.getStatuses());
-        for (TaskStatusRequestDto status : requestStatusesDto.getStatuses()) {
-            TaskStatus dbStatus = findStatusByIdAndProjectForUpdate(status.getId(), project);
+
+        // Двухфазное обновление приоритетов: на task_status стоит unique
+        // (project, priority), и при перестановке колонок построчные UPDATE
+        // дают промежуточные дубликаты («Не удалось сохранить изменения
+        // колонок»). Сначала уводим приоритеты в заведомо свободный
+        // отрицательный диапазон, затем выставляем целевые значения.
+        List<TaskStatus> dbStatuses = new java.util.ArrayList<>();
+        for (TaskStatusRequestDto status : requestStatusesDto.getStatuses())
+            dbStatuses.add(findStatusByIdAndProjectForUpdate(status.getId(), project));
+
+        int temp = -1000;
+        for (TaskStatus dbStatus : dbStatuses)
+            dbStatus.setPriority(temp--);
+        taskStatusRepository.flush();
+
+        for (int i = 0; i < dbStatuses.size(); i++) {
+            TaskStatusRequestDto status = requestStatusesDto.getStatuses().get(i);
+            TaskStatus dbStatus = dbStatuses.get(i);
             String oldCode = dbStatus.getCode();
             if (oldCode != null && !oldCode.equals(status.getCode()))
                 projectHistoryService.record(projectId, ProjectHistoryService.COLUMN_RENAME, oldCode, status.getCode(), data.getUser());

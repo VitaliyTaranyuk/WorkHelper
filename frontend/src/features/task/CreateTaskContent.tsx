@@ -1,0 +1,248 @@
+import { useMemo } from 'react'
+import { Divider, FormControl, Stack, Typography } from '@mui/material'
+import AttachFileIcon from '@mui/icons-material/AttachFile'
+import { Controller, type UseFormReturn } from 'react-hook-form'
+import { orderBy } from 'lodash'
+import { MenuItem, Select } from '@/shared/ui/mui/Select'
+import { TextField } from '@/shared/ui/mui/TextFileld'
+import { FormCaption } from '@/shared/ui/components/FormCaption'
+import { Loader } from '@/shared/ui/components/Loader'
+import { useProjectData } from '@/features/project/query/useProjectData'
+import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
+import { NOT_ASSIGNED_OPTION, type FormValues } from './TaskForm/useTaskForm'
+import { transformEstimaionByLimit } from './TaskForm/taskFormSchema'
+import { TASK_PRIORITY_OPTIONS } from './TaskForm/contants'
+import { getFullName } from '@/entities/user/utils'
+import { ESTIMATION_MAX } from '@/entities/task/constants'
+import type { User } from '@/entities/user/types'
+
+type CreateTaskContentProps = {
+  form: UseFormReturn<FormValues>
+  onSubmit?: () => void
+}
+
+/**
+ * Тело формы создания задачи в макете карточки редактирования
+ * (TaskCardContent): слева — название и описание, справа — метаданные
+ * (исполнитель, приоритет, тип, спринт, оценка). Единый вид создания
+ * и редактирования; блок «Статус» отсутствует — статус назначается
+ * по спринту (TaskPlacementService), вложения и комментарии появляются
+ * в карточке после создания.
+ */
+export function CreateTaskContent({ form, onSubmit }: CreateTaskContentProps) {
+  const { errors } = form.formState
+  const { activeProject, isLoading: isProjectLoading } = useProjectData()
+  const { data: sprints, isLoading: isSprintsLoading } = useSprintsInfoQuery({
+    projectId: activeProject?.id,
+  })
+
+  const projectUsers: User[] = useMemo(
+    () => activeProject?.users || [],
+    [activeProject?.users],
+  )
+
+  // Только активные спринты и Backlog — как в карточке редактирования.
+  const sortedSprints = useMemo(
+    () =>
+      orderBy(
+        (sprints ?? []).filter((s) => s.isActive || s.isDefault),
+        ['isActive', 'isDefault', 'name'],
+        ['desc', 'desc'],
+      ),
+    [sprints],
+  )
+
+  if (isProjectLoading || isSprintsLoading) {
+    return <Loader isLoading />
+  }
+
+  return (
+    <Stack
+      component="form"
+      onSubmit={onSubmit}
+      direction={{ xs: 'column', md: 'row' }}
+      gap={3}
+      alignItems="stretch"
+      sx={{ width: '100%' }}
+    >
+      {/* ЛЕВАЯ КОЛОНКА — рабочая область */}
+      <Stack flex={1} minWidth={0} gap={2}>
+        <Stack gap={0.5}>
+          <FormCaption>Название</FormCaption>
+          <TextField
+            fullWidth
+            size="small"
+            {...form.register('taskTitle')}
+            error={Boolean(errors.taskTitle)}
+            helperText={errors.taskTitle?.message}
+            placeholder="Введите заголовок"
+          />
+        </Stack>
+
+        <Stack gap={0.5}>
+          <FormCaption>Описание</FormCaption>
+          <TextField
+            fullWidth
+            multiline
+            minRows={8}
+            maxRows={24}
+            slotProps={{
+              htmlInput: {
+                style: { overflowY: 'auto', resize: 'vertical' },
+                maxLength: 4096,
+              },
+            }}
+            sx={{
+              '& .MuiInputBase-root': { padding: '12px 11px' },
+              '& textarea': {
+                lineHeight: 1.5,
+                fontFamily:
+                  'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+                fontSize: 13,
+              },
+            }}
+            error={Boolean(errors.description)}
+            helperText={
+              errors.description?.message ??
+              `${(form.watch('description') ?? '').length}/4096`
+            }
+            {...form.register('description')}
+            placeholder="Опишите задачу — поддерживаются длинные тексты, переносы строк"
+          />
+        </Stack>
+
+        <Divider />
+
+        <Stack direction="row" alignItems="center" gap={1}>
+          <AttachFileIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+          <Typography variant="caption" color="text.disabled">
+            Вложения и комментарии станут доступны в карточке после создания
+            задачи.
+          </Typography>
+        </Stack>
+      </Stack>
+
+      {/* ПРАВАЯ КОЛОНКА — метаданные (как в карточке редактирования) */}
+      <Stack
+        width={{ xs: '100%', md: 300 }}
+        flexShrink={0}
+        gap={2}
+        sx={{
+          backgroundColor: 'rgba(246, 246, 246, .6)',
+          borderRadius: '12px',
+          p: 2,
+          alignSelf: 'flex-start',
+        }}
+      >
+        <Stack gap={0.5}>
+          <FormCaption>Исполнитель</FormCaption>
+          <FormControl fullWidth size="small" error={Boolean(errors.assignee)}>
+            <Controller
+              control={form.control}
+              name="assignee"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.target.value)}
+                >
+                  <MenuItem value={NOT_ASSIGNED_OPTION.value}>
+                    {NOT_ASSIGNED_OPTION.label}
+                  </MenuItem>
+                  {projectUsers.map((user) => (
+                    <MenuItem key={user.id} value={user.id}>
+                      {getFullName(user)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              )}
+            />
+          </FormControl>
+        </Stack>
+
+        <Stack gap={0.5}>
+          <FormCaption>Приоритет</FormCaption>
+          <FormControl fullWidth size="small">
+            <Controller
+              control={form.control}
+              name="priority"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.target.value)}
+                >
+                  {TASK_PRIORITY_OPTIONS.map((opt) => (
+                    <MenuItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              )}
+            />
+          </FormControl>
+        </Stack>
+
+        <Stack gap={0.5}>
+          <FormCaption>Тип</FormCaption>
+          <FormControl fullWidth size="small">
+            <Controller
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.target.value)}
+                >
+                  <MenuItem value="TASK">Задача</MenuItem>
+                  <MenuItem value="BUG">Баг</MenuItem>
+                </Select>
+              )}
+            />
+          </FormControl>
+        </Stack>
+
+        <Stack gap={0.5}>
+          <FormCaption>Спринт</FormCaption>
+          <FormControl fullWidth size="small">
+            <Controller
+              control={form.control}
+              name="sprint"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.target.value)}
+                >
+                  {sortedSprints.map((sprint) => (
+                    <MenuItem key={sprint.id} value={sprint.id}>
+                      {sprint.name} {sprint.isActive ? ' (Активный)' : ''}
+                    </MenuItem>
+                  ))}
+                </Select>
+              )}
+            />
+          </FormControl>
+        </Stack>
+
+        <Stack gap={0.5}>
+          <FormCaption>Оценка</FormCaption>
+          <TextField
+            type="number"
+            size="small"
+            slotProps={{ htmlInput: { min: 0, max: ESTIMATION_MAX } }}
+            {...form.register('estimation')}
+            onChange={(e) => {
+              const newValue = transformEstimaionByLimit(e.target.value)
+              if (newValue === form.formState.defaultValues?.estimation) {
+                form.resetField('estimation')
+              } else {
+                form.setValue('estimation', newValue, { shouldDirty: true })
+              }
+            }}
+            placeholder="0"
+            error={Boolean(errors.estimation)}
+            helperText={errors.estimation?.message}
+          />
+        </Stack>
+      </Stack>
+    </Stack>
+  )
+}
