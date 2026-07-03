@@ -21,6 +21,12 @@ public class TaskStatus {
     private boolean viewed;
     @Column(nullable = false)
     private boolean defaultTaskStatus;
+    /**
+     * Системная (дефолтная) колонка, созданная вместе с проектом (ТП-32):
+     * закреплена по порядку — переименовывать можно, переставлять/удалять нельзя.
+     */
+    @Column(name = "system_status", nullable = false)
+    private boolean systemStatus = false;
     @ManyToOne
     @JoinColumn(nullable = false)
     private Project project;
@@ -37,6 +43,17 @@ public class TaskStatus {
         this.viewed = viewed;
         this.defaultTaskStatus = defaultTaskStatus;
         this.project = project;
+    }
+
+    public TaskStatus(int priority,
+                      String code,
+                      String description,
+                      boolean viewed,
+                      boolean defaultTaskStatus,
+                      boolean systemStatus,
+                      Project project) {
+        this(priority, code, description, viewed, defaultTaskStatus, project);
+        this.systemStatus = systemStatus;
     }
 
     public void setPriority(int priority) {

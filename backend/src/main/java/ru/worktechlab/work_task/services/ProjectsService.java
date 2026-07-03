@@ -119,9 +119,11 @@ public class ProjectsService {
         // Никаких "локализованных" словарей — пользователь видит исходное имя
         // как мы его задали при создании проекта. Дальнейшие переименования
         // переписывают именно это поле.
+        // systemStatus=true: дефолтные колонки закреплены (ТП-32) — их нельзя
+        // переставлять и удалять, только переименовывать.
         taskStatusRepository.saveAllAndFlush(Arrays.stream(StatusName.values())
                 .map(status -> new TaskStatus(
-                        status.getPriority(), status.getDescription(), status.getDescription(), status.isViewed(), status.isDefaultTaskStatus(), project)
+                        status.getPriority(), status.getDescription(), status.getDescription(), status.isViewed(), status.isDefaultTaskStatus(), true, project)
                 )
                 .toList());
     }

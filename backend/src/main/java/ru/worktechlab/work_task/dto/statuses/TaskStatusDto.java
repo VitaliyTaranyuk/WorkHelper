@@ -29,4 +29,6 @@ public class TaskStatusDto {
     private String projectId;
     @Schema(description = "Признак отображения")
     private boolean defaultTaskStatus;
+    @Schema(description = "Системная (дефолтная) колонка: закреплена по порядку, удалять нельзя")
+    private boolean systemStatus;
 }
