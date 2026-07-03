@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import {
   Button,
   IconButton,
@@ -10,7 +9,7 @@ import {
   Typography,
 } from '@mui/material'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-import { workTechApi } from '@/shared/api/endpoint'
+import { useProjectData } from '@/features/project/query/useProjectData'
 import {
   useCreateMeeting,
   useDeleteMeeting,
@@ -29,10 +28,11 @@ export function CalendarPage({ projectId }: Props) {
   const createMeeting = useCreateMeeting(projectId)
   const deleteMeeting = useDeleteMeeting(projectId)
 
-  const { data: users } = useQuery({
-    queryKey: ['allUsers'],
-    queryFn: () => workTechApi.user.getAllUsers().then((r) => r.data),
-  })
+  // Участники встречи выбираются из участников проекта: встречи привязаны
+  // к проекту, а GET /users доступен только ADMIN/PROJECT_OWNER (участник
+  // проекта получал 403 при открытии календаря).
+  const { activeProject } = useProjectData()
+  const users = activeProject?.users
 
   const [title, setTitle] = useState('')
   const [startAt, setStartAt] = useState('')

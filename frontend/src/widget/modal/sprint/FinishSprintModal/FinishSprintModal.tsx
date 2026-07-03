@@ -37,8 +37,10 @@ function FinishSprintModalInner(props: FinishSprintModalProps) {
   const finishSprint = useFinishSprint()
   const updateTasksSprint = useUpdateTasksSprint()
 
+  // Сравнение по id: task.status и resolveStatus — разные объекты,
+  // сравнение по ссылке всегда true, и Done-задачи попадали в «незавершённые».
   const notFinishedTasks = (props.sprint.tasks || []).filter(
-    (task) => task.status !== activeProject?.resolveStatus,
+    (task) => task.status.id !== activeProject?.resolveStatus.id,
   )
 
   const isSubmitting =

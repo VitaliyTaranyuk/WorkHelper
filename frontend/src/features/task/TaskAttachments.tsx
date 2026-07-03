@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Button,
   IconButton,
@@ -9,17 +9,18 @@ import {
 import AttachFileIcon from '@mui/icons-material/AttachFile'
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined'
 import { toast } from 'sonner'
 import {
-  attachmentDownloadUrl,
+  downloadAttachment,
+  useAttachmentBlobUrl,
   useDeleteAttachment,
   useTaskAttachments,
   useUploadAttachment,
   type AttachmentDto,
 } from './useTaskAttachments'
+import { ImageLightbox } from './ImageLightbox'
 import { extractGeneralError } from '@/shared/api/extractFieldErrors'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
 
@@ -40,45 +41,71 @@ function isImage(att: AttachmentDto) {
 /**
  * Блок вложений в карточке задачи (паттерн Jira/ClickUp):
  *  - компактный список со значками типа файла;
- *  - превью для картинок (thumbnail);
- *  - действия: скачать / скопировать ссылку / удалить;
- *  - кнопка загрузки и drop-zone (paste/drop-эффекта пока нет — keep simple).
+ *  - превью для картинок (thumbnail, загружается авторизованным запросом);
+ *  - клик по превью открывает встроенный просмотр (ImageLightbox);
+ *  - вставка изображений из буфера обмена (Ctrl+V) при открытой карточке;
+ *  - действия: скачать / удалить.
  */
 export function TaskAttachments({ projectId, taskId }: Props) {
   const { data: attachments, isLoading } = useTaskAttachments({ projectId, taskId })
   const upload = useUploadAttachment({ projectId, taskId })
   const del = useDeleteAttachment({ projectId, taskId })
   const fileInput = useRef<HTMLInputElement | null>(null)
+  const [preview, setPreview] = useState<AttachmentDto | null>(null)
 
-  const handleFiles = async (files: FileList | null) => {
-    if (!files) return
-    for (const f of Array.from(files)) {
-      if (f.size > MAX_FILE_SIZE) {
-        toast.error(`«${f.name}» больше 25 MB — пропущен`)
-        continue
+  const handleFiles = useCallback(
+    async (files: FileList | File[] | null) => {
+      if (!files) return
+      for (const f of Array.from(files)) {
+        if (f.size > MAX_FILE_SIZE) {
+          toast.error(`«${f.name}» больше 25 MB — пропущен`)
+          continue
+        }
+        try {
+          await upload.mutateAsync(f)
+        } catch (err) {
+          toast.error(extractGeneralError(err) ?? `Не удалось загрузить «${f.name}»`)
+        }
       }
-      try {
-        await upload.mutateAsync(f)
-      } catch (err) {
-        toast.error(extractGeneralError(err) ?? `Не удалось загрузить «${f.name}»`)
-      }
-    }
-    if (fileInput.current) fileInput.current.value = ''
-  }
+      if (fileInput.current) fileInput.current.value = ''
+    },
+    [upload],
+  )
 
-  const copyLink = async (att: AttachmentDto) => {
-    const url = attachmentDownloadUrl(projectId, taskId, att.id)
-    try {
-      await navigator.clipboard.writeText(url)
-      toast.success('Ссылка скопирована')
-    } catch {
-      toast.error('Не удалось скопировать ссылку')
+  // Ctrl+V: вставка изображений/файлов из буфера обмена, пока открыта карточка.
+  // Обрабатываем только вставку файлов — обычная вставка текста в поля
+  // (clipboardData.files пуст) не затрагивается.
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const files = e.clipboardData?.files
+      if (!files || files.length === 0) return
+      e.preventDefault()
+      const named = Array.from(files).map((f, i) => {
+        // скриншоты из буфера приходят как "image.png" — даём уникальное имя
+        if (f.name && f.name !== 'image.png') return f
+        const ext = f.type.split('/')[1] || 'png'
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+        return new File([f], `paste-${stamp}${i > 0 ? `-${i}` : ''}.${ext}`, {
+          type: f.type,
+        })
+      })
+      void handleFiles(named)
     }
-  }
+    document.addEventListener('paste', onPaste)
+    return () => document.removeEventListener('paste', onPaste)
+  }, [handleFiles])
 
   const remove = async (att: AttachmentDto) => {
     if (!window.confirm(`Удалить «${att.fileName}»?`)) return
     await del.mutateAsync(att.id)
+  }
+
+  const download = async (att: AttachmentDto) => {
+    try {
+      await downloadAttachment(projectId, taskId, att)
+    } catch {
+      toast.error(`Не удалось скачать «${att.fileName}»`)
+    }
   }
 
   return (
@@ -117,7 +144,8 @@ export function TaskAttachments({ projectId, taskId }: Props) {
 
       {!isLoading && (!attachments || attachments.length === 0) && (
         <Typography variant="caption" color="text.disabled">
-          Нет вложений. Лимит — 25 MB на файл.
+          Нет вложений. Добавьте файл кнопкой или вставьте изображение из
+          буфера обмена (Ctrl+V). Лимит — 25 MB на файл.
         </Typography>
       )}
 
@@ -129,92 +157,124 @@ export function TaskAttachments({ projectId, taskId }: Props) {
           pr: 0.5,
         }}
       >
-        {(attachments ?? []).map((att) => {
-          const url = attachmentDownloadUrl(projectId, taskId, att.id)
-          return (
-            <Stack
-              key={att.id}
-              direction="row"
-              alignItems="center"
-              gap={1}
-              sx={{
-                p: '6px 8px',
-                borderRadius: 1,
-                backgroundColor: 'rgba(246, 246, 246, .6)',
-                '&:hover': { backgroundColor: 'rgba(246, 246, 246, .9)' },
-              }}
-            >
-              {isImage(att) ? (
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={att.fileName}
-                  style={{ display: 'flex', flexShrink: 0 }}
-                >
-                  <img
-                    src={url}
-                    alt={att.fileName}
-                    width={36}
-                    height={36}
-                    style={{
-                      objectFit: 'cover',
-                      borderRadius: 4,
-                      display: 'block',
-                    }}
-                  />
-                </a>
-              ) : (
-                <ImageOrFileIcon att={att} />
-              )}
-              <Stack sx={{ minWidth: 0, flex: 1 }}>
-                <Typography
-                  variant="body2"
-                  noWrap
-                  title={att.fileName}
-                  sx={{ fontWeight: 500 }}
-                >
-                  {att.fileName}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" noWrap>
-                  {formatSize(att.sizeBytes)} ·{' '}
-                  {formatDateDDMMYYYY(att.uploadedAt)}
-                  {att.uploadedByName ? ` · ${att.uploadedByName}` : ''}
-                </Typography>
-              </Stack>
-              <Stack direction="row" sx={{ flexShrink: 0 }}>
-                <Tooltip title="Скачать">
-                  <IconButton size="small" component="a" href={url} download>
-                    <DownloadOutlinedIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Скопировать ссылку">
-                  <IconButton size="small" onClick={() => copyLink(att)}>
-                    <ContentCopyIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Удалить">
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => remove(att)}
-                    disabled={del.isPending}
-                  >
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Stack>
+        {(attachments ?? []).map((att) => (
+          <Stack
+            key={att.id}
+            direction="row"
+            alignItems="center"
+            gap={1}
+            sx={{
+              p: '6px 8px',
+              borderRadius: 1,
+              backgroundColor: 'rgba(246, 246, 246, .6)',
+              '&:hover': { backgroundColor: 'rgba(246, 246, 246, .9)' },
+            }}
+          >
+            {isImage(att) ? (
+              <AttachmentThumbnail
+                projectId={projectId}
+                taskId={taskId}
+                attachment={att}
+                onClick={() => setPreview(att)}
+              />
+            ) : (
+              <InsertDriveFileOutlinedIcon
+                sx={{ color: 'text.secondary', flexShrink: 0 }}
+              />
+            )}
+            <Stack sx={{ minWidth: 0, flex: 1 }}>
+              <Typography
+                variant="body2"
+                noWrap
+                title={att.fileName}
+                sx={{ fontWeight: 500 }}
+              >
+                {att.fileName}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {formatSize(att.sizeBytes)} ·{' '}
+                {formatDateDDMMYYYY(att.uploadedAt)}
+                {att.uploadedByName ? ` · ${att.uploadedByName}` : ''}
+              </Typography>
             </Stack>
-          )
-        })}
+            <Stack direction="row" sx={{ flexShrink: 0 }}>
+              <Tooltip title="Скачать">
+                <IconButton size="small" onClick={() => download(att)}>
+                  <DownloadOutlinedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Удалить">
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => remove(att)}
+                  disabled={del.isPending}
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          </Stack>
+        ))}
       </Stack>
+
+      <ImageLightbox
+        projectId={projectId}
+        taskId={taskId}
+        attachment={preview}
+        onClose={() => setPreview(null)}
+      />
     </Stack>
   )
 }
 
-function ImageOrFileIcon({ att }: { att: AttachmentDto }) {
-  if (isImage(att)) {
+/** Превью изображения: содержимое подгружается авторизованным запросом (blob). */
+function AttachmentThumbnail({
+  projectId,
+  taskId,
+  attachment,
+  onClick,
+}: {
+  projectId: string
+  taskId: string
+  attachment: AttachmentDto
+  onClick: () => void
+}) {
+  const { data: blobUrl } = useAttachmentBlobUrl({
+    projectId,
+    taskId,
+    attachmentId: attachment.id,
+  })
+
+  if (!blobUrl) {
     return <ImageOutlinedIcon sx={{ color: 'text.secondary', flexShrink: 0 }} />
   }
-  return <InsertDriveFileOutlinedIcon sx={{ color: 'text.secondary', flexShrink: 0 }} />
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={`${attachment.fileName} — открыть просмотр`}
+      style={{
+        display: 'flex',
+        flexShrink: 0,
+        padding: 0,
+        border: 'none',
+        background: 'none',
+        cursor: 'zoom-in',
+      }}
+    >
+      <img
+        src={blobUrl}
+        alt={attachment.fileName}
+        width={36}
+        height={36}
+        style={{
+          objectFit: 'cover',
+          borderRadius: 4,
+          display: 'block',
+        }}
+      />
+    </button>
+  )
 }

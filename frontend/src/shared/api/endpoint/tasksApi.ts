@@ -18,7 +18,6 @@ import type {
   DeleteCommentData,
   UpdateTasksSprintRequestDto,
   UpdateTasksSprintData,
-  GetUserProjectTasksData,
   FindTaskByCodeData,
 } from '@/data-contracts'
 import { API_ENDPOINT_PATH } from '../endpointPath'
@@ -186,23 +185,6 @@ export function getTasksInProject({
   return workTechApiClient<GetTasksInProjectData>({
     method: 'GET',
     url: API_ENDPOINT_PATH.TASKS.GET_ALL_IN_PROJECT(),
-    ...otherParams,
-  })
-}
-
-/**
- * @name GetUserProjectTasks
- * @summary Получить все задачи последнего проекта пользователя
- * @request GET:/tasks
- */
-export function getUserProjectTasks({
-  otherParams = {},
-}: {
-  otherParams?: RequestParams
-} = {}) {
-  return workTechApiClient<GetUserProjectTasksData>({
-    method: 'GET',
-    url: API_ENDPOINT_PATH.TASKS.GET_USER_PROJECT_TASKS(),
     ...otherParams,
   })
 }

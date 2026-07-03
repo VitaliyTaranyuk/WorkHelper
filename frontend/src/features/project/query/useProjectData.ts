@@ -47,7 +47,15 @@ export function useProjectData() {
 
     const mapped = mapProjectDtoToProjectInfo(activeProjectInfoQuery.data)
 
-    const resolveStatus = mapped.statuses.reduce((acc, curStatus) =>
+    // Завершающий статус — последняя ВИДИМАЯ колонка доски (как на бэкенде,
+    // SprintsService.archiveDoneTasks). Скрытые статусы (Canceled, Backlog)
+    // не могут быть завершающими: иначе Done-задачи считались незавершёнными.
+    const boardStatuses = mapped.statuses.filter(
+      (s) => s.viewed && !s.defaultTaskStatus,
+    )
+    const resolveStatus = (
+      boardStatuses.length > 0 ? boardStatuses : mapped.statuses
+    ).reduce((acc, curStatus) =>
       acc.priority < curStatus.priority ? curStatus : acc,
     )
 

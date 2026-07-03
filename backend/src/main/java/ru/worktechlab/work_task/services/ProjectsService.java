@@ -60,6 +60,10 @@ public class ProjectsService {
             return Collections.emptyList();
         List<Project> visible = user.getProjects().stream()
                 .filter(p -> p.getStatus() != ProjectStatus.DELETED)
+                // стабильный порядок: JPA-коллекция без ORDER BY возвращает
+                // проекты в случайном порядке — сайдбар «прыгал» между сессиями
+                .sorted(java.util.Comparator.comparing(Project::getName,
+                        String.CASE_INSENSITIVE_ORDER))
                 .toList();
         return projectMapper.toShortDataDto(visible);
     }

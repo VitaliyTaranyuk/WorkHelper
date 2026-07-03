@@ -57,6 +57,7 @@ public class TaskService {
     private final LinkRepository linkRepository;
     private final LinkMapper linkMapper;
     private final InAppNotificationService inAppNotificationService;
+    private final TaskPlacementService taskPlacementService;
 
     @TransactionRequired
     public TaskDataDto updateTask(String projectId,
@@ -79,16 +80,19 @@ public class TaskService {
         if (user.getLastProjectId() == null)
             throw new NotFoundException("У вас нет посещенных проектов");
         Project project = projectsService.findProjectById(user.getLastProjectId());
+        // Задачи без исполнителя тоже должны попадать на доску — группируем их
+        // в отдельную группу «Не назначено» вместо отбрасывания.
         Map<String, List<TaskModel>> tasksByUserId = project.getTasks().stream()
                 .filter(task -> !task.isArchived()) // завершённые/архивные не показываем на активной доске
-                .filter(task -> task.getAssignee() != null)
-                .collect(Collectors.groupingBy(task -> task.getAssignee().getId()));
+                .collect(Collectors.groupingBy(
+                        task -> task.getAssignee() != null ? task.getAssignee().getId() : ""));
         return tasksByUserId.values().stream()
                 .map(tasks -> {
                     User assignee = tasks.get(0).getAssignee();
-                    return new UsersTasksInProjectDTO(
-                            String.format("%s %s", assignee.getFirstName(), assignee.getLastName()),
-                            taskMapper.toDo(tasks));
+                    String groupName = assignee != null
+                            ? String.format("%s %s", assignee.getFirstName(), assignee.getLastName())
+                            : "Не назначено";
+                    return new UsersTasksInProjectDTO(groupName, taskMapper.toDo(tasks));
                 })
                 .toList();
     }
@@ -109,16 +113,11 @@ public class TaskService {
         if (taskDTO.getAssignee() != null)
             assignee = checkerUtil.findAndCheckActiveUser(taskDTO.getAssignee(), project);
         Sprint sprint = sprintsService.resolveSprintForTask(taskDTO.getSprintId(), project);
-        TaskStatus status = findDefaultStatus(project);
+        // Статус согласован со спринтом: Backlog-спринт → Backlog-статус, обычный
+        // спринт → первая колонка доски (иначе задача в спринте была бы невидима).
+        TaskStatus status = taskPlacementService.initialStatusFor(sprint, project);
         return new TaskModel(taskDTO.getTitle(), taskDTO.getDescription(), taskDTO.getPriority(), user, assignee, project,
                 sprint, taskDTO.getTaskType(), taskDTO.getEstimation(), status, getTaskCode(project));
-    }
-
-    private TaskStatus findDefaultStatus(Project project) throws NotFoundException {
-        return project.getStatuses().stream()
-                .filter(TaskStatus::isDefaultTaskStatus)
-                .findFirst()
-                .orElseThrow(() -> new NotFoundException(String.format("Не найден дефолтный статус для проекта %s", project.getName())));
     }
 
     private String getTaskCode(Project project) {
@@ -345,10 +344,8 @@ public class TaskService {
         UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(dto.getProjectId(), false, false);
         TaskStatus target = findStatusInProject(data.getProject(), dto.getStatusId());
         List<TaskModel> tasks = findTasksInProject(dto.getTaskIds(), data.getProject());
-        tasks.forEach(t -> {
-            t.setStatus(target);
-            t.touch();
-        });
+        for (TaskModel t : tasks)
+            taskPlacementService.applyStatusChange(t, target, data.getProject());
         taskRepository.flush();
         return new ApiResponse(String.format("Перемещено задач в статус %s: %d", target.getCode(), tasks.size()));
     }
@@ -360,7 +357,7 @@ public class TaskService {
         UserAndProjectData source = checkerUtil.findAndCheckProjectUserData(dto.getProjectId(), false, false);
         UserAndProjectData target = checkerUtil.findAndCheckProjectUserData(dto.getTargetProjectId(), false, false);
         Project targetProject = target.getProject();
-        TaskStatus defaultStatus = findDefaultStatus(targetProject);
+        TaskStatus defaultStatus = taskPlacementService.defaultStatus(targetProject);
         Sprint defaultSprint = sprintsService.resolveSprintForTask(null, targetProject);
         List<TaskModel> tasks = findTasksInProject(dto.getTaskIds(), source.getProject());
         tasks.forEach(t -> {
@@ -381,10 +378,10 @@ public class TaskService {
         UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(dto.getProjectId(), false, false);
         Sprint sprint = sprintsService.findSprintByIdAndProject(dto.getTargetSprintId(), data.getProject());
         List<TaskModel> tasks = findTasksInProject(dto.getTaskIds(), data.getProject());
-        tasks.forEach(task -> {
-            task.setSprint(sprint);
-            task.touch();
-        });
+        // Перенос синхронизирует статус: в Backlog — статус Backlog, из Backlog —
+        // первая колонка доски (см. TaskPlacementService).
+        for (TaskModel task : tasks)
+            taskPlacementService.placeInSprint(task, sprint, data.getProject());
         taskRepository.flush();
         return new ApiResponse(String.format("Перемещено задач в спринт %s: %d", sprint.getName(), tasks.size()));
     }
@@ -398,9 +395,8 @@ public class TaskService {
         int index = 0;
         for (String taskId : dto.getTaskIds()) {
             TaskModel task = findTaskByIdAndProject(taskId, data.getProject());
-            task.setStatus(column);
+            taskPlacementService.applyStatusChange(task, column, data.getProject());
             task.setPosition(index++);
-            task.touch();
         }
         taskRepository.flush();
         return new ApiResponse("Порядок задач обновлён");

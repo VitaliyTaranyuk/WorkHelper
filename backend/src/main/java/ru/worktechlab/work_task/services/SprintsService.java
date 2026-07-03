@@ -19,6 +19,7 @@ import ru.worktechlab.work_task.mappers.TaskMapper;
 import ru.worktechlab.work_task.models.tables.Project;
 import ru.worktechlab.work_task.models.tables.Sprint;
 import ru.worktechlab.work_task.models.tables.TaskModel;
+import ru.worktechlab.work_task.models.tables.TaskStatus;
 import ru.worktechlab.work_task.repositories.SprintsRepository;
 import ru.worktechlab.work_task.repositories.TaskRepository;
 import ru.worktechlab.work_task.utils.CheckerUtil;
@@ -34,6 +35,7 @@ public class SprintsService {
     private final CheckerUtil checkerUtil;
     private final TaskRepository taskRepository;
     private final TaskMapper taskMapper;
+    private final TaskPlacementService taskPlacementService;
 
     @TransactionRequired
     public SprintInfoDTO getActiveSprint(String projectId) throws NotFoundException {
@@ -118,6 +120,9 @@ public class SprintsService {
         // Завершённые задачи (колонка DONE) при завершении спринта уходят с активной
         // доски: помечаются завершёнными (archived) и доступны в разделе "Завершённые".
         archiveDoneTasks(sprint);
+        // Незавершённые задачи не должны остаться в завершённом спринте (UI переносит
+        // их заранее в выбранный спринт; это фоллбэк для прямых вызовов API).
+        moveSprintTasksToBacklog(sprint, data.getProject(), false);
         sprintsRepository.flush();
         Sprint dbSprint = findSprintById(sprint.getId());
         return sprintMapper.toSprintInfoDto(dbSprint);
@@ -125,8 +130,21 @@ public class SprintsService {
 
     @TransactionMandatory
     public void archiveDoneTasks(Sprint sprint) {
+        // Завершающая колонка — последняя видимая колонка доски (max priority).
+        // Нельзя сравнивать по строковому коду ("DONE"): код — отображаемое имя,
+        // у создаваемых проектов он "Done", и пользователь может переименовать.
+        Long doneStatusId = sprint.getProject().getStatuses().stream()
+                .filter(TaskStatus::isViewed)
+                .filter(s -> !s.isDefaultTaskStatus())
+                .max(java.util.Comparator.comparingInt(TaskStatus::getPriority))
+                .map(TaskStatus::getId)
+                .orElse(null);
+        if (doneStatusId == null) {
+            log.warn("Спринт {}: не найдена завершающая колонка, Done-задачи не архивированы", sprint.getId());
+            return;
+        }
         List<TaskModel> doneTasks = taskRepository.findAllBySprint(sprint).stream()
-                .filter(task -> "DONE".equals(task.getStatus().getCode()) && !task.isArchived())
+                .filter(task -> task.getStatus().getId() == doneStatusId && !task.isArchived())
                 .toList();
         doneTasks.forEach(task -> {
             task.setArchived(true);
@@ -201,6 +219,9 @@ public class SprintsService {
         Sprint sprint = findSprintByIdForUpdate(sprintId, data.getProject());
         if (sprint.isDefaultSprint())
             throw new BadRequestException("Backlog-спринт нельзя архивировать");
+        // Как и при удалении спринта, задачи не должны остаться в архивном спринте —
+        // иначе они продолжают отображаться на доске, а спринт уже неактивен.
+        moveSprintTasksToBacklog(sprint, data.getProject(), false);
         sprint.archive();
         sprintsRepository.flush();
         return sprintMapper.toSprintInfoDto(findSprintById(sprint.getId()));
@@ -215,19 +236,39 @@ public class SprintsService {
         if (sprint.isDefaultSprint())
             throw new BadRequestException("Backlog-спринт нельзя удалить");
         // Trello/Jira UX: задачи удаляемого спринта переносятся в Backlog, не теряются.
-        Sprint backlog = sprintsRepository.findDefaultSprintByProject(data.getProject()).orElseThrow(
-                () -> new NotFoundException(String.format("Для проекта %s не найден Backlog-спринт", data.getProject().getName()))
-        );
-        List<TaskModel> tasks = taskRepository.findAllBySprint(sprint);
-        tasks.forEach(task -> {
-            task.setSprint(backlog);
-            task.touch();
-        });
-        taskRepository.flush();
+        int moved = moveSprintTasksToBacklog(sprint, data.getProject(), true);
         sprintsRepository.delete(sprint);
         sprintsRepository.flush();
-        log.info("Спринт {} удалён, перенесено задач в Backlog: {}", sprintId, tasks.size());
-        return new ApiResponse(String.format("Спринт удалён, задач перенесено в Backlog: %d", tasks.size()));
+        log.info("Спринт {} удалён, перенесено задач в Backlog: {}", sprintId, moved);
+        return new ApiResponse(String.format("Спринт удалён, задач перенесено в Backlog: %d", moved));
+    }
+
+    /**
+     * Переносит задачи спринта в Backlog.
+     *
+     * @param includeArchived true — переносить и архивные задачи (обязательно при
+     *                        физическом удалении спринта, иначе нарушится FK);
+     *                        false — архивные остаются в спринте (архивация/завершение),
+     *                        сохраняя историческую связь «в каком спринте завершена».
+     * Активные задачи получают Backlog-статус (инвариант статус↔спринт);
+     * архивные сохраняют статус — они отображаются в разделе «Завершённые».
+     */
+    @TransactionMandatory
+    public int moveSprintTasksToBacklog(Sprint sprint, Project project, boolean includeArchived) throws NotFoundException {
+        List<TaskModel> tasks = taskRepository.findAllBySprint(sprint);
+        int moved = 0;
+        for (TaskModel task : tasks) {
+            if (task.isArchived()) {
+                if (!includeArchived) continue;
+                task.setSprint(taskPlacementService.defaultSprint(project));
+                task.touch();
+            } else {
+                taskPlacementService.moveToBacklog(task, project);
+            }
+            moved++;
+        }
+        taskRepository.flush();
+        return moved;
     }
 
     @TransactionRequired
