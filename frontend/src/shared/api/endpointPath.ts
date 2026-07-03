@@ -119,6 +119,9 @@ export const API_ENDPOINT_PATH = {
 
     GET_ALL_IN_PROJECT: () => `/tasks/tasks-in-project`,
 
+    GET_COMPLETED: ({ projectId }: ProjectId) =>
+      `/tasks/${projectId}/completed`,
+
     GET_BY_CODE: ({ code, projectId }: { code: string } & ProjectId) =>
       `/tasks/${projectId}/code/${code}`,
 

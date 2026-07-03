@@ -388,6 +388,30 @@ class TaskServiceTest {
     }
 
     @Test
+    void getCompletedTasks_shouldIncludeArchivedAndBoardDoneTasks() throws Exception {
+        // «Завершённые» (ТП-33) = архивные + задачи в завершающей колонке доски
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        TaskStatus done = TestFixtures.status("Done", project);
+        ReflectionTestUtils.setField(done, "id", 9L);
+        when(taskPlacementService.completedBoardStatus(project)).thenReturn(java.util.Optional.of(done));
+
+        TaskModel archived = TestFixtures.task("task-2", creator, project, sprint, defaultStatus);
+        archived.setArchived(true);
+        TaskModel boardDone = TestFixtures.task("task-3", creator, project, sprint, done);
+        project.getTasks().addAll(List.of(task, archived, boardDone)); // task — активная, не попадает
+
+        when(taskMapper.toDo(anyList())).thenReturn(List.of());
+
+        taskService.getCompletedTasks("project-1");
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<TaskModel>> captor = ArgumentCaptor.forClass(List.class);
+        verify(taskMapper).toDo(captor.capture());
+        assertThat(captor.getValue()).containsExactlyInAnyOrder(archived, boardDone);
+    }
+
+    @Test
     void getMyTasks_shouldReturnOnlyCurrentUserNonArchivedTasks() throws Exception {
         UserContext realCtx = new UserContext();
         UserContext.UserContextData ctx = TestFixtures.contextData(realCtx, "user-1", "owner@test.com");

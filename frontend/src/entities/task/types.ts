@@ -25,6 +25,10 @@ export type ITaskCard = {
   sprintId: string
   status: TaskStatusShort
   position: number
+  /** Задача в архиве — спринт завершён (ТП-33, раздел «Завершённые»). */
+  archived?: boolean
+  /** Дата завершения (проставляется при архивации/завершении). */
+  completedDate?: string
 }
 
 export type TaskStatus = {
