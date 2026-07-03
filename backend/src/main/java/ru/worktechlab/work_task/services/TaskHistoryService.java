@@ -29,6 +29,7 @@ public class TaskHistoryService {
     private final SprintsService sprintsService;
     private final TaskStatusService taskStatusService;
     private final CheckerUtil checkerUtil;
+    private final TaskPlacementService taskPlacementService;
 
     public void saveTaskModelChanges(TaskModel oldTask,
                                      UpdateTaskModelDTO dto,
@@ -84,24 +85,48 @@ public class TaskHistoryService {
             oldTask.setAssignee(assignee);
         }
         oldTask.setDescription(dto.getDescription());
-        if (dto.getSprintId() != null) {
-            Sprint sprint = sprintsService.findSprintByIdAndProject(dto.getSprintId(), project);
-            oldTask.setSprint(sprint);
-        }
         oldTask.setTaskType(dto.getTaskType());
         oldTask.setEstimation(dto.getEstimation());
-        if (dto.getStatus() != null) {
-            TaskStatus status = taskStatusService.findStatusByIdAndProject(dto.getStatus(), project);
-            oldTask.setStatus(status);
-        }
+        applySprintAndStatus(oldTask, dto, project);
         return oldTask.getChanges();
+    }
+
+    /**
+     * Применяет спринт/статус из DTO, поддерживая инвариант «Backlog-спринт ⟺
+     * Backlog-статус» (см. TaskPlacementService). Изменения проходят через
+     * сеттеры TaskModel и потому попадают в историю задачи.
+     */
+    private void applySprintAndStatus(TaskModel task,
+                                      UpdateTaskModelDTO dto,
+                                      Project project) throws NotFoundException {
+        Sprint targetSprint = dto.getSprintId() != null
+                ? sprintsService.findSprintByIdAndProject(dto.getSprintId(), project)
+                : null;
+        TaskStatus targetStatus = dto.getStatus() != null
+                ? taskStatusService.findStatusByIdAndProject(dto.getStatus(), project)
+                : null;
+        boolean sprintChanged = targetSprint != null && !targetSprint.getId().equals(task.getSprint().getId());
+        boolean statusChanged = targetStatus != null && targetStatus.getId() != task.getStatus().getId();
+
+        if (sprintChanged && statusChanged) {
+            // Оба поля заданы явно: применяем как есть, но не допускаем «невидимую»
+            // комбинацию (обычный спринт + Backlog-статус).
+            task.setSprint(targetSprint);
+            task.setStatus(targetStatus);
+            if (!targetSprint.isDefaultSprint() && targetStatus.isDefaultTaskStatus())
+                task.setStatus(taskPlacementService.firstBoardStatus(project));
+        } else if (sprintChanged) {
+            taskPlacementService.placeInSprint(task, targetSprint, project);
+        } else if (statusChanged) {
+            taskPlacementService.applyStatusChange(task, targetStatus, project);
+        }
     }
 
     private List<TaskHistoryDto> createTaskStatusHistory(TaskModel oldTask,
                                                          UpdateStatusRequestDTO dto,
                                                          Project project) throws NotFoundException {
         TaskStatus status = taskStatusService.findStatusByIdAndProject(dto.getStatus(), project);
-        oldTask.setStatus(status);
+        taskPlacementService.applyStatusChange(oldTask, status, project);
         return oldTask.getChanges();
     }
 

@@ -34,6 +34,7 @@ public class TaskStatusService {
     private final CheckerUtil checkerUtil;
     private final TaskRepository taskRepository;
     private final ProjectHistoryService projectHistoryService;
+    private final TaskPlacementService taskPlacementService;
 
     @TransactionRequired
     public StatusListResponseDto getStatuses(String projectId) throws NotFoundException {
@@ -112,16 +113,18 @@ public class TaskStatusService {
         TaskStatus status = findStatusByIdAndProjectForUpdate(statusId, data.getProject());
         if (status.isDefaultTaskStatus())
             throw new BadRequestException("Колонку по умолчанию нельзя удалить");
-        TaskStatus defaultStatus = data.getProject().getStatuses().stream()
-                .filter(TaskStatus::isDefaultTaskStatus)
-                .findFirst()
-                .orElseThrow(() -> new NotFoundException(String.format("Для проекта %s не найдена колонка по умолчанию", data.getProject().getName())));
-        // Trello UX: задачи удаляемой колонки переносятся в колонку по умолчанию, не теряются.
+        TaskStatus defaultStatus = taskPlacementService.defaultStatus(data.getProject());
+        // Trello UX: задачи удаляемой колонки не теряются — активные уходят в Backlog
+        // целиком (статус + спринт), архивные лишь получают валидный статус.
         List<TaskModel> tasks = taskRepository.findAllByStatus(status);
-        tasks.forEach(task -> {
-            task.setStatus(defaultStatus);
-            task.touch();
-        });
+        for (TaskModel task : tasks) {
+            if (task.isArchived()) {
+                task.setStatus(defaultStatus);
+                task.touch();
+            } else {
+                taskPlacementService.moveToBacklog(task, data.getProject());
+            }
+        }
         taskRepository.flush();
         projectHistoryService.record(projectId, ProjectHistoryService.COLUMN_DELETE, status.getCode(), null, data.getUser());
         taskStatusRepository.delete(status);

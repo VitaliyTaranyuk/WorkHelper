@@ -3,7 +3,6 @@ package ru.worktechlab.work_task.services;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.worktechlab.work_task.TestFixtures;
@@ -37,8 +36,9 @@ class SprintsServiceTest {
     @Mock private SprintMapper sprintMapper;
     @Mock private CheckerUtil checkerUtil;
     @Mock private TaskRepository taskRepository;
+    @Mock private ru.worktechlab.work_task.mappers.TaskMapper taskMapper;
 
-    @InjectMocks
+    private TaskPlacementService taskPlacementService;
     private SprintsService sprintsService;
 
     private User owner;
@@ -47,6 +47,10 @@ class SprintsServiceTest {
 
     @BeforeEach
     void setUp() {
+        // реальный TaskPlacementService: инвариант статус↔спринт проверяется поведением
+        taskPlacementService = new TaskPlacementService(sprintsRepository);
+        sprintsService = new SprintsService(sprintsRepository, sprintMapper, checkerUtil,
+                taskRepository, taskMapper, taskPlacementService);
         owner = TestFixtures.ownerUser("owner-1");
         project = TestFixtures.project("project-1", owner);
         sprint = TestFixtures.sprint("sprint-1", project, owner);
@@ -289,5 +293,81 @@ class SprintsServiceTest {
 
         assertThat(task.getSprint()).isEqualTo(backlog);
         verify(sprintsRepository).delete(sprint);
+    }
+
+    @Test
+    void deleteSprint_shouldResetBoardStatusToBacklogStatus() throws Exception {
+        Sprint backlog = TestFixtures.defaultSprint("backlog-1", project, owner);
+        var backlogStatus = TestFixtures.defaultStatus(project);
+        var boardStatus = TestFixtures.status("IN_PROGRESS", project);
+        project.getStatuses().add(backlogStatus);
+        project.getStatuses().add(boardStatus);
+
+        UserAndProjectData data = new UserAndProjectData(project, owner);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsRepository.findSprintByIdForUpdate("sprint-1", "project-1")).thenReturn(Optional.of(sprint));
+        when(sprintsRepository.findDefaultSprintByProject(project)).thenReturn(Optional.of(backlog));
+        TaskModel task = TestFixtures.task("task-1", owner, project, sprint, boardStatus);
+        when(taskRepository.findAllBySprint(sprint)).thenReturn(List.of(task));
+
+        sprintsService.deleteSprint("sprint-1", "project-1");
+
+        assertThat(task.getSprint()).isEqualTo(backlog);
+        assertThat(task.getStatus()).isEqualTo(backlogStatus);
+    }
+
+    @Test
+    void archiveSprint_shouldMoveActiveTasksToBacklog_andKeepArchivedInSprint() throws Exception {
+        Sprint backlog = TestFixtures.defaultSprint("backlog-1", project, owner);
+        var backlogStatus = TestFixtures.defaultStatus(project);
+        var boardStatus = TestFixtures.status("IN_PROGRESS", project);
+        project.getStatuses().add(backlogStatus);
+        project.getStatuses().add(boardStatus);
+
+        UserAndProjectData data = new UserAndProjectData(project, owner);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsRepository.findSprintByIdForUpdate("sprint-1", "project-1")).thenReturn(Optional.of(sprint));
+        when(sprintsRepository.findById("sprint-1")).thenReturn(Optional.of(sprint));
+        when(sprintsRepository.findDefaultSprintByProject(project)).thenReturn(Optional.of(backlog));
+        when(sprintMapper.toSprintInfoDto(sprint)).thenReturn(mock(SprintInfoDTO.class));
+
+        TaskModel activeTask = TestFixtures.task("task-1", owner, project, sprint, boardStatus);
+        TaskModel archivedTask = TestFixtures.task("task-2", owner, project, sprint, boardStatus);
+        archivedTask.setArchived(true);
+        when(taskRepository.findAllBySprint(sprint)).thenReturn(List.of(activeTask, archivedTask));
+
+        sprintsService.archiveSprint("sprint-1", "project-1");
+
+        assertThat(sprint.isArchived()).isTrue();
+        assertThat(activeTask.getSprint()).isEqualTo(backlog);
+        assertThat(activeTask.getStatus()).isEqualTo(backlogStatus);
+        // архивная задача сохраняет историческую связь со спринтом и статус
+        assertThat(archivedTask.getSprint()).isEqualTo(sprint);
+        assertThat(archivedTask.getStatus()).isEqualTo(boardStatus);
+    }
+
+    @Test
+    void finishSprint_shouldMoveUnfinishedTasksToBacklog() throws Exception {
+        org.springframework.test.util.ReflectionTestUtils.setField(sprint, "active", true);
+        Sprint backlog = TestFixtures.defaultSprint("backlog-1", project, owner);
+        var backlogStatus = TestFixtures.defaultStatus(project);
+        var boardStatus = TestFixtures.status("IN_PROGRESS", project);
+        project.getStatuses().add(backlogStatus);
+        project.getStatuses().add(boardStatus);
+
+        UserAndProjectData data = new UserAndProjectData(project, owner);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsRepository.findSprintByIdForUpdate("sprint-1", "project-1")).thenReturn(Optional.of(sprint));
+        when(sprintsRepository.findById("sprint-1")).thenReturn(Optional.of(sprint));
+        when(sprintsRepository.findDefaultSprintByProject(project)).thenReturn(Optional.of(backlog));
+        when(sprintMapper.toSprintInfoDto(sprint)).thenReturn(mock(SprintInfoDTO.class));
+
+        TaskModel unfinished = TestFixtures.task("task-1", owner, project, sprint, boardStatus);
+        when(taskRepository.findAllBySprint(sprint)).thenReturn(List.of(unfinished));
+
+        sprintsService.finishSprint("sprint-1", "project-1");
+
+        assertThat(unfinished.getSprint()).isEqualTo(backlog);
+        assertThat(unfinished.getStatus()).isEqualTo(backlogStatus);
     }
 }

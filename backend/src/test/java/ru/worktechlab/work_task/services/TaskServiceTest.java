@@ -54,6 +54,7 @@ class TaskServiceTest {
     @Mock private LinkRepository linkRepository;
     @Mock private LinkMapper linkMapper;
     @Mock private InAppNotificationService inAppNotificationService;
+    @Mock private TaskPlacementService taskPlacementService;
 
     @InjectMocks
     private TaskService taskService;
@@ -122,6 +123,7 @@ class TaskServiceTest {
 
         when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
         when(sprintsService.resolveSprintForTask("sprint-1", project)).thenReturn(sprint);
+        when(taskPlacementService.initialStatusFor(sprint, project)).thenReturn(defaultStatus);
         when(taskRepository.saveAndFlush(any(TaskModel.class))).thenReturn(task);
         when(taskMapper.toDo(any(TaskModel.class))).thenReturn(expectedDto);
 
@@ -280,6 +282,11 @@ class TaskServiceTest {
         ReflectionTestUtils.setField(target, "id", 7L);
         project.getStatuses().add(target);
         when(taskRepository.findTaskModelByIdAndProject("task-1", project)).thenReturn(Optional.of(task));
+        // placement-сервис применяет смену статуса (инвариант статус↔спринт покрыт в TaskPlacementServiceTest)
+        doAnswer(inv -> {
+            ((TaskModel) inv.getArgument(0)).setStatus(inv.getArgument(1));
+            return null;
+        }).when(taskPlacementService).applyStatusChange(any(TaskModel.class), any(TaskStatus.class), any(Project.class));
 
         BulkTaskRequestDTO dto = new BulkTaskRequestDTO();
         dto.setProjectId("project-1");

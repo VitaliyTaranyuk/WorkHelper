@@ -100,7 +100,10 @@ public class TaskModel {
     }
 
     public void setAssignee(User newValue) {
-        taskChangeDetector.add("Исполнитель", this.assignee.getId(), newValue.getId());
+        // null-safe: задача могла быть без исполнителя (и может им стать снова)
+        taskChangeDetector.add("Исполнитель",
+                this.assignee != null ? this.assignee.getId() : null,
+                newValue != null ? newValue.getId() : null);
         this.assignee = newValue;
     }
 
