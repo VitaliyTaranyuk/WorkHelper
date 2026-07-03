@@ -39,6 +39,7 @@ import ru.worktechlab.work_task.utils.UserContext;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -75,6 +76,13 @@ public class TaskService {
         return taskMapper.toDo(findTaskByIdOrThrow(existingTask.getId()));
     }
 
+    /**
+     * Маркер комментария, требующего ответа (ТП-45): такой комментарий,
+     * будучи последним в задаче, подсвечивает карточку точкой на доске.
+     * Сравнение регистронезависимое.
+     */
+    public static final String REPLY_MARKER = "[вопрос]";
+
     @TransactionRequired
     public List<UsersTasksInProjectDTO> getProjectTaskByUserGuid() throws NotFoundException {
         log.debug("Вывод всех задач проекта отсортированных по пользователям");
@@ -87,6 +95,9 @@ public class TaskService {
         // без активного — Backlog-спринт, kanban-режим). Задачи бэклога на
         // доску не попадают — бэклог не колонка, а спринт (раздел «Задачи»).
         Sprint boardSprint = taskPlacementService.boardSprint(project);
+        // ТП-45: задачи, у которых последний комментарий помечен [вопрос],
+        // получают индикатор «ждёт ответа» на карточке доски.
+        Set<String> awaitingReplyTaskIds = findAwaitingReplyTaskIds(project.getId());
         // Задачи без исполнителя тоже должны попадать на доску — группируем их
         // в отдельную группу «Не назначено» вместо отбрасывания.
         Map<String, List<TaskModel>> tasksByUserId = project.getTasks().stream()
@@ -101,9 +112,20 @@ public class TaskService {
                     String groupName = assignee != null
                             ? String.format("%s %s", assignee.getFirstName(), assignee.getLastName())
                             : "Не назначено";
-                    return new UsersTasksInProjectDTO(groupName, taskMapper.toDo(tasks));
+                    List<TaskDataDto> dtos = taskMapper.toDo(tasks);
+                    dtos.forEach(dto -> dto.setAwaitingReply(awaitingReplyTaskIds.contains(dto.getId())));
+                    return new UsersTasksInProjectDTO(groupName, dtos);
                 })
                 .toList();
+    }
+
+    /** Задачи проекта, чей последний комментарий содержит маркер {@link #REPLY_MARKER}. */
+    private Set<String> findAwaitingReplyTaskIds(String projectId) {
+        return commentRepository.findLatestCommentPerTask(projectId).stream()
+                .filter(row -> row[1] != null
+                        && String.valueOf(row[1]).toLowerCase().contains(REPLY_MARKER))
+                .map(row -> String.valueOf(row[0]))
+                .collect(Collectors.toSet());
     }
 
     @TransactionRequired

@@ -79,4 +79,7 @@ public class TaskDataDto {
 
     @Schema(description = "Дата завершения задачи")
     private java.time.LocalDateTime completedDate;
+
+    @Schema(description = "Последний комментарий задачи помечен как вопрос — ждёт ответа (ТП-45)")
+    private boolean awaitingReply;
 }

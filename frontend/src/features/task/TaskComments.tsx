@@ -60,7 +60,8 @@ export function TaskComments({ projectId, taskId }: Props) {
             Пока нет комментариев
           </Typography>
         )}
-        {(comments ?? []).map((c) => (
+        {/* ТП-45: свежие комментарии сверху (API отдаёт старые -> новые) */}
+        {[...(comments ?? [])].reverse().map((c) => (
           <Stack
             key={c.commentId}
             direction="row"

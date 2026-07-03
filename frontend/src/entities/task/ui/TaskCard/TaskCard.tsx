@@ -17,7 +17,12 @@ type TaskCardProps = ITaskCard & {
 
 export const TaskCard = (props: TaskCardProps) => {
   return (
-    <Card onClick={props.onTitleClick} role="button" tabIndex={0}>
+    <Card
+      onClick={props.onTitleClick}
+      role="button"
+      tabIndex={0}
+      style={{ position: 'relative' }}
+    >
       <Header>
         <Wrapper gap={'4px'}>
           <TaskType taskType={props.taskType} />
@@ -36,6 +41,22 @@ export const TaskCard = (props: TaskCardProps) => {
       <Footer>
         <TaskTitle as="span">{props.title}</TaskTitle>
       </Footer>
+      {/* ТП-45: ненавязчивая точка «есть комментарий, ждущий ответа» */}
+      {props.awaitingReply && (
+        <span
+          title="Есть комментарий, ожидающий вашего ответа"
+          aria-label="Есть комментарий, ожидающий вашего ответа"
+          style={{
+            position: 'absolute',
+            right: 8,
+            bottom: 8,
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            backgroundColor: '#ED6C02',
+          }}
+        />
+      )}
     </Card>
   )
 }
