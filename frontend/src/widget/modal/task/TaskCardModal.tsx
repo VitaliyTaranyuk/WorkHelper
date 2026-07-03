@@ -1,8 +1,20 @@
+import { useRef, useState } from 'react'
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
-import { Dialog, DialogContent, DialogTitle, IconButton } from '@mui/material'
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
+} from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import type { ITaskCard } from '@/entities/task/types'
-import { TaskCardContent } from '@/features/task/TaskCardContent'
+import {
+  TaskCardContent,
+  type TaskCardGuard,
+} from '@/features/task/TaskCardContent'
 
 export type TaskCardModalProps = {
   task: ITaskCard
@@ -12,14 +24,46 @@ export type TaskCardModalProps = {
  * Единственная карточка задачи. Открывается поверх текущего интерфейса,
  * занимает большую часть экрана, адаптивна. Заменяет прежние EditTaskModal
  * (компактная) и ExpandedTaskModal (расширенная) — никакого разделения.
+ *
+ * ТП-34: при закрытии с несохранёнными изменениями показывается диалог
+ * «Сохранить изменения / Отменить изменения и закрыть» (паттерн Jira/Linear).
  */
 export const TaskCardModal = NiceModal.create(
   ({ task }: TaskCardModalProps) => {
     const modal = useModal()
+    const guardRef = useRef<TaskCardGuard | null>(null)
+    const [confirmOpen, setConfirmOpen] = useState(false)
+    const [saving, setSaving] = useState(false)
 
-    const handleClose = () => {
+    const forceClose = () => {
+      setConfirmOpen(false)
       modal.reject()
       modal.hide()
+    }
+
+    const handleClose = () => {
+      if (guardRef.current?.isDirty) {
+        setConfirmOpen(true)
+        return
+      }
+      forceClose()
+    }
+
+    const handleSaveAndClose = async () => {
+      if (!guardRef.current) return forceClose()
+      setSaving(true)
+      try {
+        const ok = await guardRef.current.save()
+        if (ok) {
+          forceClose()
+        } else {
+          // Ошибка сохранения: остаёмся в карточке, причина уже показана
+          // рядом с полем или в toast.
+          setConfirmOpen(false)
+        }
+      } finally {
+        setSaving(false)
+      }
     }
 
     return (
@@ -61,8 +105,28 @@ export const TaskCardModal = NiceModal.create(
           <CloseIcon fontSize="small" />
         </IconButton>
         <DialogContent sx={{ flex: 1, overflowY: 'auto', padding: '0 28px 28px' }}>
-          <TaskCardContent task={task} onDeleted={handleClose} />
+          <TaskCardContent task={task} onDeleted={forceClose} guardRef={guardRef} />
         </DialogContent>
+
+        {/* Guard несохранённых изменений (ТП-34). Клик мимо/Escape —
+            вернуться к редактированию. */}
+        <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs">
+          <DialogTitle>Несохранённые изменения</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              В задаче {task.code} есть несохранённые изменения. Сохранить их
+              перед закрытием?
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button color="inherit" onClick={forceClose} disabled={saving}>
+              Отменить изменения и закрыть
+            </Button>
+            <Button variant="contained" onClick={handleSaveAndClose} disabled={saving}>
+              Сохранить изменения
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Dialog>
     )
   },
