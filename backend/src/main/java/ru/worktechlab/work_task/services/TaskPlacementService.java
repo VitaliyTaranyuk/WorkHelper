@@ -51,11 +51,15 @@ public class TaskPlacementService {
                         String.format("Не найден дефолтный статус для проекта %s", project.getName())));
     }
 
-    /** Первая (по приоритету) видимая колонка доски — статус для задач, попадающих в работу. */
+    /**
+     * Первая (по приоритету) видимая колонка доски — статус для задач,
+     * попадающих в работу. Дефолтный статус НЕ исключается: в проектах со
+     * старой схемой (default = видимый "To Do") первая колонка и есть
+     * дефолтная; в новой схеме default (BACKLOG) скрыт и отсекается viewed.
+     */
     public TaskStatus firstBoardStatus(Project project) throws NotFoundException {
         return project.getStatuses().stream()
                 .filter(TaskStatus::isViewed)
-                .filter(s -> !s.isDefaultTaskStatus())
                 .min(Comparator.comparingInt(TaskStatus::getPriority))
                 .orElseThrow(() -> new NotFoundException(
                         String.format("Для проекта %s не найдена ни одна видимая колонка доски", project.getName())));

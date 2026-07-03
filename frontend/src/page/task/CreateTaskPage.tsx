@@ -19,8 +19,16 @@ export const CreateTaskPage = memo(function CreateTaskPageInner() {
   const params = new URLSearchParams(window.location.search)
   const pageQueryRedirect = params.get('redirect')
 
-  const defaultSprintId =
+  // Спринт по контексту (ТП-12): страница открыта из Backlog (redirect на
+  // /backlog) — создаём в Backlog; иначе — в активный спринт, чтобы задача
+  // сразу появилась на доске. Фоллбэк — Backlog-спринт.
+  const backlogSprintId =
     (sprints || []).find((sprint) => sprint.isDefault)?.id || ''
+  const activeSprintId =
+    (sprints || []).find((sprint) => sprint.isActive)?.id || ''
+  const isBacklogContext = (pageQueryRedirect || '').includes('/backlog')
+  const defaultSprintId =
+    (isBacklogContext ? backlogSprintId : activeSprintId) || backlogSprintId
 
   return (
     <>
