@@ -127,6 +127,9 @@ export const API_ENDPOINT_PATH = {
     GET_LINKS: ({ taskId, projectId }: TaskId & ProjectId) =>
       `/tasks/${taskId}/${projectId}/links`,
 
+    DELETE_LINK: ({ projectId, linkId }: ProjectId & { linkId: string }) =>
+      `/tasks/${projectId}/links/${linkId}`,
+
     CREATE_COMMENT: () => `/tasks/create-comment`,
 
     UPDATE_COMMENT: () => `/tasks/update-comment`,

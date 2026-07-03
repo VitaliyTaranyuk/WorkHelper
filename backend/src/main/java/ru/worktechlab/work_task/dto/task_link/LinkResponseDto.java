@@ -13,6 +13,12 @@ public class LinkResponseDto {
     private String target;
     private String name;
     private String description;
+    // Код/название сторон связи — фронтенд рисует связь гиперссылкой
+    // на /task/{code} (ТП-38), по одним UUID ссылку не построить.
+    private String sourceCode;
+    private String sourceTitle;
+    private String targetCode;
+    private String targetTitle;
 
     public LinkResponseDto(String linkId) {
         this.linkId = linkId;

@@ -27,6 +27,7 @@ import { useUpdateTaskStatus } from './mutation/useUpdateTaskStatus'
 import { TaskComments } from './TaskComments'
 import { TaskHistory } from './TaskHistory'
 import { TaskAttachments } from './TaskAttachments'
+import { TaskLinks } from './TaskLinks'
 import { formatUserName, getFullName } from '@/entities/user/utils'
 import { ESTIMATION_MAX } from '@/entities/task/constants'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
@@ -264,6 +265,17 @@ export function TaskCardContent({ task, onDeleted }: TaskCardContentProps) {
         {/* Вложения — сразу под описанием, компактный список (Jira/ClickUp). */}
         {activeProject && (
           <TaskAttachments projectId={activeProject.id} taskId={task.id} />
+        )}
+
+        <Divider />
+
+        {/* Связи задач (ТП-38): тип + гиперссылка на связанную задачу. */}
+        {activeProject && (
+          <TaskLinks
+            projectId={activeProject.id}
+            taskId={task.id}
+            taskCode={task.code}
+          />
         )}
 
         <Divider />

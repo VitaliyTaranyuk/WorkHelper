@@ -172,6 +172,47 @@ class TaskServiceTest {
     }
 
     @Test
+    void deleteLink_shouldDelete_whenLinkBelongsToProject() throws Exception {
+        TaskModel target = TestFixtures.task("task-2", creator, project, sprint, defaultStatus);
+        Link link = new Link(task, target, ru.worktechlab.work_task.models.enums.LinkTypeName.BLOCKS);
+        ReflectionTestUtils.setField(link, "id", "link-1");
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(linkRepository.findById("link-1")).thenReturn(Optional.of(link));
+
+        var response = taskService.deleteLink("project-1", "link-1");
+
+        assertThat(response.getMessage()).contains("удалена");
+        verify(linkRepository).delete(link);
+    }
+
+    @Test
+    void deleteLink_shouldThrowNotFound_whenLinkMissing() throws Exception {
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(linkRepository.findById("missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> taskService.deleteLink("project-1", "missing"))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void deleteLink_shouldThrowNotFound_whenLinkFromAnotherProject() throws Exception {
+        Project other = TestFixtures.project("project-2", creator);
+        TaskModel foreignA = TestFixtures.task("task-8", creator, other, sprint, defaultStatus);
+        TaskModel foreignB = TestFixtures.task("task-9", creator, other, sprint, defaultStatus);
+        Link link = new Link(foreignA, foreignB, ru.worktechlab.work_task.models.enums.LinkTypeName.RELATED);
+        ReflectionTestUtils.setField(link, "id", "link-2");
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(linkRepository.findById("link-2")).thenReturn(Optional.of(link));
+
+        assertThatThrownBy(() -> taskService.deleteLink("project-1", "link-2"))
+                .isInstanceOf(NotFoundException.class);
+        verify(linkRepository, never()).delete(any(Link.class));
+    }
+
+    @Test
     void linkTask_shouldThrowDuplicateLinkException_whenLinkAlreadyExists() throws Exception {
         TaskModel target = TestFixtures.task("task-2", creator, project, sprint, defaultStatus);
         Link existingLink = mock(Link.class);
