@@ -73,6 +73,20 @@ class TaskPlacementServiceTest {
     }
 
     @Test
+    void firstBoardStatus_shouldReturnVisibleDefault_forLegacyProjects() throws Exception {
+        // старая схема: default-статус "To Do" видим и является первой колонкой
+        Project legacy = TestFixtures.project("project-legacy", owner);
+        TaskStatus visibleDefault = new TaskStatus(1, "To Do", "To Do", true, true, legacy);
+        ReflectionTestUtils.setField(visibleDefault, "id", 10L);
+        TaskStatus inProgress = new TaskStatus(2, "In Progress", "In Progress", true, false, legacy);
+        ReflectionTestUtils.setField(inProgress, "id", 11L);
+        legacy.getStatuses().add(visibleDefault);
+        legacy.getStatuses().add(inProgress);
+
+        assertThat(placement.firstBoardStatus(legacy)).isEqualTo(visibleDefault);
+    }
+
+    @Test
     void firstBoardStatus_shouldThrow_whenNoVisibleColumns() {
         Project empty = TestFixtures.project("project-2", owner);
         empty.getStatuses().add(backlogStatus);

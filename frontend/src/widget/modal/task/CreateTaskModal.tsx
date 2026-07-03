@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
 import {
   Dialog,
@@ -26,13 +27,35 @@ function CreateTaskModalInner() {
     projectId: activeProject?.id,
   })
   const createTask = useCreateTask()
+  // window.location, а не useRouterState: NiceModal-провайдер смонтирован вне
+  // RouterProvider, router-хуки внутри модалки падают. Модалка открывается
+  // поверх готовой страницы, поэтому реактивность по маршруту не нужна.
+  const pathname = window.location.pathname
 
+  // Спринт по контексту раздела (ТП-12): из раздела Backlog задача создаётся
+  // в Backlog, из остальных разделов (доска, спринты) — в активный спринт,
+  // чтобы созданная задача сразу появлялась на доске. Если активного спринта
+  // нет — фоллбэк в Backlog.
   const defaultSprint = (sprints || []).find((sprint) => sprint.isDefault)
-  const defaultSprintId = defaultSprint?.id ?? ''
+  const activeSprint = (sprints || []).find((sprint) => sprint.isActive)
+  const isBacklogContext = pathname.endsWith('/backlog')
+  const preferredSprintId =
+    (isBacklogContext ? defaultSprint?.id : activeSprint?.id) ??
+    defaultSprint?.id ??
+    ''
 
   const form = useCreateTaskForm({
-    defaultSprintId,
+    defaultSprintId: preferredSprintId,
   })
+
+  // Список спринтов мог прийти после первого рендера формы (холодный кэш) —
+  // проставляем контекстный спринт, пока пользователь его не менял.
+  useEffect(() => {
+    if (!form.getValues('sprint') && preferredSprintId) {
+      form.setValue('sprint', preferredSprintId, { shouldValidate: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preferredSprintId])
 
   const handleClose = () => {
     modal.reject()
