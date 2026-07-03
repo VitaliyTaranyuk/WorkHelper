@@ -272,6 +272,20 @@ public class TaskService {
         return linkMapper.convertToDto(links, task);
     }
 
+    @TransactionRequired
+    public ApiResponse deleteLink(String projectId, String linkId) throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        Link link = linkRepository.findById(linkId)
+                .orElseThrow(() -> new NotFoundException(String.format("Связь %s не найдена", linkId)));
+        // связь должна принадлежать задачам проекта, к которому есть доступ
+        if (!data.getProject().getId().equals(link.getTaskMaster().getProject().getId()))
+            throw new NotFoundException(String.format("Связь %s не найдена в проекте", linkId));
+        linkRepository.delete(link);
+        linkRepository.flush();
+        log.info("Связь {} удалена пользователем {}", linkId, data.getUser().getId());
+        return new ApiResponse("Связь удалена");
+    }
+
     // ===== Simplified Kanban: task lifecycle (archive / restore / delete) =====
 
     @TransactionRequired

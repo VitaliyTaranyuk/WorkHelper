@@ -212,6 +212,14 @@ public class TaskController {
     // ===== Simplified Kanban: lifecycle, bulk, my tasks =====
 
     @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @DeleteMapping("/{projectId}/links/{linkId}")
+    @Operation(summary = "Удалить связь между задачами")
+    public ApiResponse deleteLink(@PathVariable String projectId,
+                                  @PathVariable String linkId) throws NotFoundException {
+        return taskService.deleteLink(projectId, linkId);
+    }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
     @PutMapping("/{projectId}/{taskId}/archive")
     @Operation(summary = "Архивировать задачу")
     public TaskDataDto archiveTask(@PathVariable String projectId,

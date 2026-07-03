@@ -34,13 +34,18 @@ public class LinkMapper {
     }
 
     private LinkResponseDto toDto(TaskModel source, TaskModel target, LinkTypeName typeName, Link link) {
-        return new LinkResponseDto(
+        LinkResponseDto dto = new LinkResponseDto(
                 link.getId(),
                 source.getId(),
                 target.getId(),
                 typeName.name(),
                 typeName.getDescription()
         );
+        dto.setSourceCode(source.getCode());
+        dto.setSourceTitle(source.getTitle());
+        dto.setTargetCode(target.getCode());
+        dto.setTargetTitle(target.getTitle());
+        return dto;
     }
 
     private boolean isTaskMaster(Link link, TaskModel task) {

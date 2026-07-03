@@ -210,6 +210,27 @@ export function linkTask({
 }
 
 /**
+ * @name DeleteLink
+ * @summary Удалить связь между задачами
+ * @request DELETE:/tasks/{projectId}/links/{linkId}
+ */
+export function deleteLink({
+  projectId,
+  linkId,
+  otherParams = {},
+}: {
+  projectId: string
+  linkId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient({
+    method: 'DELETE',
+    url: API_ENDPOINT_PATH.TASKS.DELETE_LINK({ projectId, linkId }),
+    ...otherParams,
+  })
+}
+
+/**
  * @name AllTasksLinks
  * @summary Вывод всех связей задачи
  * @request GET:/tasks/{taskId}/{projectId}/links
