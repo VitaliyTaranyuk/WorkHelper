@@ -10,6 +10,7 @@ import { TaskType } from '@/entities/task/ui/TaskType'
 import { TaskCode } from '@/entities/task/ui/styles'
 import { mapTaskMinDTOToTaskCard } from '@/entities/task/mapDTO'
 import { workTechApi } from '@/shared/api/endpoint'
+import { LISTS_POLL_INTERVAL_MS } from '@/features/task/query/pollingConfig'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
 import { truncateText } from '@/shared/utils/text'
 import type { ITaskCard } from '@/entities/task/types'
@@ -35,6 +36,9 @@ export function CompletedTasksSection({ projectId, taskFilter }: Props) {
       workTechApi.task
         .getCompletedTasks({ projectId })
         .then((r) => (r.data ?? []).map(mapTaskMinDTOToTaskCard)),
+    // ТП-47: раздел подтягивает чужие изменения фоново, как списки спринтов
+    refetchInterval: LISTS_POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
   })
 
   const visibleTasks = useMemo(() => {
