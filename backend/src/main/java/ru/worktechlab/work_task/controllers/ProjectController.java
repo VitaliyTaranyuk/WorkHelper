@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.worktechlab.work_task.dto.ApiResponse;
+import ru.worktechlab.work_task.dto.IdResponse;
 import ru.worktechlab.work_task.dto.StringIdsDto;
 import ru.worktechlab.work_task.dto.projects.*;
 import ru.worktechlab.work_task.exceptions.BadRequestException;
@@ -39,8 +40,11 @@ public class ProjectController {
     @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER, ADMIN})
     @GetMapping("/last")
     @Operation(summary = "Получить ID основного проекта пользователя")
-    public String getActiveProject() {
-        return projectsService.getLastProjectId();
+    public IdResponse getActiveProject() {
+        // Контракт фронтенда (IdResponse) — объект {"id": ...}, не «голая» строка:
+        // клиент читает response.data.id, иначе активный проект определялся
+        // случайным первым элементом списка проектов.
+        return new IdResponse(projectsService.getLastProjectId());
     }
 
     @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER, ADMIN})
