@@ -112,6 +112,9 @@ export const API_ENDPOINT_PATH = {
 
     REORDER: ({ projectId }: ProjectId) => `/tasks/${projectId}/reorder`,
 
+    REORDER_SPRINT: ({ projectId }: ProjectId) =>
+      `/tasks/${projectId}/reorder-sprint`,
+
     UPDATE_SPRINT: () => `/tasks/update-sprint`,
 
     GET_HISTORY: ({ projectId, taskId }: ProjectId & TaskId) =>

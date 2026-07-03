@@ -1,6 +1,7 @@
-import { memo, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { InputAdornment, Stack, Typography } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
+import { DragDropContext, type DropResult } from '@hello-pangea/dnd'
 import { Loader } from '@/shared/ui/components/Loader'
 import { TextField } from '@/shared/ui/mui/TextFileld'
 import { Sprint } from '@/widget/Sprint'
@@ -10,6 +11,7 @@ import { MoveToSprintMenu } from '@/features/sprint/MoveToSprintMenu'
 import { useSprintsWithTasksQuery } from '@/features/sprint/query/useSprintsWithTasksQuery'
 import { useSortedSprints } from '@/page/sprint/useSortedSprints'
 import { CompletedTasksSection } from '@/features/task/CompletedTasksSection'
+import { useReorderSprint } from '@/features/task/mutation/useReorderSprint'
 import { TASK_FILTER } from '@/entities/task/constants'
 import type { ITaskCard } from '@/entities/task/types'
 
@@ -33,6 +35,7 @@ export const TaskListPage = memo(function TaskListPageInner({
     initialFilters: TASK_FILTER,
   })
   const [search, setSearch] = useState('')
+  const reorderSprint = useReorderSprint(projectId)
 
   // Порядок секций: активный → плановые (по дате старта) → Бэклог.
   const { sortedSprints } = useSortedSprints(sprints)
@@ -49,6 +52,35 @@ export const TaskListPage = memo(function TaskListPageInner({
       )
     }
   }, [taskFilter, search])
+
+  // DnD (ТП-24): активен только без поиска и фильтров — иначе видимые
+  // индексы не совпадают с реальным порядком списка и бросок ляжет не туда.
+  const anyButtonFilterActive = Object.values(currentFilters).some(
+    (f) => f.value === true,
+  )
+  const dndEnabled = !search.trim() && !anyButtonFilterActive
+
+  const onDragEnd = useCallback(
+    (result: DropResult) => {
+      const { source, destination, draggableId } = result
+      if (!destination) return
+      if (
+        source.droppableId === destination.droppableId &&
+        source.index === destination.index
+      )
+        return
+      const target = sortedSprints.find(
+        (s) => s.id === destination.droppableId,
+      )
+      if (!target) return
+      // Новый порядок задач целевого спринта: убрать перетаскиваемую (если
+      // она уже здесь) и вставить по индексу броска.
+      const ids = target.tasks.map((t) => t.id).filter((id) => id !== draggableId)
+      ids.splice(destination.index, 0, draggableId)
+      reorderSprint.mutate({ sprintId: target.id, taskIds: ids })
+    },
+    [sortedSprints, reorderSprint],
+  )
 
   if (isLoading) {
     return (
@@ -92,22 +124,25 @@ export const TaskListPage = memo(function TaskListPageInner({
         />
       </Stack>
 
-      <Stack
-        flexDirection="column"
-        gap="36px"
-        component="ul"
-        sx={{ m: 0, p: 0, mt: '12px', listStyle: 'none' }}
-      >
-        {sortedSprints.map((sprint) => (
-          <li key={sprint.id}>
-            <Sprint
-              sprint={sprint}
-              projectId={projectId}
-              taskFilter={combinedFilter}
-            />
-          </li>
-        ))}
-      </Stack>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Stack
+          flexDirection="column"
+          gap="36px"
+          component="ul"
+          sx={{ m: 0, p: 0, mt: '12px', listStyle: 'none' }}
+        >
+          {sortedSprints.map((sprint) => (
+            <li key={sprint.id}>
+              <Sprint
+                sprint={sprint}
+                projectId={projectId}
+                taskFilter={combinedFilter}
+                droppableId={dndEnabled ? sprint.id : undefined}
+              />
+            </li>
+          ))}
+        </Stack>
+      </DragDropContext>
 
       {/* Завершённые — в самом низу, свёрнуты по умолчанию (ТП-33/ТП-50). */}
       <Stack mt={3}>

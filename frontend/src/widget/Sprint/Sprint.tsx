@@ -48,14 +48,21 @@ import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery
 import type { SprintTaskProps } from '@/entities/task/ui/SprintTask/SprintTask'
 import { useUpdateTasksSprint } from '@/features/task/mutation/useUpdateTasksSprint'
 import type { TaskFilter } from '@/features/task/hook/useTaskFilter/useTaskFilter.type'
+import { Droppable, Draggable } from '@hello-pangea/dnd'
 
 export type SprintProps = {
   projectId: string
   sprint: SprintMinWithTasks
   taskFilter?: TaskFilter
+  /**
+   * Включает drag-and-drop задач (ТП-24): секция становится Droppable с этим
+   * id (ожидается id спринта), задачи — Draggable. Требует DragDropContext
+   * у родителя (TaskListPage).
+   */
+  droppableId?: string
 }
 
-export function Sprint({ sprint, projectId, taskFilter }: SprintProps) {
+export function Sprint({ sprint, projectId, taskFilter, droppableId }: SprintProps) {
   const taskCardModal = useModal(TaskCardModal)
   const { data: sprints } = useSprintsInfoQuery({ projectId })
   const [isExpaneded, setIsExpanded] = useState(true)
@@ -226,7 +233,58 @@ export function Sprint({ sprint, projectId, taskFilter }: SprintProps) {
         </ControlsBlock>
       </SprintBlock>
       <TaskBlock isExpanded={isExpaneded}>
-        {sprintTasks.length > 0 ? (
+        {droppableId ? (
+          // DnD-режим (ТП-24): Droppable рендерится и при пустом списке,
+          // чтобы в пустой спринт/бэклог можно было бросить задачу.
+          <Droppable droppableId={droppableId} type="TASK">
+            {(provided) => (
+              <Stack
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                flexDirection={'column'}
+                gap={'8px'}
+                component={'ul'}
+                sx={{ m: 0, p: 0, listStyle: 'none', minHeight: 48 }}
+              >
+                {sprintTasks.map((task, index) => (
+                  <Draggable key={task.id} draggableId={task.id} index={index}>
+                    {(drag) => (
+                      <li
+                        ref={drag.innerRef}
+                        {...drag.draggableProps}
+                        {...drag.dragHandleProps}
+                        style={{
+                          listStyle: 'none',
+                          ...drag.draggableProps.style,
+                        }}
+                      >
+                        <SprintTask
+                          onEditClick={onTaskEditClick}
+                          onMoveToSprintClick={onMoveToSprintClick}
+                          onTitleClick={onTitleClick}
+                          task={task}
+                        />
+                      </li>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+                {sprintTasks.length === 0 && (
+                  <Stack
+                    alignItems={'center'}
+                    justifyContent={'center'}
+                    height={'48px'}
+                    sx={{ color: 'text.disabled', fontSize: '14px' }}
+                  >
+                    {sprint.tasks.length > 0
+                      ? 'Нет задач по фильтру'
+                      : 'Нет задач — перетащите сюда'}
+                  </Stack>
+                )}
+              </Stack>
+            )}
+          </Droppable>
+        ) : sprintTasks.length > 0 ? (
           <Stack flexDirection={'column'} gap={'8px'} component={'ul'}>
             {sprintTasks.map((task) => (
               <li key={task.id}>

@@ -48,6 +48,28 @@ export function reorderColumn({
 }
 
 /**
+ * @name ReorderSprint
+ * @summary Перенести задачу в спринт с сохранением позиции (drag-and-drop в списке задач)
+ * @request PUT:/tasks/{projectId}/reorder-sprint
+ */
+export function reorderSprint({
+  projectId,
+  data,
+  otherParams = {},
+}: {
+  projectId: string
+  data: { sprintId: string; taskIds: string[] }
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient({
+    method: 'PUT',
+    url: API_ENDPOINT_PATH.TASKS.REORDER_SPRINT({ projectId }),
+    data,
+    ...otherParams,
+  })
+}
+
+/**
  * @name CreateTask
  * @summary Создать задачу
  * @request POST:/tasks/create
