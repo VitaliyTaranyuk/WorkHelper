@@ -6,6 +6,7 @@ import { TaskFilter } from '@/widget/TaskFilter'
 import { useTaskFilter } from '@/features/task/hook/useTaskFilter/useTaskFilter'
 import { MoveToSprintMenu } from '@/features/sprint/MoveToSprintMenu'
 import { useSprintsWithTasksQuery } from '@/features/sprint/query/useSprintsWithTasksQuery'
+import { useProjectData } from '@/features/project/query/useProjectData'
 import { TASK_FILTER } from '@/entities/task/constants'
 
 type BacklogPageProps = {
@@ -27,14 +28,26 @@ export const BacklogPage = memo(function BacklogPageInner({
   projectId,
 }: BacklogPageProps) {
   const { data: sprints, isLoading } = useSprintsWithTasksQuery(projectId)
+  const { activeProject } = useProjectData()
   const { currentFilters, updateFilters, taskFilter } = useTaskFilter({
     initialFilters: TASK_FILTER,
   })
 
-  const backlogSprint = useMemo(
-    () => sprints?.find((sprint) => sprint.isDefault),
-    [sprints],
-  )
+  const backlogSprint = useMemo(() => {
+    const sprint = sprints?.find((s) => s.isDefault)
+    if (!sprint) return undefined
+    // В Backlog показываем только задачи с Backlog-статусом (defaultTaskStatus).
+    // Задачи, выведенные на доску сменой статуса (kanban-режим без спринтов),
+    // не должны дублироваться и на доске, и в Backlog.
+    const defaultStatusId = activeProject?.statuses.find(
+      (s) => s.defaultTaskStatus,
+    )?.id
+    if (defaultStatusId === undefined) return sprint
+    return {
+      ...sprint,
+      tasks: sprint.tasks.filter((task) => task.status.id === defaultStatusId),
+    }
+  }, [sprints, activeProject?.statuses])
 
   if (isLoading) {
     return (

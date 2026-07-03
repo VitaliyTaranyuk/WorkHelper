@@ -199,7 +199,7 @@ function BoardInner(props: BoardProps) {
     if (!activeProject) return
     if (
       window.confirm(
-        `Удалить колонку «${code}»? Её задачи перейдут в колонку по умолчанию.`,
+        `Удалить колонку «${code}»? Её задачи перейдут в Backlog.`,
       )
     ) {
       deleteStatus.mutate({ projectId: activeProject.id, statusId })
