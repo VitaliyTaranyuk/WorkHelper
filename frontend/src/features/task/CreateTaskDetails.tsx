@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Box, Stack } from '@mui/material'
 import { CreateTaskContent } from '@/features/task/CreateTaskContent'
 import { useCreateTaskForm } from '@/features/task/TaskForm/useTaskForm'
 import { MUIPrimaryButton } from '@/shared/ui/Button'
 import { useCreateTask } from '@/features/task/mutation/useCreateTask'
+import { uploadPendingAttachments } from '@/features/task/uploadPendingAttachments'
 
 type CreateTaskDetailsProps = {
   projectId: string
@@ -23,9 +25,12 @@ export function CreateTaskDetails({
   const form = useCreateTaskForm({ defaultSprintId })
   const createTask = useCreateTask()
 
+  // Отложенные вложения (ТП-30): грузятся к задаче сразу после создания.
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
+
   const onSubmit = form.handleSubmit(async (formValues) => {
     try {
-      await createTask.mutateAsync({
+      const created = await createTask.mutateAsync({
         priority: formValues.priority,
         projectId,
         taskType: formValues.type,
@@ -45,6 +50,9 @@ export function CreateTaskDetails({
         ...(formValues.status != null ? { statusId: formValues.status } : {}),
       })
 
+      // Вложения (ТП-30): задача уже создана, ошибки загрузки не отменяют её.
+      await uploadPendingAttachments(projectId, created.data.id, pendingFiles)
+
       onSuccess()
     } catch {
       // toast already shown by useCreateTask onError
@@ -53,7 +61,12 @@ export function CreateTaskDetails({
 
   return (
     <Stack maxWidth={960}>
-      <CreateTaskContent onSubmit={onSubmit} form={form} />
+      <CreateTaskContent
+        onSubmit={onSubmit}
+        form={form}
+        pendingFiles={pendingFiles}
+        onPendingFilesChange={setPendingFiles}
+      />
       <Stack gap={'18px'} direction={'row'} width={'100%'} height={'42px'} mt={2}>
         <MUIPrimaryButton
           disabled={!form.formState.isValid || form.formState.isSubmitting}

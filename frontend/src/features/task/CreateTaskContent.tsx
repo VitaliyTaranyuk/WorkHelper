@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { Divider, FormControl, Stack, Typography } from '@mui/material'
-import AttachFileIcon from '@mui/icons-material/AttachFile'
+import { Divider, FormControl, Stack } from '@mui/material'
 import { Controller, type UseFormReturn } from 'react-hook-form'
 import { orderBy } from 'lodash'
 import { MenuItem, Select } from '@/shared/ui/mui/Select'
@@ -12,6 +11,7 @@ import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery
 import { NOT_ASSIGNED_OPTION, type FormValues } from './TaskForm/useTaskForm'
 import { transformEstimaionByLimit } from './TaskForm/taskFormSchema'
 import { TASK_PRIORITY_OPTIONS } from './TaskForm/contants'
+import { PendingAttachments } from './PendingAttachments'
 import { getFullName } from '@/entities/user/utils'
 import { ESTIMATION_MAX } from '@/entities/task/constants'
 import type { User } from '@/entities/user/types'
@@ -19,17 +19,24 @@ import type { User } from '@/entities/user/types'
 type CreateTaskContentProps = {
   form: UseFormReturn<FormValues>
   onSubmit?: () => void
+  /** Отложенные вложения (ТП-30): загружаются к задаче после создания. */
+  pendingFiles?: File[]
+  onPendingFilesChange?: (files: File[]) => void
 }
 
 /**
  * Тело формы создания задачи в макете карточки редактирования
- * (TaskCardContent): слева — название и описание, справа — метаданные
- * (исполнитель, приоритет, тип, спринт, колонка, оценка). Единый вид
- * создания и редактирования; для Backlog-спринта выбор колонки скрыт —
- * статус фиксирован инвариантом (TaskPlacementService); вложения и
- * комментарии появляются в карточке после создания.
+ * (TaskCardContent): слева — название, описание и вложения (грузятся после
+ * создания, ТП-30), справа — метаданные (исполнитель, приоритет, тип, спринт,
+ * колонка, оценка). Единый вид создания и редактирования; для Backlog-спринта
+ * выбор колонки скрыт — статус фиксирован инвариантом (TaskPlacementService).
  */
-export function CreateTaskContent({ form, onSubmit }: CreateTaskContentProps) {
+export function CreateTaskContent({
+  form,
+  onSubmit,
+  pendingFiles,
+  onPendingFilesChange,
+}: CreateTaskContentProps) {
   const { errors } = form.formState
   const { activeProject, isLoading: isProjectLoading } = useProjectData()
   const { data: sprints, isLoading: isSprintsLoading } = useSprintsInfoQuery({
@@ -140,13 +147,13 @@ export function CreateTaskContent({ form, onSubmit }: CreateTaskContentProps) {
 
         <Divider />
 
-        <Stack direction="row" alignItems="center" gap={1}>
-          <AttachFileIcon fontSize="small" sx={{ color: 'text.disabled' }} />
-          <Typography variant="caption" color="text.disabled">
-            Вложения и комментарии станут доступны в карточке после создания
-            задачи.
-          </Typography>
-        </Stack>
+        {/* Вложения при создании (ТП-30): диск / drag&drop / Ctrl+V. */}
+        {pendingFiles !== undefined && onPendingFilesChange && (
+          <PendingAttachments
+            files={pendingFiles}
+            onChange={onPendingFilesChange}
+          />
+        )}
       </Stack>
 
       {/* ПРАВАЯ КОЛОНКА — метаданные (как в карточке редактирования) */}

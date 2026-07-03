@@ -55,6 +55,8 @@ class TaskServiceTest {
     @Mock private LinkMapper linkMapper;
     @Mock private InAppNotificationService inAppNotificationService;
     @Mock private TaskPlacementService taskPlacementService;
+    @Mock private ru.worktechlab.work_task.repositories.TaskAttachmentRepository taskAttachmentRepository;
+    @Mock private AttachmentStorage attachmentStorage;
 
     @InjectMocks
     private TaskService taskService;
@@ -361,6 +363,27 @@ class TaskServiceTest {
 
         taskService.deleteTask("project-1", "task-1");
 
+        verify(taskRepository).delete(task);
+    }
+
+    @Test
+    void deleteTask_shouldRemoveAttachmentsBeforeTask() throws Exception {
+        // FK task_attachment -> task_model: без очистки вложений удаление
+        // задачи падало с нарушением целостности (найдено в приёмке ТП-30)
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(taskRepository.findTaskModelByIdAndProject("task-1", project)).thenReturn(Optional.of(task));
+        when(linkRepository.findLinksByTaskId("task-1")).thenReturn(List.of());
+        TaskAttachment attachment = new TaskAttachment();
+        attachment.setTask(task);
+        attachment.setStoragePath("task-1/file.txt");
+        when(taskAttachmentRepository.findByTaskIdOrderByUploadedAtDesc("task-1"))
+                .thenReturn(List.of(attachment));
+
+        taskService.deleteTask("project-1", "task-1");
+
+        verify(taskAttachmentRepository).deleteAll(List.of(attachment));
+        verify(attachmentStorage).deleteQuietly("task-1/file.txt");
         verify(taskRepository).delete(task);
     }
 

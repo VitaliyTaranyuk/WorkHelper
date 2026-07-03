@@ -33,6 +33,26 @@ export function useTaskAttachments({
   })
 }
 
+/**
+ * Императивная загрузка файла к задаче — используется и мутацией карточки,
+ * и формой создания (ТП-30: отложенные вложения грузятся после create).
+ */
+export async function uploadAttachmentFile(
+  projectId: string,
+  taskId: string,
+  file: File,
+): Promise<AttachmentDto> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await workTechApiClient<AttachmentDto>({
+    method: 'POST',
+    url: base(projectId, taskId),
+    data: form,
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data
+}
+
 export function useUploadAttachment({
   projectId,
   taskId,
@@ -42,17 +62,7 @@ export function useUploadAttachment({
 }) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (file: File) => {
-      const form = new FormData()
-      form.append('file', file)
-      const res = await workTechApiClient<AttachmentDto>({
-        method: 'POST',
-        url: base(projectId, taskId),
-        data: form,
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      return res.data
-    },
+    mutationFn: (file: File) => uploadAttachmentFile(projectId, taskId, file),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['taskAttachments', projectId, taskId] })
       toast.success('Файл загружен')
