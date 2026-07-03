@@ -19,6 +19,7 @@ import type {
   UpdateTasksSprintRequestDto,
   UpdateTasksSprintData,
   FindTaskByCodeData,
+  TaskDataDto,
 } from '@/data-contracts'
 import { API_ENDPOINT_PATH } from '../endpointPath'
 import { workTechApiClient } from '../workTechHttpClient'
@@ -185,6 +186,25 @@ export function getTasksInProject({
   return workTechApiClient<GetTasksInProjectData>({
     method: 'GET',
     url: API_ENDPOINT_PATH.TASKS.GET_ALL_IN_PROJECT(),
+    ...otherParams,
+  })
+}
+
+/**
+ * @name GetCompletedTasks
+ * @summary Завершённые задачи проекта (ушли с активной доски или в колонке Done)
+ * @request GET:/tasks/{projectId}/completed
+ */
+export function getCompletedTasks({
+  projectId,
+  otherParams = {},
+}: {
+  projectId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<TaskDataDto[]>({
+    method: 'GET',
+    url: API_ENDPOINT_PATH.TASKS.GET_COMPLETED({ projectId }),
     ...otherParams,
   })
 }

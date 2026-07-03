@@ -430,11 +430,18 @@ public class TaskService {
     @TransactionRequired
     public List<TaskDataDto> getCompletedTasks(String projectId) throws NotFoundException {
         UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        // ТП-33: «завершённые» — это и архивные задачи (спринт закрыт), и задачи
+        // в завершающей колонке доски текущего спринта. В списках спринтов они
+        // не показываются (SprintsService.toSprintMinDtoWithTasks) — только здесь.
+        Long completedStatusId = taskPlacementService.completedBoardStatus(data.getProject())
+                .map(TaskStatus::getId)
+                .orElse(null);
         List<TaskModel> completed = data.getProject().getTasks().stream()
-                .filter(TaskModel::isArchived)
+                .filter(t -> t.isArchived()
+                        || (completedStatusId != null && t.getStatus().getId() == completedStatusId))
                 .sorted((a, b) -> {
-                    LocalDateTime da = a.getCompletedDate();
-                    LocalDateTime db = b.getCompletedDate();
+                    LocalDateTime da = a.getCompletedDate() != null ? a.getCompletedDate() : a.getUpdateDate();
+                    LocalDateTime db = b.getCompletedDate() != null ? b.getCompletedDate() : b.getUpdateDate();
                     if (da == null && db == null) return 0;
                     if (da == null) return 1;
                     if (db == null) return -1;

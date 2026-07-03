@@ -133,10 +133,8 @@ public class SprintsService {
         // Завершающая колонка — последняя видимая колонка доски (max priority).
         // Нельзя сравнивать по строковому коду ("DONE"): код — отображаемое имя,
         // у создаваемых проектов он "Done", и пользователь может переименовать.
-        Long doneStatusId = sprint.getProject().getStatuses().stream()
-                .filter(TaskStatus::isViewed)
-                .filter(s -> !s.isDefaultTaskStatus())
-                .max(java.util.Comparator.comparingInt(TaskStatus::getPriority))
+        // Единая точка эвристики — TaskPlacementService.completedBoardStatus.
+        Long doneStatusId = taskPlacementService.completedBoardStatus(sprint.getProject())
                 .map(TaskStatus::getId)
                 .orElse(null);
         if (doneStatusId == null) {
@@ -294,8 +292,15 @@ public class SprintsService {
     }
 
     private SprintMinDto toSprintMinDtoWithTasks(Sprint sprint) {
+        // ТП-33: завершённые задачи не показываются в списках спринтов —
+        // ни архивные, ни стоящие в завершающей колонке доски. Для них
+        // есть отдельный раздел «Завершённые» (/tasks/{projectId}/completed).
+        Long completedStatusId = taskPlacementService.completedBoardStatus(sprint.getProject())
+                .map(TaskStatus::getId)
+                .orElse(null);
         List<TaskModel> tasks = taskRepository.findAllBySprint(sprint).stream()
                 .filter(task -> !task.isArchived())
+                .filter(task -> completedStatusId == null || task.getStatus().getId() != completedStatusId)
                 .toList();
         return new SprintMinDto(
                 sprint.getId(),
