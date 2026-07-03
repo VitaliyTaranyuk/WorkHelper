@@ -34,6 +34,7 @@ export function mapTaskMinDTOToTaskCard(taskDTO: TaskDataDto): ITaskCard {
     position: (taskDTO as { position?: number }).position ?? 0,
     archived: taskDTO.archived,
     completedDate: taskDTO.completedDate,
+    awaitingReply: taskDTO.awaitingReply,
   }
 }
 

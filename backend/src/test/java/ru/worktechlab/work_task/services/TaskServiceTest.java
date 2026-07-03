@@ -412,6 +412,27 @@ class TaskServiceTest {
     }
 
     @Test
+    void getProjectTasks_shouldMarkAwaitingReply_whenLastCommentHasMarker() throws Exception {
+        // ТП-45: последний комментарий с маркером [вопрос] -> точка на карточке
+        UserContext realCtx = new UserContext();
+        UserContext.UserContextData ctx = TestFixtures.contextData(realCtx, "user-1", "owner@test.com");
+        when(userContext.getUserData()).thenReturn(ctx);
+        ReflectionTestUtils.setField(creator, "lastProjectId", "project-1");
+        when(userService.findUserById("user-1")).thenReturn(creator);
+        when(projectsService.findProjectById("project-1")).thenReturn(project);
+        project.getTasks().add(task);
+        when(commentRepository.findLatestCommentPerTask(project.getId()))
+                .thenReturn(List.<Object[]>of(new Object[]{"task-1", "[Cloud Code][ВОПРОС] нужен ваш ответ"}));
+        TaskDataDto dto = new TaskDataDto();
+        dto.setId("task-1");
+        when(taskMapper.toDo(anyList())).thenReturn(List.of(dto));
+
+        taskService.getProjectTaskByUserGuid();
+
+        assertThat(dto.isAwaitingReply()).isTrue();
+    }
+
+    @Test
     void getMyTasks_shouldReturnOnlyCurrentUserNonArchivedTasks() throws Exception {
         UserContext realCtx = new UserContext();
         UserContext.UserContextData ctx = TestFixtures.contextData(realCtx, "user-1", "owner@test.com");

@@ -188,6 +188,8 @@ export interface TaskDataDto {
   archived?: boolean;
   /** Дата завершения задачи */
   completedDate?: string;
+  /** Последний комментарий задачи помечен как вопрос — ждёт ответа (ТП-45) */
+  awaitingReply?: boolean;
   /**
    * Заголовок
    * @minLength 0

@@ -15,6 +15,8 @@ public interface TaskMapper {
     @Mapping(source = "sprint.id", target = "sprintId")
     @Mapping(source = "creationDate", target = "createdAt")
     @Mapping(source = "updateDate", target = "updatedAt")
+    // Вычисляется сервисом по последнему комментарию (ТП-45), в entity поля нет
+    @Mapping(target = "awaitingReply", ignore = true)
     TaskDataDto toDo(TaskModel taskModel);
 
     List<TaskDataDto> toDo(List<TaskModel> tasks);

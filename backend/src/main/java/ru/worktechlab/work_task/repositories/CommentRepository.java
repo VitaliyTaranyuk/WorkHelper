@@ -26,4 +26,16 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
     void deleteCommentById(String id);
 
     List<Comment> findAllByTaskIdOrderByCreatedAtAsc(String taskId);
+
+    /**
+     * Последний комментарий каждой задачи проекта: [task_id, comment].
+     * Для индикатора «ждёт ответа» на карточках доски (ТП-45).
+     */
+    @Query(nativeQuery = true, value = """
+            SELECT DISTINCT ON (c.task_id) c.task_id, c.comment
+            FROM comment c
+            JOIN task_model t ON t.id = c.task_id
+            WHERE t.project_id = :projectId
+            ORDER BY c.task_id, c.created_at DESC""")
+    List<Object[]> findLatestCommentPerTask(String projectId);
 }
