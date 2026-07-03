@@ -62,6 +62,7 @@ public class TaskService {
     private final TaskPlacementService taskPlacementService;
     private final TaskAttachmentRepository taskAttachmentRepository;
     private final AttachmentStorage attachmentStorage;
+    private final GitHubDevPanelService gitHubDevPanelService;
 
     @TransactionRequired
     public TaskDataDto updateTask(String projectId,
@@ -513,6 +514,18 @@ public class TaskService {
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException(
                         String.format("Статус %d не найден в проекте %s", statusId, project.getName())));
+    }
+
+    /**
+     * Панель «Разработка» карточки задачи (ТП-21): ветки и PR GitHub,
+     * связанные с задачей по её коду.
+     */
+    @TransactionRequired
+    public ru.worktechlab.work_task.dto.devpanel.DevInfoDto getDevInfo(String projectId, String taskId)
+            throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        TaskModel task = findTaskByIdAndProject(taskId, data.getProject());
+        return gitHubDevPanelService.devInfoFor(task.getCode());
     }
 
     /** Поиск задачи по человекочитаемому коду в рамках проекта (например JT-1).

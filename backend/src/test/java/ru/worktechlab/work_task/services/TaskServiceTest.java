@@ -57,6 +57,7 @@ class TaskServiceTest {
     @Mock private TaskPlacementService taskPlacementService;
     @Mock private ru.worktechlab.work_task.repositories.TaskAttachmentRepository taskAttachmentRepository;
     @Mock private AttachmentStorage attachmentStorage;
+    @Mock private GitHubDevPanelService gitHubDevPanelService;
 
     @InjectMocks
     private TaskService taskService;

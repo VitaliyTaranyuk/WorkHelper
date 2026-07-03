@@ -28,6 +28,12 @@ spring:
 app:
   attachments:
     storage-dir: ${ATTACHMENTS_DIR:/var/lib/workhelper/attachments}
+  dev-panel:
+    # Панель «Разработка» в карточке задачи (ТП-21): репозиторий owner/repo,
+    # чьи ветки и PR связываются с задачами по коду (например tp21 / ТП-21).
+    # Репозиторий публичный — GitHub REST API используется без токена
+    # (лимит 60 запросов/час на IP покрывается кэшем в 5 минут).
+    github-repo: ${DEV_PANEL_GITHUB_REPO:VitaliyTaranyuk/WorkHelper}
   mail:
     enable: ${ENABLE_EMAIL_SENDING:false}
     login: ${EMAIL_LOGIN:email@mail.ru}
