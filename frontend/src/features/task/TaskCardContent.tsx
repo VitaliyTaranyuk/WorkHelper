@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type MutableRefObject } from 'react'
 import {
   Box,
   Button,
@@ -39,10 +39,22 @@ import {
   extractGeneralError,
 } from '@/shared/api/extractFieldErrors'
 
+/**
+ * Интерфейс защиты от потери несохранённых изменений (ТП-34): контейнер
+ * (модалка/страница) перед закрытием спрашивает isDirty и может вызвать save.
+ */
+export type TaskCardGuard = {
+  isDirty: boolean
+  /** Сохранить всё (поля + статус). true — успех, можно закрывать. */
+  save: () => Promise<boolean>
+}
+
 type TaskCardContentProps = {
   task: ITaskCard
   /** Вызывается после успешного удаления задачи (закрыть модалку / уйти со страницы). */
   onDeleted?: () => void
+  /** Контейнер получает актуальные isDirty/save для guard-а закрытия (ТП-34). */
+  guardRef?: MutableRefObject<TaskCardGuard | null>
 }
 
 /**
@@ -75,7 +87,7 @@ const BACKEND_TO_FORM_FIELD: Record<
  * (EditTaskPage, для deep-link из уведомлений). Единственная реализация —
  * никакого «обычная/расширенная» разделения.
  */
-export function TaskCardContent({ task, onDeleted }: TaskCardContentProps) {
+export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentProps) {
   const { activeProject, isLoading: isProjectLoading } = useProjectData()
   const { data: sprints, isLoading: isSprintsLoading } = useSprintsInfoQuery({
     projectId: activeProject?.id,
@@ -87,7 +99,12 @@ export function TaskCardContent({ task, onDeleted }: TaskCardContentProps) {
   const { errors } = form.formState
 
   const [activityTab, setActivityTab] = useState(0)
+  // Статус — часть явного сохранения (ТП-34): выбор в дропдауне меняет только
+  // локальное значение, на сервер уходит по кнопке «Сохранить».
+  // baselineStatusId — последнее сохранённое значение (task из пропсов не
+  // обновляется после мутации, пока родитель не перезапросит список).
   const [statusId, setStatusId] = useState<number>(task.status.id)
+  const [baselineStatusId, setBaselineStatusId] = useState<number>(task.status.id)
 
   const projectUsers: User[] = useMemo(
     () => activeProject?.users || [],
@@ -112,27 +129,45 @@ export function TaskCardContent({ task, onDeleted }: TaskCardContentProps) {
     [activeProject?.statuses],
   )
 
-  const onSubmit = form.handleSubmit(async (formValues) => {
-    if (!activeProject) return
+  const isStatusDirty = statusId !== baselineStatusId
+  const isFormDirty = Object.keys(form.formState.dirtyFields).length > 0
+
+  /**
+   * Единое явное сохранение (ТП-34): поля формы и статус уходят на сервер
+   * только по кнопке «Сохранить». Возвращает true при полном успехе.
+   */
+  const saveAll = async (formValues: Parameters<Parameters<typeof form.handleSubmit>[0]>[0]) => {
+    if (!activeProject) return false
     try {
-      await editTask.mutateAsync({
-        projectId: activeProject.id,
-        taskId: task.id,
-        data: {
-          priority: formValues.priority,
-          taskType: formValues.type,
-          title: formValues.taskTitle,
-          sprintId: formValues.sprint,
-          ...(formValues.assignee === '-1'
-            ? {}
-            : { assignee: formValues.assignee }),
-          ...(formValues.estimation ? { estimation: formValues.estimation } : {}),
-          ...(formValues.description
-            ? { description: formValues.description }
-            : {}),
-        },
-      })
-      form.reset({ ...formValues })
+      if (isFormDirty) {
+        await editTask.mutateAsync({
+          projectId: activeProject.id,
+          taskId: task.id,
+          data: {
+            priority: formValues.priority,
+            taskType: formValues.type,
+            title: formValues.taskTitle,
+            sprintId: formValues.sprint,
+            ...(formValues.assignee === '-1'
+              ? {}
+              : { assignee: formValues.assignee }),
+            ...(formValues.estimation ? { estimation: formValues.estimation } : {}),
+            ...(formValues.description
+              ? { description: formValues.description }
+              : {}),
+          },
+        })
+        form.reset({ ...formValues })
+      }
+      if (isStatusDirty) {
+        await updateStatus.mutateAsync({
+          taskId: task.id,
+          projectId: activeProject.id,
+          statusId,
+        })
+        setBaselineStatusId(statusId)
+      }
+      return true
     } catch (err) {
       // Jira/Linear UX: показываем причину рядом с полем, не общий toast.
       const fieldErrors = extractFieldErrors(err)
@@ -153,23 +188,40 @@ export function TaskCardContent({ task, onDeleted }: TaskCardContentProps) {
         const general = extractGeneralError(err)
         toast.error(general ?? 'Не удалось сохранить изменения')
       }
-    }
-  })
-
-  const onStatusChange = async (nextStatusId: number) => {
-    if (!activeProject || nextStatusId === statusId) return
-    const prev = statusId
-    setStatusId(nextStatusId)
-    try {
-      await updateStatus.mutateAsync({
-        taskId: task.id,
-        projectId: activeProject.id,
-        statusId: nextStatusId,
-      })
-    } catch {
-      setStatusId(prev) // откат при ошибке
+      return false
     }
   }
+
+  const onSubmit = form.handleSubmit(async (formValues) => {
+    await saveAll(formValues)
+  })
+
+  /** Сохранение для guard-а закрытия: прогоняет валидацию и возвращает успех. */
+  const saveForGuard = async () => {
+    let ok = false
+    await form.handleSubmit(async (formValues) => {
+      ok = await saveAll(formValues)
+    })()
+    return ok
+  }
+
+  const isDirty = isFormDirty || isStatusDirty
+
+  // Актуальные isDirty/save для контейнера (модалка) — без ре-рендеров родителя.
+  if (guardRef) {
+    guardRef.current = { isDirty, save: saveForGuard }
+  }
+
+  // Страховка от потери при закрытии вкладки/перезагрузке (как в Jira/Linear).
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
 
   const onDelete = async () => {
     if (!activeProject) return
@@ -243,7 +295,9 @@ export function TaskCardContent({ task, onDeleted }: TaskCardContentProps) {
           <MUIPrimaryButton
             disabled={
               !form.formState.isValid ||
-              !Object.keys(form.formState.dirtyFields).length
+              !isDirty ||
+              editTask.isPending ||
+              updateStatus.isPending
             }
             variant="contained"
             onClick={onSubmit}
@@ -314,9 +368,11 @@ export function TaskCardContent({ task, onDeleted }: TaskCardContentProps) {
         <Stack gap={0.5}>
           <FormCaption>Статус</FormCaption>
           <FormControl fullWidth size="small">
+            {/* Явное сохранение (ТП-34): выбор меняет только локальное
+                значение, на сервер уходит по кнопке «Сохранить». */}
             <Select
               value={statusId}
-              onChange={(e) => onStatusChange(Number(e.target.value))}
+              onChange={(e) => setStatusId(Number(e.target.value))}
             >
               {projectStatuses.map((s) => (
                 <MenuItem key={s.id} value={s.id}>
