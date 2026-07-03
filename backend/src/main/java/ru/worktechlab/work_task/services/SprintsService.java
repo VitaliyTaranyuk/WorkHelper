@@ -301,6 +301,8 @@ public class SprintsService {
         List<TaskModel> tasks = taskRepository.findAllBySprint(sprint).stream()
                 .filter(task -> !task.isArchived())
                 .filter(task -> completedStatusId == null || task.getStatus().getId() != completedStatusId)
+                // ТП-24: порядок списка = единый ранг задачи (position), как на доске
+                .sorted(java.util.Comparator.comparingInt(TaskModel::getPosition))
                 .toList();
         return new SprintMinDto(
                 sprint.getId(),
