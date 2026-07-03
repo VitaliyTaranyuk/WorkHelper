@@ -1,0 +1,19 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        ТП-15: история изменений задачи хранила old/new значения в VARCHAR(255),
+        а описание задачи допускает 4096 символов. Любое изменение описания
+        длиннее 255 символов падало с нарушением ограничения целостности
+        («Невозможно выполнить операцию: нарушено ограничение целостности данных»),
+        и карточку задачи было невозможно сохранить.
+        Расширение типа до TEXT — аддитивная, обратно-совместимая миграция.
+    -->
+    <changeSet id="20260703-widen-task-history-values" author="cloud-code">
+        <modifyDataType tableName="task_history" columnName="initial_value" newDataType="TEXT"/>
+        <modifyDataType tableName="task_history" columnName="new_value" newDataType="TEXT"/>
+    </changeSet>
+
+</databaseChangeLog>
