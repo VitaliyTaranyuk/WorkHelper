@@ -65,6 +65,18 @@ public class TaskPlacementService {
                         String.format("Для проекта %s не найдена ни одна видимая колонка доски", project.getName())));
     }
 
+    /**
+     * Завершающая колонка доски — последняя видимая не-default (max priority).
+     * Единая точка для архивации Done-задач при завершении спринта и раздела
+     * «Завершённые» (ТП-33). TD-012: заменить эвристику явным флагом.
+     */
+    public Optional<TaskStatus> completedBoardStatus(Project project) {
+        return project.getStatuses().stream()
+                .filter(TaskStatus::isViewed)
+                .filter(s -> !s.isDefaultTaskStatus())
+                .max(Comparator.comparingInt(TaskStatus::getPriority));
+    }
+
     /** Статус новой задачи в зависимости от спринта: Backlog-спринт → Backlog-статус, иначе первая колонка доски. */
     public TaskStatus initialStatusFor(Sprint sprint, Project project) throws NotFoundException {
         return sprint.isDefaultSprint() ? defaultStatus(project) : firstBoardStatus(project);

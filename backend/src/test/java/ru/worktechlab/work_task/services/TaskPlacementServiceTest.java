@@ -102,6 +102,20 @@ class TaskPlacementServiceTest {
     }
 
     @Test
+    void completedBoardStatus_shouldReturnLastVisibleNonDefaultColumn() {
+        // последняя видимая не-default колонка: In Progress (priority 3)
+        assertThat(placement.completedBoardStatus(project)).contains(inProgressStatus);
+    }
+
+    @Test
+    void completedBoardStatus_shouldBeEmpty_whenNoVisibleColumns() {
+        Project empty = TestFixtures.project("project-empty", owner);
+        empty.getStatuses().add(backlogStatus);
+
+        assertThat(placement.completedBoardStatus(empty)).isEmpty();
+    }
+
+    @Test
     void firstBoardStatus_shouldReturnVisibleDefault_forLegacyProjects() throws Exception {
         // старая схема: default-статус "To Do" видим и является первой колонкой
         Project legacy = TestFixtures.project("project-legacy", owner);

@@ -184,6 +184,10 @@ export interface UpdateTaskModelDTO {
 export interface TaskDataDto {
   /** id задачи */
   id: string;
+  /** Задача в архиве (спринт завершён) */
+  archived?: boolean;
+  /** Дата завершения задачи */
+  completedDate?: string;
   /**
    * Заголовок
    * @minLength 0
