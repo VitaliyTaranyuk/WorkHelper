@@ -73,10 +73,4 @@ public class TaskDataDto {
 
     @Schema(description = "Дата последнего изменения задачи")
     private java.time.LocalDateTime updatedAt;
-
-    @Schema(description = "Задача в архиве (спринт завершён)")
-    private boolean archived;
-
-    @Schema(description = "Дата завершения задачи")
-    private java.time.LocalDateTime completedDate;
 }

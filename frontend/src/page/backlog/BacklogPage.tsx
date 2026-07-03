@@ -9,7 +9,6 @@ import { MoveToSprintMenu } from '@/features/sprint/MoveToSprintMenu'
 import { useSprintsWithTasksQuery } from '@/features/sprint/query/useSprintsWithTasksQuery'
 import { workTechApi } from '@/shared/api/endpoint'
 import { TASK_FILTER } from '@/entities/task/constants'
-import { CompletedTasksSection } from '@/features/task/CompletedTasksSection'
 
 type BacklogPageProps = {
   projectId: string
@@ -94,12 +93,6 @@ export const BacklogPage = memo(function BacklogPageInner({
           projectId={projectId}
           taskFilter={taskFilter}
         />
-      </Stack>
-
-      {/* Завершённые задачи (ТП-33): Done с доски + архив закрытых спринтов —
-          отдельным разделом, вне списков спринтов. */}
-      <Stack mt={3}>
-        <CompletedTasksSection projectId={projectId} taskFilter={taskFilter} />
       </Stack>
       <MoveToSprintMenu />
     </Stack>
