@@ -123,7 +123,7 @@ class TaskServiceTest {
 
         when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
         when(sprintsService.resolveSprintForTask("sprint-1", project)).thenReturn(sprint);
-        when(taskPlacementService.initialStatusFor(sprint, project)).thenReturn(defaultStatus);
+        when(taskPlacementService.initialStatusFor(sprint, project, null)).thenReturn(defaultStatus);
         when(taskRepository.saveAndFlush(any(TaskModel.class))).thenReturn(task);
         when(taskMapper.toDo(any(TaskModel.class))).thenReturn(expectedDto);
 
@@ -131,6 +131,81 @@ class TaskServiceTest {
 
         assertThat(result).isEqualTo(expectedDto);
         verify(taskRepository).saveAndFlush(any(TaskModel.class));
+    }
+
+    @Test
+    void createTask_shouldPassRequestedStatusToPlacementService() throws Exception {
+        TaskModelDTO dto = buildCreateTaskDto();
+        dto.setStatusId(7L);
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        TaskStatus requested = TestFixtures.status("IN_PROGRESS", project);
+
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsService.resolveSprintForTask("sprint-1", project)).thenReturn(sprint);
+        when(taskPlacementService.initialStatusFor(sprint, project, 7L)).thenReturn(requested);
+        when(taskRepository.saveAndFlush(any(TaskModel.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(taskMapper.toDo(any(TaskModel.class))).thenReturn(mock(TaskDataDto.class));
+
+        taskService.createTask(dto);
+
+        ArgumentCaptor<TaskModel> captor = ArgumentCaptor.forClass(TaskModel.class);
+        verify(taskRepository).saveAndFlush(captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(requested);
+    }
+
+    @Test
+    void createTask_shouldPlaceTaskOnTopOfColumn() throws Exception {
+        TaskModelDTO dto = buildCreateTaskDto();
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsService.resolveSprintForTask("sprint-1", project)).thenReturn(sprint);
+        when(taskPlacementService.initialStatusFor(sprint, project, null)).thenReturn(defaultStatus);
+        // в колонке уже есть карточки, верхняя имеет position = -2
+        when(taskRepository.findMinPositionByProjectAndStatus(project, defaultStatus)).thenReturn(-2);
+        when(taskRepository.saveAndFlush(any(TaskModel.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(taskMapper.toDo(any(TaskModel.class))).thenReturn(mock(TaskDataDto.class));
+
+        taskService.createTask(dto);
+
+        ArgumentCaptor<TaskModel> captor = ArgumentCaptor.forClass(TaskModel.class);
+        verify(taskRepository).saveAndFlush(captor.capture());
+        assertThat(captor.getValue().getPosition()).isEqualTo(-3);
+    }
+
+    @Test
+    void createTask_shouldPlaceTaskAtZero_whenColumnIsEmpty() throws Exception {
+        TaskModelDTO dto = buildCreateTaskDto();
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsService.resolveSprintForTask("sprint-1", project)).thenReturn(sprint);
+        when(taskPlacementService.initialStatusFor(sprint, project, null)).thenReturn(defaultStatus);
+        when(taskRepository.findMinPositionByProjectAndStatus(project, defaultStatus)).thenReturn(null);
+        when(taskRepository.saveAndFlush(any(TaskModel.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(taskMapper.toDo(any(TaskModel.class))).thenReturn(mock(TaskDataDto.class));
+
+        taskService.createTask(dto);
+
+        ArgumentCaptor<TaskModel> captor = ArgumentCaptor.forClass(TaskModel.class);
+        verify(taskRepository).saveAndFlush(captor.capture());
+        assertThat(captor.getValue().getPosition()).isZero();
+    }
+
+    @Test
+    void createTask_shouldNotifyCreator() throws Exception {
+        TaskModelDTO dto = buildCreateTaskDto();
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsService.resolveSprintForTask("sprint-1", project)).thenReturn(sprint);
+        when(taskPlacementService.initialStatusFor(sprint, project, null)).thenReturn(defaultStatus);
+        when(taskRepository.saveAndFlush(any(TaskModel.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(taskMapper.toDo(any(TaskModel.class))).thenReturn(mock(TaskDataDto.class));
+
+        taskService.createTask(dto);
+
+        verify(inAppNotificationService).createTaskCreatedNotification(eq(creator), any(TaskModel.class));
     }
 
     @Test

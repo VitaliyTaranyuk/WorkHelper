@@ -41,6 +41,8 @@ export function CreateTaskDetails({
         ...(formValues.description
           ? { description: formValues.description }
           : {}),
+        // Выбранная колонка доски (ТП-36); для Backlog-спринта поле обнулено
+        ...(formValues.status != null ? { statusId: formValues.status } : {}),
       })
 
       onSuccess()

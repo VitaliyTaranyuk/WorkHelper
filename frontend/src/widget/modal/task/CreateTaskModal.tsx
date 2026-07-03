@@ -78,6 +78,8 @@ function CreateTaskModalInner() {
       ...(formValues.assignee === '-1'
         ? {}
         : { assignee: formValues.assignee }),
+      // Выбранная колонка доски (ТП-36); для Backlog-спринта поле обнулено
+      ...(formValues.status != null ? { statusId: formValues.status } : {}),
     })
 
     modal.resolve()

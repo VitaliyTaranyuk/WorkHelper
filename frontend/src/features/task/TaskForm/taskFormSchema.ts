@@ -17,6 +17,10 @@ export const compactTaskFormSchema = z.object({
   assignee: z.string(),
 
   sprint: z.string(),
+
+  // Колонка доски (id статуса) для создания задачи; null — по умолчанию
+  // (первая колонка на бэкенде); не используется формой редактирования.
+  status: z.number().nullable().optional(),
 })
 
 export function transformEstimaionByLimit(v: unknown) {

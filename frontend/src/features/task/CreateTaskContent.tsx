@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Divider, FormControl, Stack, Typography } from '@mui/material'
 import AttachFileIcon from '@mui/icons-material/AttachFile'
 import { Controller, type UseFormReturn } from 'react-hook-form'
@@ -24,10 +24,10 @@ type CreateTaskContentProps = {
 /**
  * Тело формы создания задачи в макете карточки редактирования
  * (TaskCardContent): слева — название и описание, справа — метаданные
- * (исполнитель, приоритет, тип, спринт, оценка). Единый вид создания
- * и редактирования; блок «Статус» отсутствует — статус назначается
- * по спринту (TaskPlacementService), вложения и комментарии появляются
- * в карточке после создания.
+ * (исполнитель, приоритет, тип, спринт, колонка, оценка). Единый вид
+ * создания и редактирования; для Backlog-спринта выбор колонки скрыт —
+ * статус фиксирован инвариантом (TaskPlacementService); вложения и
+ * комментарии появляются в карточке после создания.
  */
 export function CreateTaskContent({ form, onSubmit }: CreateTaskContentProps) {
   const { errors } = form.formState
@@ -51,6 +51,33 @@ export function CreateTaskContent({ form, onSubmit }: CreateTaskContentProps) {
       ),
     [sprints],
   )
+
+  // Видимые колонки доски в порядке отображения — выбор колонки для новой
+  // задачи (ТП-36). В Backlog-спринте колонка не выбирается.
+  const boardStatuses = useMemo(
+    () =>
+      orderBy(
+        (activeProject?.statuses ?? []).filter((s) => s.viewed),
+        ['priority'],
+      ),
+    [activeProject?.statuses],
+  )
+  const selectedSprintId = form.watch('sprint')
+  const isBacklogSprint = Boolean(
+    sortedSprints.find((s) => s.id === selectedSprintId)?.isDefault,
+  )
+
+  // Синхронизация значения колонки с выбранным спринтом: Backlog — колонки
+  // нет (null), обычный спринт — по умолчанию первая колонка доски.
+  const statusValue = form.watch('status')
+  useEffect(() => {
+    if (isBacklogSprint) {
+      if (statusValue != null) form.setValue('status', null)
+    } else if (statusValue == null && boardStatuses.length > 0) {
+      form.setValue('status', boardStatuses[0].id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBacklogSprint, statusValue, boardStatuses])
 
   if (isProjectLoading || isSprintsLoading) {
     return <Loader isLoading />
@@ -221,6 +248,30 @@ export function CreateTaskContent({ form, onSubmit }: CreateTaskContentProps) {
             />
           </FormControl>
         </Stack>
+
+        {!isBacklogSprint && boardStatuses.length > 0 && (
+          <Stack gap={0.5}>
+            <FormCaption>Колонка</FormCaption>
+            <FormControl fullWidth size="small">
+              <Controller
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <Select
+                    value={field.value ?? boardStatuses[0].id}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  >
+                    {boardStatuses.map((status) => (
+                      <MenuItem key={status.id} value={status.id}>
+                        {status.description || status.code}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                )}
+              />
+            </FormControl>
+          </Stack>
+        )}
 
         <Stack gap={0.5}>
           <FormCaption>Оценка</FormCaption>

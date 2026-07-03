@@ -72,6 +72,21 @@ class InAppNotificationServiceTest {
     }
 
     @Test
+    void createTaskCreatedNotification_shouldNotifyCreatorWithTaskLink() {
+        service.createTaskCreatedNotification(actor, task);
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(captor.capture());
+        Notification n = captor.getValue();
+        assertThat(n.getRecipient()).isEqualTo(actor);
+        assertThat(n.getType()).isEqualTo(InAppNotificationService.TYPE_TASK_CREATED);
+        assertThat(n.getMessage()).contains(task.getCode());
+        // taskCode обязателен: по нему фронтенд делает уведомление кликабельным
+        assertThat(n.getTaskCode()).isEqualTo(task.getCode());
+        assertThat(n.getTaskId()).isEqualTo("task-1");
+    }
+
+    @Test
     void createMentionNotifications_shouldDoNothing_whenNoMentions() {
         service.createMentionNotifications("обычный комментарий без упоминаний", actor, task, "comment-1");
 

@@ -602,6 +602,12 @@ export interface TaskModelDTO {
    */
   sprintId?: string;
   /**
+   * Колонка доски (статус), в которую поместить задачу; для Backlog-спринта игнорируется
+   * @format int64
+   * @example 2
+   */
+  statusId?: number;
+  /**
    * Тип задачи
    * @example "TASK"
    */

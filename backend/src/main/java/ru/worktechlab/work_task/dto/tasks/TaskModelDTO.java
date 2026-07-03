@@ -35,6 +35,9 @@ public class TaskModelDTO {
     @Schema(description = "Спринт", example = "id спринта")
     private String sprintId;
 
+    @Schema(description = "Колонка доски (статус), в которую поместить задачу; для Backlog-спринта игнорируется", example = "2")
+    private Long statusId;
+
     @Schema(description = "Тип задачи", example = "TASK")
     @NotBlank(message = "Поле TASK_TYPE не может быть пустым")
     @ValidTaskType
