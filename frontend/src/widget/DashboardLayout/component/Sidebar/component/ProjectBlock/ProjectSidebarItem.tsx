@@ -98,9 +98,9 @@ export function ProjectSidebarItem({
       <SubLink
         to={`/project/${project.id}/backlog`}
         onClick={() => changeProject.mutate({ projectId: project.id })}
-        title="Открыть задачи проекта"
+        title="Открыть список задач проекта"
       >
-        Задачи
+        Список задач
       </SubLink>
     </ProjectListItem>
   )
