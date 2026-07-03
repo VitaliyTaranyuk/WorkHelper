@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
 import {
   Dialog,
@@ -16,6 +16,7 @@ import { modalStyle } from '@/shared/ui/modalStyles'
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useCreateTask } from '@/features/task/mutation/useCreateTask'
+import { uploadPendingAttachments } from '@/features/task/uploadPendingAttachments'
 import { Loader } from '@/shared/ui/components/Loader'
 
 export const CreateTaskModal = NiceModal.create(CreateTaskModalInner)
@@ -48,6 +49,9 @@ function CreateTaskModalInner() {
     defaultSprintId: preferredSprintId,
   })
 
+  // Отложенные вложения (ТП-30): грузятся к задаче сразу после создания.
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
+
   // Список спринтов мог прийти после первого рендера формы (холодный кэш) —
   // проставляем контекстный спринт, пока пользователь его не менял.
   useEffect(() => {
@@ -63,7 +67,7 @@ function CreateTaskModalInner() {
   }
 
   const onSubmit = form.handleSubmit(async (formValues) => {
-    await createTask.mutateAsync({
+    const created = await createTask.mutateAsync({
       priority: formValues.priority,
       projectId: activeProject!.id,
       taskType: formValues.type,
@@ -81,6 +85,13 @@ function CreateTaskModalInner() {
       // Выбранная колонка доски (ТП-36); для Backlog-спринта поле обнулено
       ...(formValues.status != null ? { statusId: formValues.status } : {}),
     })
+
+    // Вложения (ТП-30): задача уже создана, ошибки загрузки не отменяют её.
+    await uploadPendingAttachments(
+      activeProject!.id,
+      created.data.id,
+      pendingFiles,
+    )
 
     modal.resolve()
     modal.hide()
@@ -114,7 +125,12 @@ function CreateTaskModalInner() {
         {isSprintsLoading ? (
           <Loader isLoading />
         ) : (
-          <CreateTaskContent onSubmit={onSubmit} form={form} />
+          <CreateTaskContent
+            onSubmit={onSubmit}
+            form={form}
+            pendingFiles={pendingFiles}
+            onPendingFilesChange={setPendingFiles}
+          />
         )}
       </DialogContent>
       <DialogActions sx={{ p: 0, mt: '13px' }}>

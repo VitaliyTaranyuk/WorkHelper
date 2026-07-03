@@ -1,9 +1,7 @@
 package ru.worktechlab.work_task.services;
 
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,18 +40,9 @@ public class TaskAttachmentService {
     private final TaskAttachmentRepository attachmentRepository;
     private final TaskService taskService;
     private final CheckerUtil checkerUtil;
-
-    @Value("${app.attachments.storage-dir:/var/lib/workhelper/attachments}")
-    private String storageDirSetting;
-
-    private Path storageRoot;
-
-    @PostConstruct
-    void initStorage() throws IOException {
-        storageRoot = Paths.get(storageDirSetting).toAbsolutePath().normalize();
-        Files.createDirectories(storageRoot);
-        log.info("Attachment storage root: {}", storageRoot);
-    }
+    // Файловые операции вынесены в AttachmentStorage: он же используется
+    // TaskService-ом для очистки файлов при удалении задачи.
+    private final AttachmentStorage storage;
 
     @Transactional(readOnly = true)
     public List<AttachmentDto> list(String projectId, String taskId) throws NotFoundException {
@@ -84,8 +73,8 @@ public class TaskAttachmentService {
 
         String safeName = sanitizeFileName(file.getOriginalFilename());
         String relativePath = taskId + "/" + UUID.randomUUID() + "-" + safeName;
-        Path target = storageRoot.resolve(relativePath).normalize();
-        if (!target.startsWith(storageRoot)) {
+        Path target = storage.resolve(relativePath);
+        if (!target.startsWith(storage.root())) {
             throw new BadRequestException("Недопустимый путь хранения");
         }
         Files.createDirectories(target.getParent());
@@ -114,8 +103,8 @@ public class TaskAttachmentService {
         if (!a.getTask().getId().equals(taskId) || !a.getTask().getProject().getId().equals(projectId)) {
             throw new NotFoundException("Вложение не относится к задаче/проекту");
         }
-        Path file = storageRoot.resolve(a.getStoragePath()).normalize();
-        if (!file.startsWith(storageRoot) || !Files.exists(file)) {
+        Path file = storage.resolve(a.getStoragePath());
+        if (!file.startsWith(storage.root()) || !Files.exists(file)) {
             throw new NotFoundException("Файл вложения отсутствует на диске");
         }
         return new DownloadHandle(a.getFileName(), a.getContentType(), new FileSystemResource(file.toFile()));
@@ -130,16 +119,10 @@ public class TaskAttachmentService {
         if (!a.getTask().getId().equals(taskId) || !a.getTask().getProject().getId().equals(projectId)) {
             throw new NotFoundException("Вложение не относится к задаче/проекту");
         }
-        Path file = storageRoot.resolve(a.getStoragePath()).normalize();
         attachmentRepository.delete(a);
-        try {
-            if (file.startsWith(storageRoot) && Files.exists(file)) {
-                Files.delete(file);
-            }
-        } catch (IOException e) {
-            // Метаданные удалены; файл осиротел — лог и продолжаем, чтобы не блокировать UX.
-            log.warn("Не удалось удалить файл {}: {}", file, e.getMessage());
-        }
+        // Метаданные удалены; ошибка удаления файла логируется внутри
+        // deleteQuietly и не блокирует UX.
+        storage.deleteQuietly(a.getStoragePath());
     }
 
     private AttachmentDto toDto(TaskAttachment a) {
