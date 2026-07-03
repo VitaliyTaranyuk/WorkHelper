@@ -67,6 +67,7 @@ public class TaskStatusService {
         Project project = data.getProject();
         checkerUtil.checkProjectOwner(data.getProject(), data.getUser());
         checkHasDefaultValue(project, requestStatusesDto.getStatuses());
+        checkSystemColumnsOrder(project, requestStatusesDto.getStatuses());
 
         // Двухфазное обновление приоритетов: на task_status стоит unique
         // (project, priority), и при перестановке колонок построчные UPDATE
@@ -121,6 +122,57 @@ public class TaskStatusService {
             throw new BadRequestException(String.format("У проекта %s назначено несколько статусов по умолчанию", project.getName()));
     }
 
+    /**
+     * ТП-32: дефолтные (системные) колонки закреплены по порядку флоу —
+     * их взаимный порядок на доске менять нельзя (переименование разрешено).
+     * Сравниваем последовательность видимых системных колонок до и после
+     * применения запроса: id, отсортированные по priority. Скрытие/показ
+     * колонок порядок не нарушает — сравнивается пересечение видимых.
+     */
+    @TransactionMandatory
+    public void checkSystemColumnsOrder(Project project,
+                                        List<TaskStatusRequestDto> statuses) throws BadRequestException {
+        if (CollectionUtils.isEmpty(statuses))
+            return;
+        var requestById = statuses.stream()
+                .collect(Collectors.toMap(TaskStatusRequestDto::getId, s -> s, (a, b) -> a));
+
+        record StatusView(long id, int priority, boolean viewed) {}
+        List<StatusView> oldViews = project.getStatuses().stream()
+                .filter(TaskStatus::isSystemStatus)
+                .map(s -> new StatusView(s.getId(), s.getPriority(), s.isViewed()))
+                .toList();
+        List<StatusView> newViews = project.getStatuses().stream()
+                .filter(TaskStatus::isSystemStatus)
+                .map(s -> {
+                    TaskStatusRequestDto req = requestById.get(s.getId());
+                    return req == null
+                            ? new StatusView(s.getId(), s.getPriority(), s.isViewed())
+                            : new StatusView(s.getId(), req.getPriority(), Boolean.TRUE.equals(req.getViewed()));
+                })
+                .toList();
+
+        Set<Long> visibleInBoth = oldViews.stream()
+                .filter(StatusView::viewed)
+                .map(StatusView::id)
+                .filter(id -> newViews.stream().anyMatch(v -> v.id() == id && v.viewed()))
+                .collect(Collectors.toSet());
+
+        List<Long> oldOrder = oldViews.stream()
+                .filter(v -> visibleInBoth.contains(v.id()))
+                .sorted(java.util.Comparator.comparingInt(StatusView::priority))
+                .map(StatusView::id)
+                .toList();
+        List<Long> newOrder = newViews.stream()
+                .filter(v -> visibleInBoth.contains(v.id()))
+                .sorted(java.util.Comparator.comparingInt(StatusView::priority))
+                .map(StatusView::id)
+                .toList();
+
+        if (!oldOrder.equals(newOrder))
+            throw new BadRequestException("Дефолтные колонки нельзя менять местами — они закреплены по порядку флоу");
+    }
+
     @TransactionRequired
     public ApiResponse deleteStatus(String projectId,
                                     long statusId) throws NotFoundException, BadRequestException {
@@ -129,6 +181,8 @@ public class TaskStatusService {
         TaskStatus status = findStatusByIdAndProjectForUpdate(statusId, data.getProject());
         if (status.isDefaultTaskStatus())
             throw new BadRequestException("Колонку по умолчанию нельзя удалить");
+        if (status.isSystemStatus())
+            throw new BadRequestException("Дефолтную колонку нельзя удалить — её можно переименовать или скрыть");
         TaskStatus defaultStatus = taskPlacementService.defaultStatus(data.getProject());
         // Trello UX: задачи удаляемой колонки не теряются — активные уходят в Backlog
         // целиком (статус + спринт), архивные лишь получают валидный статус.

@@ -35,6 +35,8 @@ export type TaskStatus = {
   viewed: boolean
   projectId: string
   defaultTaskStatus?: boolean
+  /** Системная (дефолтная) колонка: закреплена по порядку, удалять нельзя (ТП-32). */
+  systemStatus?: boolean
 }
 
 export type TaskDataFull = {

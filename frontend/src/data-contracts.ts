@@ -345,6 +345,8 @@ export interface TaskStatusDto {
    * @format int32
    */
   priority: number;
+  /** Системная (дефолтная) колонка: закреплена по порядку, удалять нельзя */
+  systemStatus?: boolean;
   /** Название статуса */
   code: string;
   /** Описание статуса */

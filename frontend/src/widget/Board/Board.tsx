@@ -27,6 +27,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import AddIcon from '@mui/icons-material/Add'
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import CloseIcon from '@mui/icons-material/Close'
 import {
@@ -414,7 +415,9 @@ function BoardInner(props: BoardProps) {
                   draggableId={`col-${status.id}`}
                   index={colIndex}
                   key={`col-${status.id}`}
-                  isDragDisabled={!editMode}
+                  // Дефолтные (системные) колонки закреплены по порядку флоу —
+                  // перетаскивать нельзя, только переименовывать (ТП-32).
+                  isDragDisabled={!editMode || !!status.systemStatus}
                 >
                   {(colDrag) => (
                     <BoardColumn
@@ -423,7 +426,11 @@ function BoardInner(props: BoardProps) {
                     >
                       <ColumnHeader
                         {...(editMode ? colDrag.dragHandleProps : {})}
-                        style={editMode ? { cursor: 'grab' } : undefined}
+                        style={
+                          editMode && !status.systemStatus
+                            ? { cursor: 'grab' }
+                            : undefined
+                        }
                       >
                         <Stack
                           direction="row"
@@ -431,12 +438,20 @@ function BoardInner(props: BoardProps) {
                           gap={0.5}
                           sx={{ minWidth: 0 }}
                         >
-                          {editMode && (
-                            <DragIndicatorIcon
-                              fontSize="small"
-                              sx={{ color: 'text.disabled', flexShrink: 0 }}
-                            />
-                          )}
+                          {editMode &&
+                            (status.systemStatus ? (
+                              <Tooltip title="Дефолтная колонка: закреплена по порядку флоу, можно только переименовать">
+                                <LockOutlinedIcon
+                                  fontSize="small"
+                                  sx={{ color: 'text.disabled', flexShrink: 0 }}
+                                />
+                              </Tooltip>
+                            ) : (
+                              <DragIndicatorIcon
+                                fontSize="small"
+                                sx={{ color: 'text.disabled', flexShrink: 0 }}
+                              />
+                            ))}
                           <ColumnTitle
                             onDoubleClick={() =>
                               editMode &&
@@ -444,7 +459,9 @@ function BoardInner(props: BoardProps) {
                             }
                             title={
                               editMode
-                                ? 'Двойной клик — переименовать, тащить — переместить'
+                                ? status.systemStatus
+                                  ? 'Двойной клик — переименовать (колонка закреплена)'
+                                  : 'Двойной клик — переименовать, тащить — переместить'
                                 : undefined
                             }
                           >
@@ -467,17 +484,20 @@ function BoardInner(props: BoardProps) {
                                 <VisibilityOffOutlinedIcon fontSize="inherit" />
                               </IconButton>
                             </Tooltip>
-                            <Tooltip title="Удалить колонку">
-                              <IconButton
-                                size="small"
-                                aria-label="Удалить колонку"
-                                onClick={() =>
-                                  handleDeleteColumn(status.id, status.code)
-                                }
-                              >
-                                <DeleteOutlineIcon fontSize="inherit" />
-                              </IconButton>
-                            </Tooltip>
+                            {/* Дефолтные колонки удалить нельзя (ТП-32) */}
+                            {!status.systemStatus && (
+                              <Tooltip title="Удалить колонку">
+                                <IconButton
+                                  size="small"
+                                  aria-label="Удалить колонку"
+                                  onClick={() =>
+                                    handleDeleteColumn(status.id, status.code)
+                                  }
+                                >
+                                  <DeleteOutlineIcon fontSize="inherit" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
                           </Stack>
                         )}
                       </ColumnHeader>

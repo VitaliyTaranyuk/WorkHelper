@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- ТП-32: дефолтные (системные) колонки закреплены — их нельзя переставлять
+         и удалять, только переименовывать. Флаг отличает колонки, созданные
+         при создании проекта, от добавленных пользователем. -->
+    <changeSet id="20260704-add-status-system-flag" author="cloud-code">
+        <addColumn tableName="task_status">
+            <column name="system_status" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Бэкфилл существующих проектов: системными считаем колонки с исходными
+         именами сида (StatusName). Переименованные до этой миграции дефолтные
+         колонки пометить невозможно — они останутся кастомными (осознанное
+         ограничение бэкфилла; в текущих данных переименований не было). -->
+    <changeSet id="20260704-backfill-system-statuses" author="cloud-code">
+        <sql>
+            UPDATE task_status
+            SET system_status = TRUE
+            WHERE code IN ('Backlog', 'BACKLOG', 'To Do', 'In Progress', 'Review', 'REVIEW', 'Done', 'Canceled', 'CANCELED');
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
