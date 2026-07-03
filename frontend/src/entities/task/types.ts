@@ -29,6 +29,8 @@ export type ITaskCard = {
   archived?: boolean
   /** Дата завершения (проставляется при архивации/завершении). */
   completedDate?: string
+  /** Последний комментарий — вопрос, ждёт ответа (ТП-45, точка на карточке). */
+  awaitingReply?: boolean
 }
 
 export type TaskStatus = {
