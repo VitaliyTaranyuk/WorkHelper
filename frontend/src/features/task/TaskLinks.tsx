@@ -13,7 +13,6 @@ import {
 } from '@mui/material'
 import LinkIcon from '@mui/icons-material/Link'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-import { Link } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { MenuItem, Select } from '@/shared/ui/mui/Select'
 import { workTechApi } from '@/shared/api/endpoint'
@@ -203,9 +202,13 @@ export function TaskLinks({ projectId, taskId, taskCode }: Props) {
                 sx={{ flexShrink: 0 }}
               />
               {other.code ? (
-                <Link
-                  to="/task/$code"
-                  params={{ code: other.code }}
+                // Обычный <a>, а не router-<Link>: блок связей рендерится и в
+                // TaskCardModal (NiceModal-провайдер смонтирован ВНЕ
+                // RouterProvider) — router-компоненты там падают с
+                // «useRouter must be used inside a <RouterProvider>» и
+                // обваливают всё приложение в белый экран (ТП-39).
+                <a
+                  href={`/task/${encodeURIComponent(other.code)}`}
                   style={{ minWidth: 0, textDecoration: 'none' }}
                 >
                   <Typography
@@ -219,7 +222,7 @@ export function TaskLinks({ projectId, taskId, taskCode }: Props) {
                   >
                     {other.code} · {other.title}
                   </Typography>
-                </Link>
+                </a>
               ) : (
                 <Typography variant="body2" color="text.secondary" noWrap>
                   задача недоступна
