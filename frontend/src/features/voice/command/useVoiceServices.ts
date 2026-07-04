@@ -93,7 +93,13 @@ export function useVoiceServices(
         try {
           const res = await workTechApi.task.findTaskByCode({ code, projectId })
           const t = mapTaskMinDTOToTaskCard(res.data)
-          return { id: t.id, code: t.code, title: t.title }
+          return {
+            id: t.id,
+            code: t.code,
+            title: t.title,
+            statusId: t.status.id,
+            sprintId: t.sprintId,
+          }
         } catch {
           return null
         }

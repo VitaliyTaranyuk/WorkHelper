@@ -13,6 +13,7 @@ import {
 } from '../core/command/executor'
 import type { RiskLevel } from '../core/command/types'
 import { useVoiceServices } from './useVoiceServices'
+import { useVoiceJournal } from './voiceJournal'
 
 /**
  * Оркестрация командного режима (ТП-95 / X1) — единый конвейер:
@@ -80,6 +81,12 @@ export function useVoiceCommandSession(): VoiceSession {
     }
     try {
       const result = await runPreparedCommand(prepared, { ...context, ...svc })
+      // Журнал действий сессии (ТП-103) — с откатом, если команда его поддержала.
+      useVoiceJournal.getState().add({
+        message: result.message,
+        taskCode: result.taskCode,
+        undo: result.undo,
+      })
       setPhase({
         t: 'message',
         kind: 'done',

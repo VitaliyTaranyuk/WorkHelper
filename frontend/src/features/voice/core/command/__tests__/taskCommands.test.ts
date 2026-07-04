@@ -80,6 +80,17 @@ describe('statusCommand (C2)', () => {
   it('это confirm-команда', () => {
     expect(statusCommand.riskLevel).toBe('confirm')
   })
+
+  it('возвращает undo, откатывающий статус на предыдущий', async () => {
+    const { ctx, setStatus } = makeServices(openCtx)
+    const res = statusCommand.prepare({ q: 'переведи эту задачу в готово' }, openCtx)
+    if (!res.ok) throw new Error('ожидался ok')
+    const out = await res.run(ctx)
+    expect(out.undo).toBeDefined()
+    setStatus.mockClear()
+    await out.undo?.()
+    expect(setStatus).toHaveBeenCalledWith('t1', 1) // findTask вернул statusId=1
+  })
 })
 
 describe('sprintCommand / priorityCommand / assigneeCommand (C2)', () => {
