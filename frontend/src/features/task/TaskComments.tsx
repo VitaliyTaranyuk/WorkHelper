@@ -12,6 +12,7 @@ import {
   useTaskComments,
 } from './useTaskComments'
 import { MentionTextField } from '@/features/user/MentionTextField'
+import { DictationButton } from '@/features/voice/DictationButton'
 import { formatUserName } from '@/entities/user/utils'
 
 type Props = { projectId: string; taskId: string }
@@ -33,7 +34,7 @@ export function TaskComments({ projectId, taskId }: Props) {
   // верхнего отступа — высота определяется содержимым, поле ввода сверху.
   return (
     <Stack gap={1.5}>
-      <Stack direction="row" gap={1}>
+      <Stack direction="row" gap={1} alignItems="flex-start">
         <MentionTextField
           size="small"
           fullWidth
@@ -42,6 +43,12 @@ export function TaskComments({ projectId, taskId }: Props) {
           onChange={setText}
           multiline
           maxRows={6}
+        />
+        {/* ТП-88: диктовка комментария голосом — текст добавляется в поле. */}
+        <DictationButton
+          field="comment"
+          targetLabel="комментарий"
+          onText={(t) => setText((prev) => (prev ? `${prev} ${t}` : t))}
         />
         <Button
           variant="contained"
