@@ -76,14 +76,15 @@ export function Sidebar({ className }: SideBarProps) {
             </NavItem>
           </>
         )}
-      </Nav>
 
-      <BottomMenu>
+        {/* ТП-77: «Настройки» — в основном меню под «Календарём», а не
+            в нижнем углу. Раздел приложенческий (тема/уведомления/хоткеи),
+            поэтому доступен всегда, вне блока проекта. */}
         <NavItem to="/settings">
           <SettingsOutlinedIcon fontSize="small" />
           Настройки
         </NavItem>
-      </BottomMenu>
+      </Nav>
 
       <StyledVerticalLine size={BLOCK_BORDER_WIDTH_PX} />
     </SidebarContainer>
@@ -102,14 +103,6 @@ const Nav = styled.nav`
   flex-direction: column;
   gap: 2px;
   padding: 8px 12px;
-`
-
-const BottomMenu = styled.nav`
-  margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 12px;
 `
 
 /*
