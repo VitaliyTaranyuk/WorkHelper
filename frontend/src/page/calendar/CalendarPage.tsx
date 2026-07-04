@@ -17,6 +17,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useProjectData } from '@/features/project/query/useProjectData'
+import { useSettingsStore } from '@/features/settings/settingsStore'
 import {
   useCreateMeeting,
   useDeleteMeeting,
@@ -68,7 +69,15 @@ export function CalendarPage({ projectId, focusMeetingId }: Props) {
   const { activeProject } = useProjectData()
   const users = activeProject?.users
 
-  const [view, setView] = useState<CalendarView>('month')
+  // ТП-56: настройка календаря живёт в календаре — выбранный вид
+  // запоминается (localStorage) и восстанавливается при следующем открытии.
+  const savedView = useSettingsStore((s) => s.calendarView)
+  const saveSettings = useSettingsStore((s) => s.set)
+  const [view, setViewState] = useState<CalendarView>(savedView)
+  const setView = (next: CalendarView) => {
+    setViewState(next)
+    saveSettings({ calendarView: next })
+  }
   const [anchor, setAnchor] = useState<Dayjs>(dayjs())
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingDto | null>(null)
 

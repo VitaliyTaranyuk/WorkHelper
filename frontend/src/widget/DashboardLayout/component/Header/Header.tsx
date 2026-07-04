@@ -15,10 +15,8 @@ import { Spacer } from '@/shared/ui/Spacer'
 import { HeaderActions } from '@/widget/HeaderActions'
 import type { HeaderActionsProps } from '@/widget/HeaderActions/HeaderActions'
 import IconButton from '@mui/material/IconButton'
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import { useBoardEditModeStore } from '@/features/board/boardEditModeStore'
-import { Link } from '@tanstack/react-router'
 type HeaderProps = {
   headerActions: HeaderActionsProps
 }
@@ -67,15 +65,8 @@ export function Header({ headerActions }: HeaderProps) {
         {/* ТП-22: голосовое управление (кнопка + настраиваемый хоткей) */}
         <VoiceControl />
         <NotificationBell />
-        <IconButton
-          component={Link}
-          to="/settings"
-          aria-label="Настройки"
-          title="Настройки"
-          size="small"
-        >
-          <SettingsOutlinedIcon fontSize="small" />
-        </IconButton>
+        {/* ТП-56: шестерёнка убрана — настройки открываются из левого меню,
+            дубль точки входа вводил в заблуждение (аудит ТП-63, п.3) */}
         <UserProfile />
       </HeaderMainBlock>
     </TopBlock>
