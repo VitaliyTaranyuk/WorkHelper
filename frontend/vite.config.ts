@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
@@ -6,6 +7,14 @@ import svgrPlugin from 'vite-plugin-svgr'
 
 // https://vite.dev/config/
 export default defineConfig({
+  test: {
+    // jsdom нужен хукам/компонентам; чистая логика (реестр/резолверы) от него не зависит
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+    // тесты лежат рядом с кодом в __tests__/*.test.ts(x)
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+  },
   plugins: [
     tanstackRouter({
       target: 'react',

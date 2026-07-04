@@ -6,6 +6,35 @@
 
 ---
 
+## Завершено 2026-07-05: ТП-91 «Голосовой помощник — F1: Command Registry + Executor» (ветка `feature/tp91-command-registry`)
+
+Ядро КОМАНДНОГО режима голоса (Веха 1). Диктовочный конвейер ТП-88 не тронут —
+это ортогональный режим ВВОДА.
+
+- `features/voice/core/command/` — новый слой:
+  - `types.ts` — контракты: `VoiceCommand` (НЕ дженерик; `prepare()` возвращает
+    замыкание `run` с типизированными слотами — убрана проблема вариантности при
+    хранении разнородных команд, без `any`), `VoiceContext`, `VoiceCommandContext`
+    (данные + сервисы), `RiskLevel`, `IntentResolution`, `CommandSchema`, `NavTarget`.
+  - `registry.ts` — `createCommandRegistry(commands)` из ЯВНОГО списка (tree-shake-
+    безопасно, детерминированно) + `toSchema()` для резолвера ТП-94.
+  - `executor.ts` — `prepareCommand` (чистая) / `needsConfirmation` / `runPreparedCommand`
+    (побочные эффекты). Разделение подготовки, подтверждения и исполнения.
+  - `commands/createTaskCommand.ts` — восстановлена из `211d152~1` и эволюционирована
+    (убран regex-`match`, разбор через `transcriptToTaskDraft` ТП-88); safe.
+  - `commands/navigateCommand.ts` — навигация; синонимы разделов по СТЕМАМ (склонения
+    русского: «доску»/«задачам» матчатся по префиксу токена); safe.
+  - `commands/index.ts` — сборка `commandRegistry` (новая команда = 1 строка).
+- Тесты: Vitest поднят (vitest 3 — совместим с Vite 7; jsdom; setup). 25 unit-тестов
+  (реестр/исполнитель/2 команды) — зелёные. `npm run test` добавлен в frontend-CI.
+- Инвариант: команды исполняют действия только через сервисы (existing мутации) —
+  прямых обращений в API нет. Подтверждение — по `riskLevel` (safe → без подтверждения).
+
+Проверка: `npm run test` (25/25), `npm run lint` (0), `npm run build` (tsc+vite) — зелёные.
+Далее: ТП-92 (F2 — useVoiceContext наполняет `VoiceContext`).
+
+---
+
 ## Завершено 2026-07-04: ТП-90 «Голосовой помощник — V0: архитектурный ADR» (ветка `docs/tp90-voice-architecture-adr`)
 
 Первая задача подсистемы голосового управления (Веха 1). **Кода нет** — только
