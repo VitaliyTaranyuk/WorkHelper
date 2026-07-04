@@ -60,14 +60,13 @@ export function TaskDevPanel({ projectId, taskId, taskCode }: Props) {
         </Typography>
       )}
 
+      {/* ТП-73: компактное пустое состояние — одна строка. */}
       {!isLoading &&
         data?.available &&
         data.branches.length === 0 &&
         data.pullRequests.length === 0 && (
           <Typography variant="caption" color="text.disabled">
-            Связанных веток и PR не найдено. Ветка с «tp
-            {taskCode.replace(/\D+/g, '')}» в имени или PR с кодом {taskCode} в
-            заголовке привяжутся автоматически.
+            Связанных веток и PR нет — привяжутся автоматически по коду {taskCode}
           </Typography>
         )}
 
