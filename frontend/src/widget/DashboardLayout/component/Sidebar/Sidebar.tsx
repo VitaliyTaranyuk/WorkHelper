@@ -46,17 +46,23 @@ export function Sidebar({ className }: SideBarProps) {
 
   return (
     <SidebarContainer className={className}>
+      {/* ТП-84: на узких экранах (<640px) сайдбар сворачивается в компактную
+          колонку иконок — подписи скрыты, ширина 56px; на планшете/десктопе
+          вид не меняется. title даёт подсказку в свёрнутом состоянии. */}
       <Nav>
-        <NavItem to="/main">
+        <NavItem to="/main" title="Доска">
           <ViewKanbanOutlinedIcon fontSize="small" />
-          Доска
+          <NavLabel>Доска</NavLabel>
         </NavItem>
 
         {activeProject && (
           <>
-            <NavItem to={`/project/${activeProject.id}/backlog`}>
+            <NavItem
+              to={`/project/${activeProject.id}/backlog`}
+              title="Список задач"
+            >
               <FormatListBulletedIcon fontSize="small" />
-              Список задач
+              <NavLabel>Список задач</NavLabel>
             </NavItem>
             {/* Активный спринт: точка статуса + даты (введено в ТП-11). */}
             {activeSprint && (
@@ -70,9 +76,12 @@ export function Sidebar({ className }: SideBarProps) {
                 <SprintLabelText>{sprintLabel}</SprintLabelText>
               </SprintCaption>
             )}
-            <NavItem to={`/project/${activeProject.id}/calendar`}>
+            <NavItem
+              to={`/project/${activeProject.id}/calendar`}
+              title="Календарь"
+            >
               <CalendarMonthOutlinedIcon fontSize="small" />
-              Календарь
+              <NavLabel>Календарь</NavLabel>
             </NavItem>
           </>
         )}
@@ -80,9 +89,9 @@ export function Sidebar({ className }: SideBarProps) {
         {/* ТП-77: «Настройки» — в основном меню под «Календарём», а не
             в нижнем углу. Раздел приложенческий (тема/уведомления/хоткеи),
             поэтому доступен всегда, вне блока проекта. */}
-        <NavItem to="/settings">
+        <NavItem to="/settings" title="Настройки">
           <SettingsOutlinedIcon fontSize="small" />
-          Настройки
+          <NavLabel>Настройки</NavLabel>
         </NavItem>
       </Nav>
 
@@ -91,11 +100,20 @@ export function Sidebar({ className }: SideBarProps) {
   )
 }
 
+// ТП-84: ниже этой ширины сайдбар сворачивается в колонку иконок (телефоны).
+// Планшеты/десктоп (≥640px) не затрагиваются.
+const COLLAPSE_BP = '640px'
+const COLLAPSED_WIDTH_PX = '56px'
+
 const StyledVerticalLine = styled(VerticalLine)`
   height: calc(100% + ${MAIN_BLOCK_PADDING_TOP_PX});
   position: absolute;
   top: -${MAIN_BLOCK_PADDING_TOP_PX};
   left: ${LEFT_SIDE_WIDTH_PX};
+
+  @media (max-width: ${COLLAPSE_BP}) {
+    left: ${COLLAPSED_WIDTH_PX};
+  }
 `
 
 const Nav = styled.nav`
@@ -103,6 +121,16 @@ const Nav = styled.nav`
   flex-direction: column;
   gap: 2px;
   padding: 8px 12px;
+
+  @media (max-width: ${COLLAPSE_BP}) {
+    padding: 8px 6px;
+  }
+`
+
+const NavLabel = styled.span`
+  @media (max-width: ${COLLAPSE_BP}) {
+    display: none;
+  }
 `
 
 /*
@@ -137,6 +165,12 @@ const NavItem = styled(Link)`
     color: rgba(120, 116, 134, 1);
     flex-shrink: 0;
   }
+
+  @media (max-width: ${COLLAPSE_BP}) {
+    justify-content: center;
+    gap: 0;
+    padding: 8px 0;
+  }
 `
 
 const SprintCaption = styled(Link)`
@@ -146,6 +180,11 @@ const SprintCaption = styled(Link)`
 
   margin: -2px 0 2px 0;
   padding: 2px 12px 4px 38px;
+
+  /* ТП-84: период спринта — текстовая подпись, в свёрнутом сайдбаре скрыта. */
+  @media (max-width: ${COLLAPSE_BP}) {
+    display: none;
+  }
 
   ${css(TEXT_STYLES.headline.h5)};
   /* ТП-80: период спринта — вторичная подпись под навигацией. В узком
@@ -186,4 +225,8 @@ const SidebarContainer = styled.aside`
 
   display: flex;
   flex-direction: column;
+
+  @media (max-width: ${COLLAPSE_BP}) {
+    width: ${COLLAPSED_WIDTH_PX};
+  }
 `
