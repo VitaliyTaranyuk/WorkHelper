@@ -68,7 +68,7 @@
 | ID | Задача (ТП) | Зависимости | Статус | Критерии завершения |
 |----|--------|-------------|--------|---------------------|
 | T-400 | V0 (ТП‑90): архитектурный ADR подсистемы, без кода | — | IN_PROGRESS | `VOICE_ARCHITECTURE.md` + ADR‑005..010 в ARCHITECTURE; поведение не меняется |
-| T-401 | F1 (ТП‑91): Command Registry + Executor | T-400 | NOT_STARTED | реестр ≥2 команд (перенос диктовки/создания); executor → существующие мутации; тесты; легаси без регрессии |
+| T-401 | F1 (ТП‑91): Command Registry + Executor | T-400 | COMPLETED | реестр 2 команд (create-task восстановлена из 211d152~1 + navigate); prepare/run split; 25 Vitest-тестов; Vitest поднят + в CI; диктовка ТП-88 не тронута |
 | T-402 | F2 (ТП‑92): Context Provider (`useVoiceContext`) | T-400 | NOT_STARTED | типизированный снимок из кэшей/route; тесты на mock-кэшах |
 | T-403 | F3 (ТП‑93): Slot/Entity Resolver | T-402 | NOT_STARTED | матрица фраз строка→ID/неоднозначность; не выдумывает ID; unit-тесты |
 | T-404 | I1 (ТП‑94): backend Intent‑прокси + RuleBased (без AI) | T-401,T-402 | NOT_STARTED | `POST /voice/resolve` без ключей; OpenAPI→data-contracts; интеграционные тесты |
