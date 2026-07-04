@@ -23,8 +23,19 @@ export const statusCommand = taskAttributeCommand({
   valueLabel: (s) => `«${s.label}»`,
   valueClarify: 'Не понял, в какой статус перевести.',
   apply: async (task, status, ctx) => {
+    // Захватываем текущий статус ДО изменения — для отката (ТП-103 / X2).
+    const before = await ctx.findTask(task.code)
     await ctx.setStatus(task.id, status.id)
-    return { message: `${task.code}: статус «${status.label}»`, taskCode: task.code }
+    return {
+      message: `${task.code}: статус «${status.label}»`,
+      taskCode: task.code,
+      undo:
+        before && before.statusId !== status.id
+          ? async () => {
+              await ctx.setStatus(task.id, before.statusId)
+            }
+          : undefined,
+    }
   },
 })
 

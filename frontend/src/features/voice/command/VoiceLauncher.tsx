@@ -5,6 +5,7 @@ import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined'
 import { useVoiceCommandSession } from './useVoiceCommandSession'
 import { useHotkeySetting, useVoiceHotkey, formatHotkey } from '../useVoiceHotkey'
 import { VoiceOverlay } from './VoiceOverlay'
+import { VoiceJournalButton } from './VoiceJournalButton'
 
 /**
  * Глобальная точка входа командного голоса (ТП-95 / X1). Плавающая кнопка
@@ -42,6 +43,7 @@ export function VoiceLauncher() {
           {listening ? <StopCircleOutlinedIcon /> : <MicNoneOutlinedIcon />}
         </Fab>
       </Tooltip>
+      <VoiceJournalButton />
       <VoiceOverlay session={session} />
     </>
   )

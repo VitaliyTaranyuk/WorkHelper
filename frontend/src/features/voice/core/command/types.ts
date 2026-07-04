@@ -72,6 +72,12 @@ export type VoiceCreateTaskInput = {
 
 export type CreatedTask = { id: string; code: string; title: string }
 
+/** Задача с текущими значениями — для отката (undo) изменений (ТП-103). */
+export type VoiceTaskInfo = CreatedTask & {
+  statusId: number
+  sprintId?: string
+}
+
 /**
  * Сервисы приложения, доступные командам при исполнении. Каждый делегирует
  * СУЩЕСТВУЮЩЕЙ мутации/хуку (инвариант: голос не ходит в API в обход UI-слоя).
@@ -94,8 +100,8 @@ export type VoiceServices = {
   setSprint(taskId: string, sprintId: string): Promise<void>
   /** Правка полей задачи по коду — fetch текущей + merge + updateTask. */
   patchTask(code: string, changes: VoiceTaskPatch): Promise<CreatedTask>
-  /** Найти задачу по коду (для команд, действующих на задачу по коду). */
-  findTask(code: string): Promise<CreatedTask | null>
+  /** Найти задачу по коду (+ текущий статус/спринт для отката). */
+  findTask(code: string): Promise<VoiceTaskInfo | null>
   /** Комментарий к задаче — через createComment. */
   addComment(taskId: string, text: string): Promise<void>
   /** Создать спринт — через createSprint. */

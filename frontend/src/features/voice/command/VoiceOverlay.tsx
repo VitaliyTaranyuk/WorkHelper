@@ -10,6 +10,7 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline'
 import GraphicEqIcon from '@mui/icons-material/GraphicEq'
 import { router } from '@/application/router'
 import type { VoiceSession } from './useVoiceCommandSession'
+import { voiceHelpItems } from './voiceHelp'
 
 /**
  * Оверлей голосового командного режима (ТП-95 / X1). Компактная панель снизу по
@@ -198,6 +199,26 @@ function MessageView({
           </Button>
         )}
       </Box>
+      {kind === 'clarify' && <VoiceHelpHint />}
     </>
+  )
+}
+
+/** Встроенная подсказка «что можно сказать» (ТП-103) — из реестра команд. */
+function VoiceHelpHint() {
+  const items = voiceHelpItems().slice(0, 6)
+  return (
+    <Box sx={{ mt: 0.5 }}>
+      <Typography variant="caption" color="text.secondary">
+        Примеры команд:
+      </Typography>
+      <Box component="ul" sx={{ m: 0, pl: 2 }}>
+        {items.map((it) => (
+          <Typography key={it.title} component="li" variant="caption" color="text.secondary">
+            {it.example}
+          </Typography>
+        ))}
+      </Box>
+    </Box>
   )
 }
