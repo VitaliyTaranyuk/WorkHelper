@@ -137,6 +137,45 @@ export function useAttachmentBlobUrl({
   })
 }
 
+/** Типы, которые браузер отображает сам — такие вложения открываем в новой вкладке (ТП-53). */
+export function isBrowserViewable(contentType: string | null | undefined): boolean {
+  const t = (contentType || '').toLowerCase()
+  return (
+    t.startsWith('image/') ||
+    t.startsWith('text/') ||
+    t === 'application/pdf' ||
+    t === 'application/json'
+  )
+}
+
+/**
+ * Открыть вложение в новой вкладке. Вкладка открывается синхронно в обработчике
+ * клика (иначе popup-блокировка), содержимое подставляется после авторизованной
+ * загрузки blob.
+ */
+export async function openAttachmentInNewTab(
+  projectId: string,
+  taskId: string,
+  att: AttachmentDto,
+) {
+  const win = window.open('about:blank', '_blank')
+  if (!win) {
+    toast.error('Браузер заблокировал открытие вкладки')
+    return
+  }
+  try {
+    const blob = await fetchAttachmentBlob(projectId, taskId, att.id)
+    // content-type определяет, отобразит ли браузер файл или скачает его
+    const typed = blob.type ? blob : new Blob([blob], { type: att.contentType })
+    const url = URL.createObjectURL(typed)
+    win.location.href = url
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  } catch {
+    win.close()
+    toast.error(`Не удалось открыть «${att.fileName}»`)
+  }
+}
+
 /** Скачать вложение в файл (через blob + временную ссылку). */
 export async function downloadAttachment(
   projectId: string,

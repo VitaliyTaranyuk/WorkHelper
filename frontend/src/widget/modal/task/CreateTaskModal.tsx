@@ -74,8 +74,6 @@ function CreateTaskModalInner() {
       title: formValues.taskTitle,
       sprintId: formValues.sprint,
 
-      ...(formValues.estimation ? { estimation: formValues.estimation } : {}),
-
       ...(formValues.description
         ? { description: formValues.description }
         : {}),

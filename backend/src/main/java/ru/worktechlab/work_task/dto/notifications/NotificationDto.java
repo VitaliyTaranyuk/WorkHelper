@@ -16,6 +16,9 @@ public class NotificationDto {
     private String taskId;
     private String taskCode;
     private String commentId;
+    private String meetingId;
+    private String projectId;
+    private String link;
     private String actorUsername;
     private boolean read;
     private LocalDateTime createdAt;

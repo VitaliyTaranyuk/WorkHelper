@@ -14,6 +14,8 @@ import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutl
 import { toast } from 'sonner'
 import {
   downloadAttachment,
+  isBrowserViewable,
+  openAttachmentInNewTab,
   useAttachmentBlobUrl,
   useDeleteAttachment,
   useTaskAttachments,
@@ -183,11 +185,29 @@ export function TaskAttachments({ projectId, taskId }: Props) {
               />
             )}
             <Stack sx={{ minWidth: 0, flex: 1 }}>
+              {/* ТП-53: просматриваемые браузером типы (текст/картинка/PDF)
+                  открываются в новой вкладке кликом по имени файла */}
               <Typography
                 variant="body2"
                 noWrap
-                title={att.fileName}
-                sx={{ fontWeight: 500 }}
+                title={
+                  isBrowserViewable(att.contentType)
+                    ? `${att.fileName} — открыть в новой вкладке`
+                    : att.fileName
+                }
+                onClick={
+                  isBrowserViewable(att.contentType)
+                    ? () => void openAttachmentInNewTab(projectId, taskId, att)
+                    : undefined
+                }
+                sx={{
+                  fontWeight: 500,
+                  ...(isBrowserViewable(att.contentType) && {
+                    cursor: 'pointer',
+                    color: 'primary.main',
+                    '&:hover': { textDecoration: 'underline' },
+                  }),
+                }}
               >
                 {att.fileName}
               </Typography>
