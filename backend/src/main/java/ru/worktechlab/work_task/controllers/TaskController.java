@@ -296,6 +296,15 @@ public class TaskController {
     }
 
     @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @GetMapping("/{projectId}/{taskId}/dev-info")
+    @Operation(summary = "Панель «Разработка»: ветки и PR GitHub, связанные с задачей")
+    public ru.worktechlab.work_task.dto.devpanel.DevInfoDto getDevInfo(
+            @PathVariable String projectId,
+            @PathVariable String taskId) throws NotFoundException {
+        return taskService.getDevInfo(projectId, taskId);
+    }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
     @GetMapping("/{projectId}/my")
     @Operation(summary = "Мои задачи в проекте (фильтр My Tasks)")
     public List<TaskDataDto> getMyTasks(@PathVariable String projectId) throws NotFoundException {

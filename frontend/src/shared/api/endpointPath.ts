@@ -125,6 +125,9 @@ export const API_ENDPOINT_PATH = {
     GET_COMPLETED: ({ projectId }: ProjectId) =>
       `/tasks/${projectId}/completed`,
 
+    GET_DEV_INFO: ({ projectId, taskId }: ProjectId & TaskId) =>
+      `/tasks/${projectId}/${taskId}/dev-info`,
+
     GET_BY_CODE: ({ code, projectId }: { code: string } & ProjectId) =>
       `/tasks/${projectId}/code/${code}`,
 

@@ -28,6 +28,7 @@ import { TaskComments } from './TaskComments'
 import { TaskHistory } from './TaskHistory'
 import { TaskAttachments } from './TaskAttachments'
 import { TaskLinks } from './TaskLinks'
+import { TaskDevPanel } from './TaskDevPanel'
 import { formatUserName, getFullName } from '@/entities/user/utils'
 import { ESTIMATION_MAX } from '@/entities/task/constants'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
@@ -326,6 +327,17 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
         {/* Связи задач (ТП-38): тип + гиперссылка на связанную задачу. */}
         {activeProject && (
           <TaskLinks
+            projectId={activeProject.id}
+            taskId={task.id}
+            taskCode={task.code}
+          />
+        )}
+
+        <Divider />
+
+        {/* Панель «Разработка» (ТП-21): ветки и PR GitHub по коду задачи. */}
+        {activeProject && (
+          <TaskDevPanel
             projectId={activeProject.id}
             taskId={task.id}
             taskCode={task.code}

@@ -231,6 +231,46 @@ export function getCompletedTasks({
   })
 }
 
+/** Панель «Разработка» (ТП-21): ветки и PR GitHub, связанные с задачей. */
+export type DevInfoDto = {
+  available: boolean
+  message?: string
+  branches: Array<{
+    name: string
+    url: string
+    lastCommitSha?: string
+    lastCommitUrl?: string
+  }>
+  pullRequests: Array<{
+    number: number
+    title: string
+    state: 'open' | 'merged' | 'closed'
+    url: string
+    branch: string
+  }>
+}
+
+/**
+ * @name GetDevInfo
+ * @summary Панель «Разработка»: ветки и PR GitHub, связанные с задачей
+ * @request GET:/tasks/{projectId}/{taskId}/dev-info
+ */
+export function getDevInfo({
+  projectId,
+  taskId,
+  otherParams = {},
+}: {
+  projectId: string
+  taskId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<DevInfoDto>({
+    method: 'GET',
+    url: API_ENDPOINT_PATH.TASKS.GET_DEV_INFO({ projectId, taskId }),
+    ...otherParams,
+  })
+}
+
 /**
  * @name LinkTask
  * @summary Связать задачи
