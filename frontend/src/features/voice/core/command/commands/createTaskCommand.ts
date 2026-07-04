@@ -32,6 +32,19 @@ export const createTaskCommand: VoiceCommand = {
     'Новая задача починить логин на проде',
   ],
   riskLevel: 'safe',
+  keywords: [
+    'создай',
+    'создать',
+    'добавь',
+    'добавить',
+    'заведи',
+    'завести',
+    'задача',
+    'задачу',
+    'задачку',
+    'задание',
+    'таск',
+  ],
   slots: [
     {
       name: 'content',
@@ -49,7 +62,13 @@ export const createTaskCommand: VoiceCommand = {
   },
 
   prepare(raw, ctx) {
-    const blob = raw.content ?? raw.title ?? raw.text ?? ''
+    // Слот может прийти как чистое содержимое (rule уже срезал триггер) или как
+    // полная фраза (эвристика ТП-96) — срезаем триггер здесь, чтобы «создай
+    // задачу купить хлеб» и «купить хлеб» дали одинаковый черновик.
+    const blob = (raw.content ?? raw.title ?? raw.text ?? '').replace(
+      CREATE_TRIGGER,
+      '',
+    )
     const draft = transcriptToTaskDraft(blob)
 
     if (draft.title.trim().length < TITLE_MIN) {

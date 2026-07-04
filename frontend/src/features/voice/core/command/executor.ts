@@ -27,11 +27,20 @@ export type PreparedCommand =
       title: string
       riskLevel: RiskLevel
       summary: string
+      /** Низкая уверенность распознавания (эвристика/LLM) — требует подтверждения. */
+      lowConfidence: boolean
       run: (ctx: VoiceCommandContext) => Promise<VoiceCommandResult>
     }
 
 const DEFAULT_UNRECOGNIZED =
   'Не понял команду. Попробуйте переформулировать, например: «Создай задачу…» или «Открой доску».'
+
+/**
+ * Порог уверенности: ниже него даже safe-команда требует подтверждения. Точные
+ * правила (ТП-94) дают ≥0.9; эвристика (ТП-96) — ниже, поэтому её результат
+ * пользователь подтверждает (защита от ложного срабатывания перед мутацией).
+ */
+export const CONFIDENCE_CONFIRM_THRESHOLD = 0.8
 
 /** Готовит команду к исполнению по резолюции намерения. Побочных эффектов нет. */
 export function prepareCommand(
@@ -65,13 +74,20 @@ export function prepareCommand(
     title: command.title,
     riskLevel: command.riskLevel,
     summary: prepared.summary,
+    lowConfidence: resolution.confidence < CONFIDENCE_CONFIRM_THRESHOLD,
     run: prepared.run,
   }
 }
 
-/** Требует ли подготовленная команда явного подтверждения перед исполнением. */
+/**
+ * Требует ли подготовленная команда явного подтверждения: небезопасное действие
+ * ИЛИ низкая уверенность распознавания (эвристика/LLM).
+ */
 export function needsConfirmation(prepared: PreparedCommand): boolean {
-  return prepared.kind === 'ready' && prepared.riskLevel !== 'safe'
+  return (
+    prepared.kind === 'ready' &&
+    (prepared.riskLevel !== 'safe' || prepared.lowConfidence)
+  )
 }
 
 /** Исполняет подготовленную команду. Бросает, если команда не готова к запуску. */

@@ -93,12 +93,40 @@ describe('prepareCommand', () => {
 })
 
 describe('needsConfirmation', () => {
+  const base = {
+    kind: 'ready' as const,
+    commandId: 'a',
+    title: 'a',
+    summary: 's',
+    lowConfidence: false,
+    run: async () => ({ message: '' }),
+  }
+
   it('safe → false, confirm/destructive → true', () => {
-    const base = { kind: 'ready' as const, commandId: 'a', title: 'a', summary: 's', run: async () => ({ message: '' }) }
     expect(needsConfirmation({ ...base, riskLevel: 'safe' })).toBe(false)
     expect(needsConfirmation({ ...base, riskLevel: 'confirm' })).toBe(true)
     expect(needsConfirmation({ ...base, riskLevel: 'destructive' })).toBe(true)
     expect(needsConfirmation({ kind: 'clarify', question: 'q' })).toBe(false)
+  })
+
+  it('низкая уверенность → подтверждение даже для safe', () => {
+    expect(
+      needsConfirmation({ ...base, riskLevel: 'safe', lowConfidence: true }),
+    ).toBe(true)
+  })
+})
+
+describe('prepareCommand низкая уверенность', () => {
+  it('confidence ниже порога → ready.lowConfidence=true', () => {
+    const registry = createCommandRegistry([cmd({ id: 'a' })])
+    const prepared = prepareCommand(
+      registry,
+      resolution({ commandId: 'a', confidence: 0.4 }),
+      makeContext(),
+    )
+    expect(prepared.kind).toBe('ready')
+    if (prepared.kind !== 'ready') return
+    expect(prepared.lowConfidence).toBe(true)
   })
 })
 

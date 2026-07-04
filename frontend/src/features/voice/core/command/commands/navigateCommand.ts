@@ -62,6 +62,19 @@ export const navigateCommand: VoiceCommand = {
     'Открой настройки',
   ],
   riskLevel: 'safe',
+  keywords: [
+    'открой',
+    'открыть',
+    'перейди',
+    'перейти',
+    'покажи',
+    'доска',
+    'доску',
+    'задачи',
+    'бэклог',
+    'календарь',
+    'настройки',
+  ],
   slots: [
     {
       name: 'target',
@@ -72,12 +85,18 @@ export const navigateCommand: VoiceCommand = {
   ],
 
   rule(text) {
+    const trimmed = text.trim()
     const m = /^(?:открой|открыть|перей(?:ди|ти)|покажи|зайди(?:\s+в)?)\s+(.+)/iu.exec(
-      text.trim(),
+      trimmed,
     )
     if (m) return { slots: { target: m[1] }, confidence: 0.9 }
-    // Голый раздел («доска», «календарь») — если он распознаётся.
-    if (resolveDestination(text)) return { slots: { target: text }, confidence: 0.7 }
+    // Голый раздел («доска», «список задач») — ТОЛЬКО короткая фраза (≤2 слов):
+    // иначе стем «задач» ложно ловит «задачку»/«задачу» внутри предложения
+    // (это создание задачи, а не переход в раздел «Задачи»).
+    const wordCount = trimmed.split(/\s+/).filter(Boolean).length
+    if (wordCount <= 2 && resolveDestination(trimmed)) {
+      return { slots: { target: trimmed }, confidence: 0.7 }
+    }
     return null
   },
 

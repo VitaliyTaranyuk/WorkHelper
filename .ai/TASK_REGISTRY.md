@@ -73,7 +73,7 @@
 | T-403 | F3 (ТП‑93): Slot/Entity Resolver | T-402 | COMPLETED | resolveMember/Status/Priority/Sprint/TaskRef; склонения (префикс+Левенштейн), синонимы, ambiguous/none; 37 unit-тестов; ID не выдумывает |
 | T-404 | I1 (ТП‑94): RuleBased Intent Resolver (клиент, без AI) | T-401,T-403 | COMPLETED | УТОЧНЕНО: правила без ключа → на клиенте (без сети). `IntentResolver` + `createRuleBasedResolver` по офлайн-правилам команд (`command.rule`); backend-прокси перенесён в T-406 (LLM). 9+ тестов |
 | T-405 | X1 (ТП‑95): лаунчер + Confirmation + Feedback | T-401..404 | COMPLETED | VoiceLauncher (FAB+хоткей) в DashboardLayout, useVoiceCommandSession (конвейер), VoiceOverlay (фазы), useVoiceServices (→existing мутации). 12 тестов (сервисы+overlay). Веха 1 закрыта |
-| T-406 | I2 (ТП‑96): backend-прокси `/voice/resolve` + LLM Resolver | T-404 | NOT_STARTED | вводит backend-прокси (секрет на сервере); LLM за IntentResolver; RemoteResolver на фронте с авто-фолбэком на RuleBased; секреты в env; без платного провайдера по умолчанию |
+| T-406 | I2 (ТП‑96): эвристический резолвер + цепочка + расширяемость | T-404 | COMPLETED | УТОЧНЕНО: backend-прокси для LLM отложен (спекулятивно без провайдера). Локально: HeuristicResolver (нечёткий матч по keywords) + chainResolvers (rule→эвристика) + confidence-gated подтверждение. Seam для LLM = та же цепочка. 12 тестов |
 | T-407 | C1..C6 (ТП‑97..102): пачки команд по доменам | T-405 | NOT_STARTED | матрицы «фраза→существующая мутация» + тесты; без правки чужих компонентов |
 | T-408 | X2 (ТП‑103): журнал действий + undo | T-405 | NOT_STARTED | журнал сессии; undo через обратные мутации |
 

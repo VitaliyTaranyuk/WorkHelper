@@ -3,6 +3,8 @@ import { useSpeechRecognition } from '../useSpeechRecognition'
 import { useVoiceContext } from '../core/context/useVoiceContext'
 import { commandRegistry } from '../core/command/commands'
 import { createRuleBasedResolver } from '../core/resolve/intentResolver'
+import { createHeuristicResolver } from '../core/resolve/heuristicResolver'
+import { chainResolvers } from '../core/resolve/chainResolvers'
 import {
   needsConfirmation,
   prepareCommand,
@@ -48,7 +50,16 @@ export type VoiceSession = {
 export function useVoiceCommandSession(): VoiceSession {
   const ctx = useVoiceContext()
   const services = useVoiceServices(ctx)
-  const resolver = useMemo(() => createRuleBasedResolver(commandRegistry), [])
+  // Цепочка распознавания (ТП-96): точные правила → эвристика (обе локальные,
+  // без AI/сети). LLM-ступень встроится сюда же, когда появится провайдер.
+  const resolver = useMemo(
+    () =>
+      chainResolvers(
+        createRuleBasedResolver(commandRegistry),
+        createHeuristicResolver(commandRegistry),
+      ),
+    [],
+  )
 
   const [phase, setPhase] = useState<VoicePhase>({ t: 'idle' })
   const preparedRef = useRef<PreparedCommand | null>(null)
