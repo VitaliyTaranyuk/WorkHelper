@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- ТП-81: редактирование спринта падало при очистке названия. ТП-70 сделал
+         имя опциональным (DTO без @NotNull, пустое имя нормализуется в null), но
+         колонка sprint.name осталась NOT NULL из исходной миграции. При сохранении
+         пустого имени возникало нарушение ограничения целостности (400). Снимаем
+         NOT NULL, чтобы БД соответствовала модели (@Column, nullable) и намерению
+         ТП-70. Существующие непустые имена не затрагиваются. -->
+    <changeSet id="20260709-sprint-name-nullable" author="cloud-code">
+        <dropNotNullConstraint tableName="sprint" columnName="name" columnDataType="VARCHAR(255)"/>
+    </changeSet>
+
+</databaseChangeLog>
