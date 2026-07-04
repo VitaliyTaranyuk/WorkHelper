@@ -18,4 +18,6 @@ export type FullUserData = UserWithEmail & {
   phone?: string
   birthDate?: string
   active?: boolean
+  displayName?: string
+  username?: string
 }
