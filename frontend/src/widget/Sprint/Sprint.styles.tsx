@@ -1,11 +1,13 @@
 import styled from '@emotion/styled'
 
 import { css } from '@emotion/react'
-import { COLOR, TEXT_STYLES } from '@/shared/ui/theme/constants'
-import { ButtonWithoutStyles } from '@/shared/ui/Button'
-import { ACTION_BUTTON_SIZE } from '@/features/sprint/SprintActionButton'
+import { COLOR } from '@/shared/ui/theme/constants'
 
-const RIGHT_PART_GAP_PX = '20px'
+/*
+ * Единая типографика секций «Списка задач» (ТП-61, паттерн group headers
+ * Linear/Jira): один размер заголовка для всех групп (спринты, Бэклог,
+ * Завершённые), второстепенные подписи — 12px tertiary.
+ */
 
 export const SprintContainer = styled.div`
   width: 100%;
@@ -16,9 +18,13 @@ export const SprintBlock = styled.div`
   position: relative;
   display: flex;
   align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 8px 0 4px;
 
   top: 5px;
   position: sticky;
+  z-index: 1;
 
   border-radius: 8px;
   background-color: ${COLOR.background[500]};
@@ -40,16 +46,6 @@ export const ButtonBlock = styled.div`
   gap: 20px;
 `
 
-export const TaskSumInfo = styled.div<{ isDefault: boolean }>`
-  display: flex;
-  align-items: center;
-  ${({ isDefault }) =>
-    isDefault &&
-    css`
-      margin-right: calc(${ACTION_BUTTON_SIZE} * 2 + ${RIGHT_PART_GAP_PX});
-    `}
-`
-
 export const TaskBlock = styled.div<{ isExpanded: boolean }>`
   padding-left: 20px;
 
@@ -62,27 +58,38 @@ export const TaskBlock = styled.div<{ isExpanded: boolean }>`
     !isExpanded &&
     css`
       height: 0;
+      margin-top: 0;
     `}
 `
 
 export const TitleBlock = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: flex-start;
-  padding-left: 20px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  cursor: pointer;
+  user-select: none;
 `
 
-export const Title = styled.h2`
-  position: relative;
-  ${TEXT_STYLES.headline.h2}
+/** Основной текст секции: Бэклог / диапазон дат спринта / имя без дат. */
+export const SectionTitle = styled.h2`
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
   color: ${COLOR.text.secondary};
+  white-space: nowrap;
 `
 
-export const SprintDate = styled.p`
-  height: 12px;
-  ${TEXT_STYLES.caption}
+/** Второстепенная подпись (пользовательское имя спринта) — компактно. */
+export const SecondaryName = styled.span`
+  font-size: 12px;
+  line-height: 16px;
   color: ${COLOR.text.tertiary};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 `
 
 export const ControlsBlock = styled.div`
@@ -90,42 +97,13 @@ export const ControlsBlock = styled.div`
   flex-shrink: 0;
   justify-content: start;
   align-items: center;
-`
-
-export const ExpandBlock = styled.div`
-  position: absolute;
-  left: -20px;
-  z-index: 1;
-  top: 5px;
+  gap: 16px;
 `
 
 export const TaskAmount = styled.p`
-  ${TEXT_STYLES.caption}
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
   color: ${COLOR.text.tertiary};
-`
-
-export const EstimationSum = styled.p`
-  width: 59px;
-  ${TEXT_STYLES.storyPoint}
-  color: ${COLOR.text.secondary};
-  text-align: center;
-`
-
-export const ExpandButton = styled(ButtonWithoutStyles)<{
-  isExpanded: boolean
-}>`
-  width: 16px;
-  height: 16px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  transform: rotate(0deg);
-  ${({ isExpanded }) =>
-    !isExpanded &&
-    css`
-      transform: rotate(180deg);
-    `};
-  transition: transform 0.3s ease-in-out;
+  white-space: nowrap;
 `
