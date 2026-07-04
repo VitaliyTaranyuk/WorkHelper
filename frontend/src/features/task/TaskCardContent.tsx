@@ -320,17 +320,6 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
 
         <Divider />
 
-        {/* Связи задач (ТП-38): тип + гиперссылка на связанную задачу. */}
-        {activeProject && (
-          <TaskLinks
-            projectId={activeProject.id}
-            taskId={task.id}
-            taskCode={task.code}
-          />
-        )}
-
-        <Divider />
-
         {/* Панель «Разработка» (ТП-21): ветки и PR GitHub по коду задачи. */}
         {activeProject && (
           <TaskDevPanel
@@ -342,7 +331,7 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
 
         <Divider />
 
-        {/* Активность: комментарии + история */}
+        {/* Активность: комментарии + связи (ТП-51) + история */}
         <Box>
           <Tabs
             value={activityTab}
@@ -350,12 +339,20 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
             sx={{ minHeight: 36, mb: 1 }}
           >
             <Tab label="Комментарии" sx={{ minHeight: 36, py: 0 }} />
+            <Tab label="Связи" sx={{ minHeight: 36, py: 0 }} />
             <Tab label="История" sx={{ minHeight: 36, py: 0 }} />
           </Tabs>
           {activityTab === 0 && activeProject && (
             <TaskComments projectId={activeProject.id} taskId={task.id} />
           )}
           {activityTab === 1 && activeProject && (
+            <TaskLinks
+              projectId={activeProject.id}
+              taskId={task.id}
+              taskCode={task.code}
+            />
+          )}
+          {activityTab === 2 && activeProject && (
             <TaskHistory projectId={activeProject.id} taskId={task.id} />
           )}
         </Box>
