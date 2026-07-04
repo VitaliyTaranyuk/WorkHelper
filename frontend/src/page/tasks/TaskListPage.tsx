@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useState } from 'react'
-import { InputAdornment, Stack, Typography } from '@mui/material'
+import { InputAdornment, Stack } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import { DragDropContext, type DropResult } from '@hello-pangea/dnd'
 import { Loader } from '@/shared/ui/components/Loader'
@@ -92,10 +92,8 @@ export const TaskListPage = memo(function TaskListPageInner({
 
   return (
     <Stack>
-      <Typography variant="h5" sx={{ mb: 2 }}>
-        Список задач
-      </Typography>
-
+      {/* ТП-75: заголовок «Список задач» убран — раздел уже обозначен пунктом
+          меню и контекстом страницы, дублирующий заголовок не информативен. */}
       <Stack
         direction={{ xs: 'column', md: 'row' }}
         gap={1.5}
