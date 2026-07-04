@@ -14,6 +14,7 @@ export type MeetingDto = {
   description?: string | null
   startAt: string
   endAt?: string | null
+  link?: string | null
   creatorName?: string | null
   participants: MeetingParticipant[]
 }
@@ -23,6 +24,7 @@ export type CreateMeetingRequest = {
   description?: string
   startAt: string
   endAt?: string
+  link?: string
   participantIds?: string[]
 }
 

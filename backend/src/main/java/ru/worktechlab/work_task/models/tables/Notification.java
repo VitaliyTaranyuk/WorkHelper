@@ -39,6 +39,15 @@ public class Notification {
     @Column(name = "comment_id")
     private String commentId;
 
+    @Column(name = "meeting_id")
+    private String meetingId;
+
+    @Column(name = "project_id")
+    private String projectId;
+
+    @Column(length = 2048)
+    private String link;
+
     @Column(name = "is_read", nullable = false)
     private boolean read = false;
 
@@ -55,6 +64,19 @@ public class Notification {
         this.commentId = commentId;
         this.read = false;
         this.createdAt = LocalDateTime.now();
+    }
+
+    /**
+     * Напоминание о встрече: link — внешняя ссылка (Телемост), при её отсутствии
+     * фронтенд открывает запись встречи в календаре по meetingId/projectId.
+     */
+    public static Notification meetingReminder(User recipient, User actor, String type, String message,
+                                               String meetingId, String projectId, String link) {
+        Notification n = new Notification(recipient, actor, type, message, null, null, null);
+        n.meetingId = meetingId;
+        n.projectId = projectId;
+        n.link = link;
+        return n;
     }
 
     public void markRead() {
