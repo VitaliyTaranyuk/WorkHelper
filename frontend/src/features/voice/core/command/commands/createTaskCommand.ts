@@ -16,6 +16,10 @@ import type { VoiceCommand } from '../types'
 // Название на бэкенде: min 5 символов (schema формы создания, ТП-22).
 const TITLE_MIN = 5
 
+// Триггер офлайн-правила (ТП-94): «создай/добавь/заведи … задачу/задание/таск».
+const CREATE_TRIGGER =
+  /^\s*(созда(?:й|йте|ть)|добав(?:ь|ьте|ить)|заведи(?:те)?|нов(?:ая|ую|ое))\s+(?:задач[ауи]|задание|таск[уа]?)\s*[:.,!-]*\s*/iu
+
 export const createTaskCommand: VoiceCommand = {
   id: 'task.create',
   title: 'Создать задачу',
@@ -37,6 +41,12 @@ export const createTaskCommand: VoiceCommand = {
       examples: ['купить хлеб', 'подготовить отчёт. дедлайн пятница'],
     },
   ],
+
+  rule(text) {
+    const m = CREATE_TRIGGER.exec(text)
+    if (!m) return null
+    return { slots: { content: text.slice(m[0].length).trim() }, confidence: 0.95 }
+  },
 
   prepare(raw, ctx) {
     const blob = raw.content ?? raw.title ?? raw.text ?? ''

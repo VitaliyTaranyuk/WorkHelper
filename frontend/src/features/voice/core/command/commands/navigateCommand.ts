@@ -71,6 +71,16 @@ export const navigateCommand: VoiceCommand = {
     },
   ],
 
+  rule(text) {
+    const m = /^(?:открой|открыть|перей(?:ди|ти)|покажи|зайди(?:\s+в)?)\s+(.+)/iu.exec(
+      text.trim(),
+    )
+    if (m) return { slots: { target: m[1] }, confidence: 0.9 }
+    // Голый раздел («доска», «календарь») — если он распознаётся.
+    if (resolveDestination(text)) return { slots: { target: text }, confidence: 0.7 }
+    return null
+  },
+
   prepare(raw) {
     const dest = resolveDestination(raw.target ?? raw.content ?? raw.text ?? '')
     if (!dest) {
