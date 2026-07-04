@@ -7,19 +7,21 @@ export function useTaskByCode({
   taskCode,
 }: {
   projectId: string | undefined
-  taskCode: string
+  // ТП-89: код опционален — карточка-модалка может открываться и по объекту
+  // задачи (с доски/списка), тогда загрузка по коду не нужна.
+  taskCode: string | undefined
 }) {
   const query = useQuery({
     queryKey: ['tasks', projectId, taskCode],
     queryFn: async () => {
       const response = await workTechApi.task.findTaskByCode({
-        code: taskCode,
+        code: taskCode!,
         projectId: projectId!,
       })
 
       return mapTaskMinDTOToTaskCard(response.data)
     },
-    enabled: !!projectId, // делаем запрос только если есть id
+    enabled: !!projectId && !!taskCode, // запрос только при наличии id и кода
   })
 
   return query
