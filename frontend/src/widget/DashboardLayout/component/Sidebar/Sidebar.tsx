@@ -62,12 +62,12 @@ export function Sidebar({ className }: SideBarProps) {
             {activeSprint && (
               <SprintCaption
                 to={`/project/${activeProject.id}/sprint`}
-                title="Открыть задачи спринта"
+                title={sprintLabel}
               >
                 <SprintStatusDot
                   color={SPRINT_STATUS_COLOR[activeSprint.status]}
                 />
-                {sprintLabel}
+                <SprintLabelText>{sprintLabel}</SprintLabelText>
               </SprintCaption>
             )}
             <NavItem to={`/project/${activeProject.id}/calendar`}>
@@ -155,11 +155,25 @@ const SprintCaption = styled(Link)`
   padding: 2px 12px 4px 38px;
 
   ${css(TEXT_STYLES.headline.h5)};
+  /* ТП-80: период спринта — вторичная подпись под навигацией. В узком
+     сайдбаре (224px) диапазон дат разных лет («23.06.26 - 23.06.33»)
+     переносился на вторую строку. Уменьшаем до 13px (меньше пунктов меню,
+     15px — как и подобает метаданным) и держим в одну строку. */
+  font-size: 13px;
   color: ${COLOR.text.tertiary};
 
   &:hover {
     opacity: 0.8;
   }
+`
+
+/* Текст периода в отдельном flex-элементе: min-width:0 позволяет сжиматься,
+   а nowrap + ellipsis гарантируют одну строку при любой длине диапазона. */
+const SprintLabelText = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 `
 
 const SprintStatusDot = styled.span<{ color: string }>`
