@@ -8,12 +8,10 @@ import { FormCaption } from '@/shared/ui/components/FormCaption'
 import { Loader } from '@/shared/ui/components/Loader'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
-import { NOT_ASSIGNED_OPTION, type FormValues } from './TaskForm/useTaskForm'
-import { TASK_PRIORITY_OPTIONS } from './TaskForm/contants'
+import { type FormValues } from './TaskForm/useTaskForm'
 import { PendingAttachments } from './PendingAttachments'
 import { DictationButton } from '@/features/voice/DictationButton'
-import { sprintDisplayLabel } from '@/entities/sprint/label'
-import { getFullName } from '@/entities/user/utils'
+import { TaskFormFields } from './TaskFormFields'
 import type { User } from '@/entities/user/types'
 
 type CreateTaskContentProps = {
@@ -176,98 +174,11 @@ export function CreateTaskContent({
           alignSelf: 'flex-start',
         }}
       >
-        <Stack gap={0.5}>
-          <FormCaption>Исполнитель</FormCaption>
-          <FormControl fullWidth size="small" error={Boolean(errors.assignee)}>
-            <Controller
-              control={form.control}
-              name="assignee"
-              render={({ field }) => (
-                <Select
-                  value={field.value}
-                  onChange={(e) => field.onChange(e.target.value)}
-                >
-                  <MenuItem value={NOT_ASSIGNED_OPTION.value}>
-                    {NOT_ASSIGNED_OPTION.label}
-                  </MenuItem>
-                  {projectUsers.map((user) => (
-                    <MenuItem key={user.id} value={user.id}>
-                      {getFullName(user)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              )}
-            />
-          </FormControl>
-        </Stack>
-
-        <Stack gap={0.5}>
-          <FormCaption>Приоритет</FormCaption>
-          <FormControl fullWidth size="small">
-            <Controller
-              control={form.control}
-              name="priority"
-              render={({ field }) => (
-                <Select
-                  value={field.value}
-                  onChange={(e) => field.onChange(e.target.value)}
-                >
-                  {TASK_PRIORITY_OPTIONS.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              )}
-            />
-          </FormControl>
-        </Stack>
-
-        <Stack gap={0.5}>
-          <FormCaption>Тип</FormCaption>
-          <FormControl fullWidth size="small">
-            <Controller
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <Select
-                  value={field.value}
-                  onChange={(e) => field.onChange(e.target.value)}
-                >
-                  <MenuItem value="TASK">Задача</MenuItem>
-                  <MenuItem value="BUG">Баг</MenuItem>
-                </Select>
-              )}
-            />
-          </FormControl>
-        </Stack>
-
-        <Stack gap={0.5}>
-          <FormCaption>Спринт</FormCaption>
-          <FormControl fullWidth size="small">
-            <Controller
-              control={form.control}
-              name="sprint"
-              render={({ field }) => (
-                <Select
-                  value={field.value}
-                  onChange={(e) => field.onChange(e.target.value)}
-                >
-                  {sortedSprints.map((sprint) => (
-                    <MenuItem key={sprint.id} value={sprint.id}>
-                      {sprintDisplayLabel(sprint)}
-                      {sprint.isActive ? ' (Активный)' : ''}
-                    </MenuItem>
-                  ))}
-                </Select>
-              )}
-            />
-          </FormControl>
-        </Stack>
-
+        {/* ТП-76: порядок и термины как в карточке редактирования —
+            «Статус» первым, затем исполнитель/приоритет/тип/спринт. */}
         {boardStatuses.length > 0 && (
           <Stack gap={0.5}>
-            <FormCaption>Колонка</FormCaption>
+            <FormCaption>Статус</FormCaption>
             <FormControl fullWidth size="small">
               <Controller
                 control={form.control}
@@ -279,7 +190,7 @@ export function CreateTaskContent({
                   >
                     {boardStatuses.map((status) => (
                       <MenuItem key={status.id} value={status.id}>
-                        {status.description || status.code}
+                        {status.code}
                       </MenuItem>
                     ))}
                   </Select>
@@ -289,6 +200,11 @@ export function CreateTaskContent({
           </Stack>
         )}
 
+        <TaskFormFields
+          form={form}
+          projectUsers={projectUsers}
+          sprints={sortedSprints}
+        />
       </Stack>
     </Stack>
   )
