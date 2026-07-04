@@ -144,10 +144,11 @@ export function TaskAttachments({ projectId, taskId }: Props) {
         </Typography>
       )}
 
+      {/* ТП-73: компактное пустое состояние — одна строка вместо блока текста;
+          способ добавления уже виден по кнопке в заголовке. */}
       {!isLoading && (!attachments || attachments.length === 0) && (
         <Typography variant="caption" color="text.disabled">
-          Нет вложений. Добавьте файл кнопкой или вставьте изображение из
-          буфера обмена (Ctrl+V). Лимит — 25 MB на файл.
+          Нет вложений — добавьте файл или вставьте из буфера (Ctrl+V)
         </Typography>
       )}
 

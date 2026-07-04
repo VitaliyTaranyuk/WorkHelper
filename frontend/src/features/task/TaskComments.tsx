@@ -29,12 +29,10 @@ export function TaskComments({ projectId, taskId }: Props) {
     setText('')
   }
 
+  // ТП-73: без дублирующего заголовка (вкладка уже «Комментарии») и лишнего
+  // верхнего отступа — высота определяется содержимым, поле ввода сверху.
   return (
-    <Stack gap={1.5} mt={3}>
-      <Typography variant="subtitle1" fontWeight={600}>
-        Комментарии
-      </Typography>
-
+    <Stack gap={1.5}>
       <Stack direction="row" gap={1}>
         <MentionTextField
           size="small"
