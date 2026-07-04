@@ -1,36 +1,29 @@
 import { BLOCK_BORDER_WIDTH_PX } from '../../constants'
 import { Avatar } from '@/shared/ui/components/Avatar'
 import { useAuthStore, userSelector } from '@/features/auth/authStore'
-import { COLOR, TEXT_STYLES } from '@/shared/ui/theme/constants'
 import {
   HeaderMainBlock,
   HeaderSideBlock,
   TopBlock,
-  ProjectName,
   StyledVerticalLine,
 } from './Header.styles'
 import { UserPopupMenu } from './Menu/UserPopupMenu'
 import { NotificationBell } from './NotificationBell'
+import { ProjectSwitcher } from './ProjectSwitcher'
 import { Spacer } from '@/shared/ui/Spacer'
 import { HeaderActions } from '@/widget/HeaderActions'
 import type { HeaderActionsProps } from '@/widget/HeaderActions/HeaderActions'
-import { useProjectData } from '@/features/project/query/useProjectData'
 import IconButton from '@mui/material/IconButton'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
-import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt'
 import { useBoardEditModeStore } from '@/features/board/boardEditModeStore'
 import { Link } from '@tanstack/react-router'
-import { useModal } from '@ebay/nice-modal-react'
-import { InviteUsersModal } from '@/widget/modal/project/InviteUsersModal'
 type HeaderProps = {
   headerActions: HeaderActionsProps
 }
 
 export function Header({ headerActions }: HeaderProps) {
-  const { activeProject } = useProjectData()
   const { editMode, isDirty, toggle } = useBoardEditModeStore()
-  const inviteModal = useModal(InviteUsersModal)
 
   const safeToggle = () => {
     if (editMode && isDirty) {
@@ -47,12 +40,14 @@ export function Header({ headerActions }: HeaderProps) {
 
   return (
     <TopBlock>
+      {/* ТП-54: проект — главный объект рабочего пространства; название
+          текущего проекта с меню действий заменяет статичный «WorkTask».
+          Дублирующий заголовок проекта из основной части шапки удалён. */}
       <HeaderSideBlock>
-        <WorkTaskLogo />
+        <ProjectSwitcher />
       </HeaderSideBlock>
       <StyledVerticalLine size={BLOCK_BORDER_WIDTH_PX} />
       <HeaderMainBlock>
-        <ProjectName>{activeProject?.name}</ProjectName>
         <IconButton
           aria-label="Редактирование доски"
           onClick={safeToggle}
@@ -65,15 +60,6 @@ export function Header({ headerActions }: HeaderProps) {
           size="small"
         >
           <EditOutlinedIcon fontSize="small" />
-        </IconButton>
-        {/* ТП-35: приглашение пользователей в проект (вручную/по ссылке) */}
-        <IconButton
-          aria-label="Пригласить в проект"
-          title="Пригласить в проект"
-          onClick={() => inviteModal.show()}
-          size="small"
-        >
-          <PersonAddAltIcon fontSize="small" />
         </IconButton>
         <Spacer />
         <HeaderActions actions={headerActions} />
@@ -90,20 +76,6 @@ export function Header({ headerActions }: HeaderProps) {
         <UserProfile />
       </HeaderMainBlock>
     </TopBlock>
-  )
-}
-
-// в будущем перенесем скорее всего отсюда
-function WorkTaskLogo() {
-  return (
-    <div
-      style={{
-        color: COLOR.text.active,
-        ...TEXT_STYLES.headline.h1,
-      }}
-    >
-      WorkTask
-    </div>
   )
 }
 

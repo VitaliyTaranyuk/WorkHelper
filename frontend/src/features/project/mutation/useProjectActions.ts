@@ -11,6 +11,23 @@ export function useCreateProject() {
   })
 }
 
+export function useUpdateProject() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      data,
+    }: {
+      projectId: string
+      data: { name: string; description?: string; code: string }
+    }) => workTechApi.project.updateProject({ projectId, data }),
+    onSuccess: (_, { projectId }) => {
+      queryClient.invalidateQueries({ queryKey: ['userProjects'] })
+      queryClient.invalidateQueries({ queryKey: ['projectData', projectId] })
+    },
+  })
+}
+
 export function useDeleteProject() {
   const queryClient = useQueryClient()
   return useMutation({
