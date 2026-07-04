@@ -12,11 +12,15 @@ import ru.worktechlab.work_task.TestFixtures;
 import ru.worktechlab.work_task.models.tables.Notification;
 import ru.worktechlab.work_task.models.tables.Project;
 import ru.worktechlab.work_task.models.tables.TaskModel;
+import ru.worktechlab.work_task.models.tables.TaskStatus;
 import ru.worktechlab.work_task.models.tables.User;
+import ru.worktechlab.work_task.dto.notifications.NotificationDto;
 import ru.worktechlab.work_task.repositories.NotificationRepository;
+import ru.worktechlab.work_task.repositories.TaskRepository;
 import ru.worktechlab.work_task.repositories.UserRepository;
 import ru.worktechlab.work_task.utils.UserContext;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,6 +33,8 @@ class InAppNotificationServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private UserContext userContext;
     @Mock private UserSettingsService userSettingsService;
+    @Mock private TaskRepository taskRepository;
+    @Mock private TaskPlacementService taskPlacementService;
 
     @InjectMocks
     private InAppNotificationService service;
@@ -100,5 +106,55 @@ class InAppNotificationServiceTest {
 
         verify(notificationRepository, never()).save(any());
         verifyNoInteractions(userRepository);
+    }
+
+    // ТП-83: состояние задачи в DTO уведомления вычисляется на лету по статусу.
+    private NotificationDto firstDtoForTaskWithStatus(TaskStatus status, Optional<TaskStatus> completed) {
+        Project project = TestFixtures.project("project-1", actor);
+        TaskModel t = TestFixtures.task("task-1", actor, project,
+                TestFixtures.sprint("sprint-1", project, actor), status);
+        Notification n = new Notification(actor, actor, InAppNotificationService.TYPE_TASK_CREATED,
+                "Задача", "task-1", "TP-1", null);
+
+        UserContext.UserContextData ucd = mock(UserContext.UserContextData.class);
+        when(ucd.getUserId()).thenReturn("actor-1");
+        when(userContext.getUserData()).thenReturn(ucd);
+        when(notificationRepository.findByRecipientIdOrderByCreatedAtDesc("actor-1")).thenReturn(List.of(n));
+        when(taskRepository.findAllById(anySet())).thenReturn(List.of(t));
+        when(taskPlacementService.completedBoardStatus(any())).thenReturn(completed);
+
+        List<NotificationDto> dtos = service.getMyNotifications();
+        assertThat(dtos).hasSize(1);
+        return dtos.get(0);
+    }
+
+    @Test
+    void getMyNotifications_taskCreated_shouldReflectDoneState() {
+        TaskStatus done = new TaskStatus(6, "Done", "Done", true, false, true, null);
+        ReflectionTestUtils.setField(done, "id", 4L);
+        NotificationDto dto = firstDtoForTaskWithStatus(done, Optional.of(done));
+        assertThat(dto.getTaskState()).isEqualTo(InAppNotificationService.TASK_STATE_DONE);
+    }
+
+    @Test
+    void getMyNotifications_taskCreated_shouldReflectCanceledState() {
+        TaskStatus done = new TaskStatus(6, "Done", "Done", true, false, true, null);
+        ReflectionTestUtils.setField(done, "id", 4L);
+        // Отменённая = скрытая колонка (viewed=false), не совпадает с завершающей.
+        TaskStatus canceled = new TaskStatus(5, "Canceled", "Canceled", false, false, true, null);
+        ReflectionTestUtils.setField(canceled, "id", 5L);
+        NotificationDto dto = firstDtoForTaskWithStatus(canceled, Optional.of(done));
+        assertThat(dto.getTaskState()).isEqualTo(InAppNotificationService.TASK_STATE_CANCELED);
+    }
+
+    @Test
+    void getMyNotifications_taskCreated_shouldReflectActiveState() {
+        TaskStatus done = new TaskStatus(6, "Done", "Done", true, false, true, null);
+        ReflectionTestUtils.setField(done, "id", 4L);
+        // Активная = видимая колонка, не завершающая (например «To Do»).
+        TaskStatus todo = new TaskStatus(1, "To Do", "To Do", true, true, true, null);
+        ReflectionTestUtils.setField(todo, "id", 1L);
+        NotificationDto dto = firstDtoForTaskWithStatus(todo, Optional.of(done));
+        assertThat(dto.getTaskState()).isEqualTo(InAppNotificationService.TASK_STATE_ACTIVE);
     }
 }

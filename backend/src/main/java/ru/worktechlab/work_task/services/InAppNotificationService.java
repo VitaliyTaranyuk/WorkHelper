@@ -10,16 +10,23 @@ import ru.worktechlab.work_task.dto.notifications.NotificationDto;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.models.tables.Notification;
 import ru.worktechlab.work_task.models.tables.TaskModel;
+import ru.worktechlab.work_task.models.tables.TaskStatus;
 import ru.worktechlab.work_task.models.tables.User;
 import ru.worktechlab.work_task.repositories.NotificationRepository;
+import ru.worktechlab.work_task.repositories.TaskRepository;
 import ru.worktechlab.work_task.repositories.UserRepository;
 import ru.worktechlab.work_task.utils.UserContext;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * In-app notifications for @mentions. MVP: list + unread count + mark read.
@@ -32,6 +39,10 @@ public class InAppNotificationService {
 
     public static final String TYPE_MENTION = "MENTION";
     public static final String TYPE_TASK_CREATED = "TASK_CREATED";
+    // ТП-83: состояние связанной задачи для выбора иконки уведомления.
+    public static final String TASK_STATE_ACTIVE = "ACTIVE";
+    public static final String TASK_STATE_DONE = "DONE";
+    public static final String TASK_STATE_CANCELED = "CANCELED";
     // Username допускает Unicode-буквы/цифры + . _ - длиной 2..32 (нижняя
     // граница 2 — как в политике username: префиксы email вроде "vt"), чтобы
     // распознавать упоминания вроде @виталий или @maria.k наряду с @ivanov.
@@ -41,6 +52,8 @@ public class InAppNotificationService {
     private final UserRepository userRepository;
     private final UserContext userContext;
     private final UserSettingsService userSettingsService;
+    private final TaskRepository taskRepository;
+    private final TaskPlacementService taskPlacementService;
 
     /** Parse @username tokens in text and create a MENTION notification per mentioned user (not self). */
     @TransactionMandatory
@@ -85,9 +98,39 @@ public class InAppNotificationService {
     @TransactionRequired
     public List<NotificationDto> getMyNotifications() {
         String userId = userContext.getUserData().getUserId();
-        return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId).stream()
-                .map(this::toDto)
+        List<Notification> notifications = notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId);
+        // ТП-83: иконка уведомления о создании задачи отражает ТЕКУЩИЙ статус
+        // задачи (активна/завершена/отменена). Состояние вычисляется на лету по
+        // связанной задаче — новых уведомлений не создаём. Пакетная загрузка задач.
+        Set<String> taskIds = notifications.stream()
+                .map(Notification::getTaskId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, String> stateByTaskId = new HashMap<>();
+        if (!taskIds.isEmpty())
+            for (TaskModel task : taskRepository.findAllById(taskIds))
+                stateByTaskId.put(task.getId(), taskStateOf(task));
+        return notifications.stream()
+                .map(n -> toDto(n, n.getTaskId() != null ? stateByTaskId.get(n.getTaskId()) : null))
                 .toList();
+    }
+
+    /**
+     * ТП-83: текущее состояние задачи для иконки уведомления. Переиспользуем
+     * семантику доски: DONE — завершающая колонка (ТП-33 completedBoardStatus);
+     * CANCELED — скрытая колонка (не на доске, напр. «Canceled»); иначе ACTIVE.
+     * Легко расширяется новыми финальными состояниями.
+     */
+    private String taskStateOf(TaskModel task) {
+        TaskStatus status = task.getStatus();
+        if (status == null)
+            return TASK_STATE_ACTIVE;
+        Optional<TaskStatus> done = taskPlacementService.completedBoardStatus(task.getProject());
+        if (done.isPresent() && done.get().getId() == status.getId())
+            return TASK_STATE_DONE;
+        if (!status.isViewed())
+            return TASK_STATE_CANCELED;
+        return TASK_STATE_ACTIVE;
     }
 
     @TransactionRequired
@@ -126,10 +169,10 @@ public class InAppNotificationService {
         return String.format("%s %s", user.getFirstName(), user.getLastName());
     }
 
-    private NotificationDto toDto(Notification n) {
+    private NotificationDto toDto(Notification n, String taskState) {
         String actorUsername = n.getActor() != null ? n.getActor().getUsername() : null;
         return new NotificationDto(n.getId(), n.getType(), n.getMessage(), n.getTaskId(), n.getTaskCode(),
                 n.getCommentId(), n.getMeetingId(), n.getProjectId(), n.getLink(),
-                actorUsername, n.isRead(), n.getCreatedAt());
+                actorUsername, n.isRead(), n.getCreatedAt(), taskState);
     }
 }
