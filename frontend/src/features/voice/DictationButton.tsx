@@ -1,40 +1,38 @@
-import { useCallback, useEffect } from 'react'
+import { useEffect } from 'react'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import MicNoneOutlinedIcon from '@mui/icons-material/MicNoneOutlined'
 import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined'
 import { notify as toast } from '@/shared/ui/notify'
-import { useSpeechRecognition } from './useSpeechRecognition'
-import { capitalizeFirst, stripFillers } from './textUtils'
+import { useVoiceInput } from './useVoiceInput'
+import type { VoiceField } from './core/intentAnalyzer'
 
 type Props = {
-  /** Вызывается с надиктованным текстом после окончания записи. */
+  /** Вызывается с надиктованным (отформатированным) текстом после записи. */
   onText: (text: string) => void
+  /** Поле-цель — определяет намерение диктовки (ТП-88) и подпись тултипа. */
+  field?: VoiceField
   /** Подпись цели для тултипа, например «описание». */
   targetLabel?: string
 }
 
 /**
- * Кнопка диктовки в поле формы (ТП-58): клик — запись (иконка «стоп»,
- * подсветка), повторный клик или тишина — окончание, распознанный текст
- * уходит в onText. Использует ту же подсистему распознавания, что и
- * голосовые команды (useSpeechRecognition, ru-RU); обработка текста
- * минимальная — регистр и удаление явных междометий.
+ * Кнопка диктовки в поле формы (ТП-58, переработана в ТП-88 под единый конвейер
+ * голосового ввода). Клик — запись (иконка «стоп», подсветка), повторный клик
+ * или тишина — окончание; распознанный текст проходит конвейер
+ * (SpeechRecognition → IntentAnalyzer-заглушка → TextFormatter → Executor) и
+ * уходит в onText. Намерение — DICTATE_FIELD (вставка в поле), задаётся `field`.
  */
-export function DictationButton({ onText, targetLabel = 'текст' }: Props) {
-  const handleFinish = useCallback(
-    (transcript: string) => {
-      const text = capitalizeFirst(stripFillers(transcript))
-      if (!text) {
-        toast.error('Ничего не удалось расслышать — попробуйте ещё раз')
-        return
-      }
-      onText(text)
-    },
-    [onText],
-  )
-
-  const speech = useSpeechRecognition({ onFinish: handleFinish })
+export function DictationButton({
+  onText,
+  field = 'description',
+  targetLabel = 'текст',
+}: Props) {
+  const speech = useVoiceInput({
+    context: { intent: { type: 'DICTATE_FIELD', field } },
+    handlers: { onFieldText: (_field, text) => onText(text) },
+    onEmpty: () => toast.error('Ничего не удалось расслышать — попробуйте ещё раз'),
+  })
   const listening = speech.status === 'listening'
 
   // Ошибки распознавания (нет доступа к микрофону и т.п.) — тостом.
