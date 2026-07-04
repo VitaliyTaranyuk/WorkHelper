@@ -40,6 +40,27 @@ export type TaskDraft = {
 }
 
 /**
+ * Web Speech API в ru-RU обычно НЕ расставляет пунктуацию — тогда вся диктовка
+ * оказывается одним «предложением», название раздувается и упирается в лимит
+ * 255 символов на бэкенде (ТП-57: создание задачи падало с 400). Мягкий предел
+ * названия — как у кратких summary в зрелых TMS.
+ */
+const TITLE_MAX_CHARS = 80
+
+/** Делит длинное «предложение» по границе слова: начало → название, хвост → описание. */
+function splitLongSentence(sentence: string): { title: string; rest?: string } {
+  if (sentence.length <= TITLE_MAX_CHARS) return { title: sentence }
+  const words = sentence.split(/\s+/)
+  let title = words[0] ?? ''
+  for (const word of words.slice(1)) {
+    if (`${title} ${word}`.length > TITLE_MAX_CHARS) break
+    title = `${title} ${word}`
+  }
+  const rest = sentence.slice(title.length).trim()
+  return { title, rest: rest.length > 0 ? rest : undefined }
+}
+
+/**
  * Правило преобразования из требования: первая мысль (первое предложение) →
  * название, весь остальной контекст → описание (по предложению на строку —
  * «разбиение на абзацы» без изменения содержания).
@@ -49,10 +70,13 @@ export function transcriptToTaskDraft(text: string): TaskDraft {
   const sentences = splitSentences(cleaned)
   if (sentences.length === 0) return { title: '' }
 
-  const title = sentences[0].replace(/[.!?…]+$/, '').trim()
-  const rest = sentences.slice(1).map((s) => capitalizeFirst(ensurePeriod(s)))
+  const first = splitLongSentence(sentences[0].replace(/[.!?…]+$/, '').trim())
+  const rest = [...(first.rest ? [first.rest] : []), ...sentences.slice(1)].map(
+    (s) => capitalizeFirst(ensurePeriod(s)),
+  )
+
   return {
-    title: capitalizeFirst(title),
+    title: capitalizeFirst(first.title),
     description: rest.length > 0 ? rest.join('\n') : undefined,
   }
 }

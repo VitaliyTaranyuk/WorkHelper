@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline'
 import {
   AvatarWrapper,
   AvatarImage,
@@ -23,12 +24,25 @@ type AvatarProps = {
 type AvatarContentProps = Omit<AvatarProps, 'size'>
 
 const AvatarContent = ({ username, avatarUrl }: AvatarContentProps) => {
-  if (!username) return <DefaultAvatar>{'?'}</DefaultAvatar>
+  // ТП-63: без пользователя — силуэт (паттерн Jira/Linear «Unassigned»),
+  // а не технический символ «?».
+  if (!username)
+    return (
+      <DefaultAvatar title="Не назначено" aria-label="Не назначено">
+        <PersonOutlineIcon sx={{ fontSize: '70%' }} />
+      </DefaultAvatar>
+    )
 
   const fullName = formatUserName(username)
   const initials = getUserInitials(username)
 
   if (avatarUrl) return <AvatarImage src={avatarUrl} alt={fullName} />
+  if (!initials || initials === '?')
+    return (
+      <DefaultAvatar title={fullName} aria-label={fullName}>
+        <PersonOutlineIcon sx={{ fontSize: '70%' }} />
+      </DefaultAvatar>
+    )
   return <AvatarLetter title={fullName}>{initials}</AvatarLetter>
 }
 
