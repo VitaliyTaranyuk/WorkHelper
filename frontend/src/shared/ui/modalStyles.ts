@@ -11,6 +11,19 @@ const modalContainer: SxProps = {
   overflow: 'hidden',
 }
 
+/**
+ * Контент модалки с полями ввода (ТП-62): floating label MUI (outlined)
+ * выступает над рамкой поля на ~половину своей высоты — при нулевом верхнем
+ * паддинге DialogContent (скролл-область) верх label обрезается. Верхний
+ * паддинг оставляет место для label; официальный механизм анимации/notch
+ * MUI не переопределяется.
+ */
+const modalContent: SxProps = {
+  padding: '10px 0 0',
+  marginTop: '8px',
+}
+
 export const modalStyle = {
   modalContainer,
+  modalContent,
 }

@@ -6,6 +6,18 @@
 
 ---
 
+## Завершено 2026-07-04: ТП-62 «Label в модалке создания проекта» (ветка `fix/tp62-modal-label`)
+
+Причина: floating label MUI (outlined) выступает над рамкой поля, а DialogContent
+модалок задавался с `p: 0` — верх label обрезался скролл-областью. Фикс в общем
+месте: `modalStyle.modalContent` (верхний паддинг 10px) в shared/ui/modalStyles;
+применён в CreateProjectModal и EditProjectModal. Аудит остальных форм:
+спринт-модалки и формы задач используют FormCaption-подписи НАД полем (без
+floating label) — бага нет; ProfileSettingsModal (PR #45) получит тот же стиль
+однострочной правкой после мержа обеих веток.
+
+---
+
 ## Завершено 2026-07-04: ТП-59 «Доработка системы уведомлений» (ветка `feature/tp59-notifications`)
 
 Уведомления по паттернам Jira/GitHub/Linear (frontend-only):
