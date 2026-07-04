@@ -23,6 +23,12 @@ export function useEditSprint({
       queryClient.invalidateQueries({
         queryKey: ['sprints', projectId],
       })
+      // ТП-79: правка активного спринта (в т.ч. очистка названия) должна
+      // сразу отражаться в сайдбаре — у него отдельный ключ ['activeSprint'],
+      // не покрываемый ['sprints']. Как в activate/pause/resume/finish.
+      queryClient.invalidateQueries({
+        queryKey: ['activeSprint', projectId],
+      })
       toast.success('Спринт обновлён')
     },
     onError: () => {
