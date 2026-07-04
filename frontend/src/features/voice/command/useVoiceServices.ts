@@ -1,9 +1,13 @@
 import { useMemo } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { router } from '@/application/router'
 import { useCreateTask } from '@/features/task/mutation/useCreateTask'
 import { useUpdateTaskStatus } from '@/features/task/mutation/useUpdateTaskStatus'
 import { useUpdateTasksSprint } from '@/features/task/mutation/useUpdateTasksSprint'
 import { useEditTask } from '@/features/task/mutation/useEditTask'
+import { useCreateSprint } from '@/features/sprint/mutation/useCreateSprint'
+import { useActivateSprint } from '@/features/sprint/mutation/useActivateSprint'
+import { useFinishSprint } from '@/features/sprint/mutation/useFinishSprint'
 import { workTechApi } from '@/shared/api/endpoint'
 import { mapTaskMinDTOToTaskCard } from '@/entities/task/mapDTO'
 import type { TaskModelDTO } from '@/data-contracts'
@@ -26,6 +30,7 @@ export function voiceNavPath(
 ):
   | { to: '/main' }
   | { to: '/project/$projectId/backlog'; params: { projectId: string } }
+  | { to: '/project/$projectId/sprint'; params: { projectId: string } }
   | { to: '/project/$projectId/calendar'; params: { projectId: string } }
   | { to: '/settings' }
   | { to: '/task/$code'; params: { code: string } } {
@@ -34,6 +39,8 @@ export function voiceNavPath(
       return { to: '/main' }
     case 'tasks':
       return { to: '/project/$projectId/backlog', params: { projectId } }
+    case 'sprint':
+      return { to: '/project/$projectId/sprint', params: { projectId } }
     case 'calendar':
       return { to: '/project/$projectId/calendar', params: { projectId } }
     case 'settings':
@@ -46,10 +53,14 @@ export function voiceNavPath(
 export function useVoiceServices(
   ctx: VoiceContext | null,
 ): VoiceServices | null {
+  const queryClient = useQueryClient()
   const createTask = useCreateTask()
   const updateStatus = useUpdateTaskStatus()
   const updateSprint = useUpdateTasksSprint()
   const editTask = useEditTask()
+  const createSprintMut = useCreateSprint()
+  const activateSprintMut = useActivateSprint()
+  const finishSprintMut = useFinishSprint()
 
   return useMemo(() => {
     if (!ctx) return null
@@ -112,6 +123,36 @@ export function useVoiceServices(
         })
         return { id: t.id, code: t.code, title: t.title }
       },
+      addComment: async (taskId, text) => {
+        await workTechApi.task.createComment({
+          data: { projectId, taskId, comment: text },
+        })
+        queryClient.invalidateQueries({ queryKey: ['comments', taskId] })
+        queryClient.invalidateQueries({ queryKey: ['tasks', projectId] })
+      },
+      createSprint: async (name) => {
+        await createSprintMut.mutateAsync({ projectId, sprintData: { name } })
+      },
+      activateSprint: async (sprintId) => {
+        await activateSprintMut.mutateAsync({ projectId, sprintId })
+      },
+      finishSprint: async (sprintId) => {
+        await finishSprintMut.mutateAsync({ projectId, sprintId })
+      },
+      markNotificationsRead: async () => {
+        await workTechApi.notification.markAllRead()
+        queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      },
     }
-  }, [ctx, createTask, updateStatus, updateSprint, editTask])
+  }, [
+    ctx,
+    queryClient,
+    createTask,
+    updateStatus,
+    updateSprint,
+    editTask,
+    createSprintMut,
+    activateSprintMut,
+    finishSprintMut,
+  ])
 }

@@ -25,6 +25,11 @@ const DESTINATIONS: Destination[] = [
     label: 'Список задач',
   },
   {
+    stems: ['спринт'],
+    target: { kind: 'sprint' },
+    label: 'Спринт',
+  },
+  {
     stems: ['календар', 'calendar'],
     target: { kind: 'calendar' },
     label: 'Календарь',

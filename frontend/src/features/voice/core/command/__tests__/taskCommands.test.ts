@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { createBugCommand } from '../commands/createBugCommand'
 import { openTaskCommand } from '../commands/openTaskCommand'
 import {
@@ -9,33 +9,12 @@ import {
 } from '../commands/attributeCommands'
 import { commandRegistry } from '../commands'
 import { createRuleBasedResolver } from '../../resolve/intentResolver'
-import { makeContext } from './fixtures'
-import type { VoiceCommandContext, VoiceContext } from '../types'
+import { makeContext, makeCommandContext } from './fixtures'
+import type { VoiceContext } from '../types'
 
-function makeServices(ctx: VoiceContext): {
-  ctx: VoiceCommandContext
-  setStatus: ReturnType<typeof vi.fn>
-  setSprint: ReturnType<typeof vi.fn>
-  patchTask: ReturnType<typeof vi.fn>
-  findTask: ReturnType<typeof vi.fn>
-  createTask: ReturnType<typeof vi.fn>
-  navigate: ReturnType<typeof vi.fn>
-} {
-  const setStatus = vi.fn(async () => {})
-  const setSprint = vi.fn(async () => {})
-  const patchTask = vi.fn(async (code: string) => ({ id: 'x', code, title: 't' }))
-  const findTask = vi.fn(async (code: string) => ({ id: `id-${code}`, code, title: 't' }))
-  const createTask = vi.fn(async () => ({ id: 'nt', code: 'ТП-500', title: 'Баг' }))
-  const navigate = vi.fn()
-  return {
-    ctx: { ...ctx, setStatus, setSprint, patchTask, findTask, createTask, navigate },
-    setStatus,
-    setSprint,
-    patchTask,
-    findTask,
-    createTask,
-    navigate,
-  }
+/** Полный контекст-мок из общего хелпера (устойчив к росту VoiceServices). */
+function makeServices(ctx: VoiceContext) {
+  return makeCommandContext(ctx.openTask ? { openTask: ctx.openTask } : {})
 }
 
 const openCtx = makeContext({

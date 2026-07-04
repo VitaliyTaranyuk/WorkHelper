@@ -1,21 +1,12 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { createTaskCommand } from '../commands/createTaskCommand'
-import type { CreatedTask, VoiceCommandContext } from '../types'
-import { makeContext } from './fixtures'
+import type { CreatedTask } from '../types'
+import { makeContext, makeCommandContext } from './fixtures'
 
 function servicesWith(created: CreatedTask) {
-  const createTask = vi.fn(async () => created)
-  const navigate = vi.fn()
-  const ctx: VoiceCommandContext = {
-    ...makeContext(),
-    createTask,
-    navigate,
-    setStatus: vi.fn(async () => {}),
-    setSprint: vi.fn(async () => {}),
-    patchTask: vi.fn(async () => ({ id: '', code: '', title: '' })),
-    findTask: vi.fn(async () => null),
-  }
-  return { ctx, createTask, navigate }
+  const bundle = makeCommandContext()
+  bundle.createTask.mockResolvedValue(created)
+  return bundle
 }
 
 describe('createTaskCommand.prepare', () => {
