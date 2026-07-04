@@ -14,29 +14,11 @@ import { VoiceControl } from '@/features/voice/VoiceControl'
 import { Spacer } from '@/shared/ui/Spacer'
 import { HeaderActions } from '@/widget/HeaderActions'
 import type { HeaderActionsProps } from '@/widget/HeaderActions/HeaderActions'
-import IconButton from '@mui/material/IconButton'
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
-import { useBoardEditModeStore } from '@/features/board/boardEditModeStore'
 type HeaderProps = {
   headerActions: HeaderActionsProps
 }
 
 export function Header({ headerActions }: HeaderProps) {
-  const { editMode, isDirty, toggle } = useBoardEditModeStore()
-
-  const safeToggle = () => {
-    if (editMode && isDirty) {
-      if (
-        !window.confirm(
-          'Несохранённые изменения конфигурации колонок будут потеряны. Выйти из режима редактирования?',
-        )
-      ) {
-        return
-      }
-    }
-    toggle()
-  }
-
   return (
     <TopBlock>
       {/* ТП-54: проект — главный объект рабочего пространства; название
@@ -47,19 +29,9 @@ export function Header({ headerActions }: HeaderProps) {
       </HeaderSideBlock>
       <StyledVerticalLine size={BLOCK_BORDER_WIDTH_PX} />
       <HeaderMainBlock>
-        <IconButton
-          aria-label="Редактирование доски"
-          onClick={safeToggle}
-          color={editMode ? 'primary' : 'default'}
-          title={
-            editMode
-              ? 'Режим редактирования доски включён'
-              : 'Включить редактирование доски'
-          }
-          size="small"
-        >
-          <EditOutlinedIcon fontSize="small" />
-        </IconButton>
+        {/* ТП-60: кнопка редактирования доски переехала на саму доску
+            («Настроить доску» в Board) — в шапке она относилась только
+            к одному разделу и терялась среди глобальных действий. */}
         <Spacer />
         <HeaderActions actions={headerActions} />
         {/* ТП-22: голосовое управление (кнопка + настраиваемый хоткей) */}
