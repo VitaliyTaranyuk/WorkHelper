@@ -168,36 +168,50 @@ export function CalendarPage({ projectId, focusMeetingId }: Props) {
 
   return (
     <Stack gap={1.5} sx={{ p: 2, minWidth: 0 }}>
+      {/* ТП-78: единая панель управления по паттерну Google Calendar/Outlook.
+          Слева — навигация (сгруппированы «Сегодня», стрелки и подпись периода,
+          которой они управляют); справа — переключатель вида и первичное
+          действие «Встреча», отделённые от навигации, чтобы не конкурировать. */}
       <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
-        <Typography variant="h6" sx={{ flex: 1, minWidth: 160 }}>
-          {periodLabel}
-        </Typography>
-        <Button size="small" onClick={() => setAnchor(dayjs())}>
+        <Button size="small" variant="outlined" onClick={() => setAnchor(dayjs())}>
           Сегодня
         </Button>
-        <IconButton size="small" aria-label="Назад" onClick={() => shift(-1)}>
-          <ChevronLeftIcon />
-        </IconButton>
-        <IconButton size="small" aria-label="Вперёд" onClick={() => shift(1)}>
-          <ChevronRightIcon />
-        </IconButton>
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={view}
-          onChange={(_, v: CalendarView | null) => v && setView(v)}
+        <Stack direction="row" alignItems="center">
+          <IconButton size="small" aria-label="Назад" onClick={() => shift(-1)}>
+            <ChevronLeftIcon />
+          </IconButton>
+          <IconButton size="small" aria-label="Вперёд" onClick={() => shift(1)}>
+            <ChevronRightIcon />
+          </IconButton>
+        </Stack>
+        <Typography variant="h6" sx={{ minWidth: 140 }}>
+          {periodLabel}
+        </Typography>
+
+        <Stack
+          direction="row"
+          alignItems="center"
+          gap={1}
+          sx={{ ml: 'auto' }}
         >
-          <ToggleButton value="week">Неделя</ToggleButton>
-          <ToggleButton value="month">Месяц</ToggleButton>
-        </ToggleButtonGroup>
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<AddIcon />}
-          onClick={() => openCreate()}
-        >
-          Встреча
-        </Button>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={view}
+            onChange={(_, v: CalendarView | null) => v && setView(v)}
+          >
+            <ToggleButton value="week">Неделя</ToggleButton>
+            <ToggleButton value="month">Месяц</ToggleButton>
+          </ToggleButtonGroup>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={() => openCreate()}
+          >
+            Встреча
+          </Button>
+        </Stack>
       </Stack>
 
       <Box
