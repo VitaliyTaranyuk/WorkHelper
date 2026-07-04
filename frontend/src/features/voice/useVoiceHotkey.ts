@@ -25,9 +25,16 @@ export function saveHotkey(hotkey: string) {
   }
 }
 
-/** Собирает строку хоткея из события клавиатуры; null для «голых» модификаторов. */
+/**
+ * Собирает строку хоткея из события клавиатуры; null для «голых» модификаторов.
+ * Буквы/цифры берём из e.code (KeyM → «m»): раскладко-независимо — на русской
+ * раскладке e.key той же клавиши даёт «ь», и хоткей не срабатывал (ТП-57).
+ */
 export function hotkeyFromEvent(e: KeyboardEvent): string | null {
-  const key = e.key.toLowerCase()
+  let key: string
+  if (/^Key[A-Z]$/.test(e.code)) key = e.code.slice(3).toLowerCase()
+  else if (/^Digit[0-9]$/.test(e.code)) key = e.code.slice(5)
+  else key = e.key.toLowerCase()
   if (['control', 'shift', 'alt', 'meta'].includes(key)) return null
   const parts: string[] = []
   if (e.ctrlKey) parts.push('ctrl')

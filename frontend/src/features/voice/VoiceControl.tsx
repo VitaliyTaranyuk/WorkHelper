@@ -9,7 +9,8 @@ import {
 } from '@mui/material'
 import MicNoneOutlinedIcon from '@mui/icons-material/MicNoneOutlined'
 import MicIcon from '@mui/icons-material/Mic'
-import { keyframes } from '@mui/material/styles'
+import { keyframes } from '@emotion/react'
+import styled from '@emotion/styled'
 import { useNavigate } from '@tanstack/react-router'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
@@ -38,6 +39,15 @@ const pulse = keyframes`
   0% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.5); }
   70% { box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); }
   100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
+`
+
+// styled вместо интерполяции keyframes в sx-строку: emotion гарантированно
+// инжектит @keyframes только внутри собственного css-контекста (ТП-57 —
+// пульсация записи не работала).
+const PulsingMicButton = styled(IconButton)`
+  color: #d32f2f;
+  border-radius: 50%;
+  animation: ${pulse} 1.6s infinite;
 `
 
 type Phase =
@@ -82,6 +92,13 @@ export function VoiceControl() {
 
   const handleFinish = useCallback(
     async (transcript: string) => {
+      if (!transcript.trim()) {
+        setPhase({
+          kind: 'failure',
+          message: 'Ничего не удалось расслышать — попробуйте ещё раз',
+        })
+        return
+      }
       setPhase({ kind: 'processing' })
       const ctx = buildContext()
       if (!ctx) {
@@ -174,10 +191,11 @@ export function VoiceControl() {
 
   const listening = speech.status === 'listening'
   const speechError = speech.status === 'error' ? speech.error : null
+  const MicButtonComponent = listening ? PulsingMicButton : IconButton
 
   return (
     <>
-      <IconButton
+      <MicButtonComponent
         ref={anchorRef}
         size="small"
         aria-label="Голосовое управление"
@@ -188,18 +206,9 @@ export function VoiceControl() {
         }
         disabled={!speech.supported}
         onClick={() => (listening ? stopListening() : startListening())}
-        sx={
-          listening
-            ? {
-                color: 'error.main',
-                borderRadius: '50%',
-                animation: `${pulse} 1.6s infinite`,
-              }
-            : undefined
-        }
       >
         {listening ? <MicIcon fontSize="small" /> : <MicNoneOutlinedIcon fontSize="small" />}
-      </IconButton>
+      </MicButtonComponent>
 
       <Popover
         open={open}

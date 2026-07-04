@@ -78,6 +78,27 @@ export function formatDateDDMMYYYY(
   return `${dd}-${mm}-${yyyy}`
 }
 
+/**
+ * Относительное время для лент событий (ТП-59, как в Jira/GitHub):
+ * «только что», «5 мин назад», «3 ч назад», «вчера», дальше — дата.
+ */
+export function formatRelativeTime(
+  date: PossbleDateFormat | null | undefined,
+): string {
+  if (!isValidDate(date)) return INVALID_DATE_PLACEHOLDER
+  const then = makeDateObj(date as PossbleDateFormat).getTime()
+  const diffMs = Date.now() - then
+  const minutes = Math.floor(diffMs / 60000)
+  if (minutes < 1) return 'только что'
+  if (minutes < 60) return `${minutes} мин назад`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} ч назад`
+  const days = Math.floor(hours / 24)
+  if (days === 1) return 'вчера'
+  if (days < 7) return `${days} дн назад`
+  return formatDateDDMMYYYY(date)
+}
+
 export function getDifferenceInDays(
   date1: PossbleDateFormat,
   date2: PossbleDateFormat,

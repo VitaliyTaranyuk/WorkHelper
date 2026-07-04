@@ -27,4 +27,13 @@ public class UpdateProfileRequest {
     @Pattern(regexp = "^[a-z0-9_]{2,32}$", message = "Username: 2-32 символа, строчная латиница, цифры, _")
     @Size(max = 32)
     private String username;
+
+    // Опционально — старые клиенты фамилию не присылают (совместимость);
+    // null/пустая строка означает «не менять».
+    @Schema(description = "Фамилия пользователя", example = "Иванов")
+    private String lastName;
+
+    @Schema(description = "Номер телефона", example = "+7 999 123-45-67")
+    @Pattern(regexp = "^[0-9+()\\-\\s]{0,20}$", message = "Телефон: цифры, +, скобки, дефисы (до 20 символов)")
+    private String phone;
 }

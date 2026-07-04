@@ -43,6 +43,35 @@ export function getUserProfile({
   })
 }
 
+/** Минимальное редактирование профиля текущего пользователя (ТП-63). */
+export type UpdateProfileRequest = {
+  firstName: string
+  lastName?: string
+  displayName?: string
+  username?: string
+  phone?: string
+}
+
+/**
+ * @name UpdateProfile
+ * @summary Обновить профиль текущего пользователя
+ * @request PUT:/users/profile
+ */
+export function updateProfile({
+  data,
+  otherParams = {},
+}: {
+  data: UpdateProfileRequest
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<GetUserData>({
+    method: 'PUT',
+    url: API_ENDPOINT_PATH.USERS.PROFILE(),
+    data,
+    ...otherParams,
+  })
+}
+
 /**
  * @name UpdateUser
  * @summary Обновить данные пользователя
