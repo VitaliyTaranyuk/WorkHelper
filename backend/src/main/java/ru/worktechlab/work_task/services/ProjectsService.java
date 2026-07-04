@@ -275,7 +275,9 @@ public class ProjectsService {
     public ProjectDto editProject(String projectId,
                                   EditProjectRequestDto data) throws NotFoundException, BadRequestException {
         Project project = checkerUtil.findAndCheckProjectForOwner(projectId);
-        if (project.getStatus() != ProjectStatus.DRAFT)
+        // ТП-68: имя/описание/код можно менять у живого проекта (DRAFT/ACTIVE) —
+        // как в зрелых TMS; запрет остаётся для завершённых/архивных/удалённых.
+        if (project.getStatus() != ProjectStatus.DRAFT && project.getStatus() != ProjectStatus.ACTIVE)
             throw new BadRequestException(String.format("Проект имеет статус - %s, при котором изменение данных недоступно",
                     project.getStatus().getDescription()));
         project.setMainData(data.getName(), data.getDescription(), data.getCode());
