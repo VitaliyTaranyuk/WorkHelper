@@ -12,6 +12,7 @@ import { type FormValues } from './TaskForm/useTaskForm'
 import { PendingAttachments } from './PendingAttachments'
 import { DictationButton } from '@/features/voice/DictationButton'
 import { TaskFormFields } from './TaskFormFields'
+import { isBoardSprintId } from '@/entities/sprint/board'
 import type { User } from '@/entities/user/types'
 
 type CreateTaskContentProps = {
@@ -77,6 +78,14 @@ export function CreateTaskContent({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusValue, boardStatuses])
+
+  // ТП-74: колонку доски выбираем только для активного (доскового) спринта —
+  // задачи бэклога/неактивного спринта на доску не попадают, статус для них
+  // не имеет смысла. Переключение спринта в форме мгновенно меняет доступность.
+  const selectedSprintId = form.watch('sprint')
+  const statusApplicable =
+    boardStatuses.length > 0 &&
+    isBoardSprintId(sortedSprints, selectedSprintId)
 
   if (isProjectLoading || isSprintsLoading) {
     return <Loader isLoading />
@@ -175,8 +184,9 @@ export function CreateTaskContent({
         }}
       >
         {/* ТП-76: порядок и термины как в карточке редактирования —
-            «Статус» первым, затем исполнитель/приоритет/тип/спринт. */}
-        {boardStatuses.length > 0 && (
+            «Статус» первым, затем исполнитель/приоритет/тип/спринт.
+            ТП-74: поле показываем только для активного (доскового) спринта. */}
+        {statusApplicable ? (
           <Stack gap={0.5}>
             <FormCaption>Статус</FormCaption>
             <FormControl fullWidth size="small">
@@ -198,6 +208,12 @@ export function CreateTaskContent({
               />
             </FormControl>
           </Stack>
+        ) : (
+          boardStatuses.length > 0 && (
+            <FormCaption>
+              Статус доступен только для задач активного спринта
+            </FormCaption>
+          )
         )}
 
         <TaskFormFields
