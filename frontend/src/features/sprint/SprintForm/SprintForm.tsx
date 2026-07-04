@@ -2,13 +2,11 @@ import { FormControl, Stack, Typography } from '@mui/material'
 import { Controller, type UseFormReturn } from 'react-hook-form'
 import { FinishDateBlock, StyledTextField } from './SprintForm.styles'
 import type { FormValues } from './useSprintForm'
-import { SPRINT_DURATION_MAX } from '@/entities/sprint/constants'
-import { transformDurationByLimit } from './sprintFormSchema'
 import { COLOR } from '@/shared/ui/theme/constants'
 import { FormCaption } from '@/shared/ui/components/FormCaption'
 import { DatePicker } from '@/shared/ui/components/DatePicker'
 import dayjs from 'dayjs'
-import { formatToLocaleDate, getShiftedDayDate } from '@/shared/utils/date'
+import { getDifferenceInDays } from '@/shared/utils/date'
 
 type SprintFormProps = {
   onSubmit?: () => void
@@ -22,7 +20,7 @@ export function SprintForm(props: SprintFormProps) {
   const { errors } = form.formState
 
   const startDate = form.watch('startDate')
-  const duration = form.watch('duration')
+  const endDate = form.watch('endDate')
 
   return (
     <Stack
@@ -73,30 +71,29 @@ export function SprintForm(props: SprintFormProps) {
         </Stack>
 
         <Stack direction={'column'} gap={'4px'} width={'50%'}>
-          <FormCaption>Длительность</FormCaption>
-          <StyledTextField
-            type="number"
-            size="small"
-            disabled={props.isActivateMode}
-            slotProps={{ htmlInput: { min: 0, max: SPRINT_DURATION_MAX } }}
-            {...form.register('duration', {
-              setValueAs: (value) => (!value ? null : Number(value)),
-            })}
-            onChange={(e) => {
-              const newValue = transformDurationByLimit(e.target.value)
-
-              if (newValue === form.formState.defaultValues?.duration) {
-                form.resetField('duration')
-              } else {
-                form.setValue('duration', newValue, {
-                  shouldDirty: true,
-                })
-              }
-            }}
-            placeholder="0"
-            error={Boolean(errors.duration)}
-            helperText={errors.duration?.message}
-          />
+          <FormCaption>Дата завершения</FormCaption>
+          {/* ТП-48: длительность задаётся датой завершения — тот же
+              датапикер с календарём, что и у даты старта. */}
+          <FormControl fullWidth size="small" error={Boolean(errors.endDate)}>
+            <Controller
+              control={form.control}
+              name="endDate"
+              render={({ field }) => (
+                <DatePicker
+                  disabled={props.isActivateMode}
+                  {...field}
+                  minDate={startDate ? dayjs(startDate) : undefined}
+                  onChange={(date) => field.onChange(Number(date))}
+                  value={field.value ? dayjs(field.value) : null}
+                />
+              )}
+            />
+          </FormControl>
+          {errors.endDate && (
+            <Typography variant="caption" color="error">
+              {errors.endDate.message}
+            </Typography>
+          )}
         </Stack>
       </Stack>
       <Stack direction={'column'} gap={'4px'}>
@@ -115,17 +112,14 @@ export function SprintForm(props: SprintFormProps) {
           placeholder="Опишите задачу"
         />
       </Stack>
-      {!!startDate && !!duration && (
+      {!!startDate && !!endDate && endDate > startDate && (
         <FinishDateBlock>
           <Typography
             variant="caption"
             color={COLOR.text.tertiary}
             height={'15px'}
           >
-            Дата завершения:{' '}
-            {formatToLocaleDate({
-              date: getShiftedDayDate({ date: startDate, shiftDay: duration }),
-            })}
+            Длительность: {getDifferenceInDays(startDate, endDate)} дн.
           </Typography>
         </FinishDateBlock>
       )}

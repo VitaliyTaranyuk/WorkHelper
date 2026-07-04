@@ -12,7 +12,7 @@ import { Button } from '@/shared/ui/Button'
 import { useSprintForm } from '@/features/sprint/SprintForm/useSprintForm'
 import { modalStyle } from '@/shared/ui/modalStyles'
 import { SprintForm } from '@/features/sprint/SprintForm'
-import { formatDateForBackend, getEndDate } from '@/shared/utils/date'
+import { formatDateForBackend } from '@/shared/utils/date'
 import { Spacer } from '@/shared/ui/Spacer'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useCreateSprint } from '@/features/sprint/mutation/useCreateSprint'
@@ -34,11 +34,7 @@ function CreateSprintModalInner() {
   const onSubmit = form.handleSubmit(async (formValues) => {
     assertIsDefined(activeProject)
 
-    const endDate = getEndDate({
-      startDate: formValues.startDate,
-      durationInDays: formValues.duration,
-    })
-
+    // ТП-48: дата завершения выбирается в календаре напрямую
     const sprintData = {
       name: formValues.name,
       ...(formValues.goal ? { goal: formValues.goal } : {}),
@@ -46,7 +42,9 @@ function CreateSprintModalInner() {
         ? { startDate: formatDateForBackend(formValues.startDate) }
         : {}),
 
-      ...(endDate ? { endDate: formatDateForBackend(endDate) } : {}),
+      ...(formValues.endDate
+        ? { endDate: formatDateForBackend(formValues.endDate) }
+        : {}),
     }
 
     createSprint.mutateAsync({ projectId: activeProject.id, sprintData })

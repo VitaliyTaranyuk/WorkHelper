@@ -1,21 +1,20 @@
-import { SPRINT_DURATION_MAX } from '@/entities/sprint/constants'
 import { z } from 'zod'
 
-export const sprintFormSchema = z.object({
-  // TODO: уточнить по максимуму для заголовка
-  name: z.string().min(5, 'Минимальная длина 5 символов'),
-  goal: z.string().optional(),
+export const sprintFormSchema = z
+  .object({
+    // TODO: уточнить по максимуму для заголовка
+    name: z.string().min(5, 'Минимальная длина 5 символов'),
+    goal: z.string().optional(),
 
-  startDate: z.number().or(z.null()),
-  duration: z.coerce.number().or(z.null()),
-})
-
-export function transformDurationByLimit(v: unknown) {
-  const num = typeof v === 'number' ? v : Number(v)
-
-  if (!num || Number.isNaN(num) || num < 0) return null
-
-  if (num > SPRINT_DURATION_MAX) return SPRINT_DURATION_MAX
-
-  return num
-}
+    startDate: z.number().or(z.null()),
+    // ТП-48: длительность задаётся датой завершения — тот же формат
+    // и календарь, что у даты старта (timestamp | null).
+    endDate: z.number().or(z.null()),
+  })
+  .refine(
+    (v) => !v.startDate || !v.endDate || v.endDate > v.startDate,
+    {
+      message: 'Дата завершения должна быть позже даты старта',
+      path: ['endDate'],
+    },
+  )
