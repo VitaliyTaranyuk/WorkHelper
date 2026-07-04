@@ -12,6 +12,10 @@ function servicesCapture() {
     ...makeContext(),
     createTask: vi.fn(async () => ({ id: '', code: '', title: '' })),
     navigate,
+    setStatus: vi.fn(async () => {}),
+    setSprint: vi.fn(async () => {}),
+    patchTask: vi.fn(async () => ({ id: '', code: '', title: '' })),
+    findTask: vi.fn(async () => null),
   }
   return { ctx, navigate, target: () => captured }
 }
