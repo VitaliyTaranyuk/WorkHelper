@@ -56,7 +56,7 @@ public class SprintsService {
         UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
         checkerUtil.checkExtendedPermission(data.getUser(), data.getProject());
         Sprint sprint = sprintsRepository.saveAndFlush(new Sprint(
-                request.getName(), request.getGoal(), request.getStartDate(), request.getEndDate(), data.getUser(), data.getProject()
+                normalizeName(request.getName()), request.getGoal(), request.getStartDate(), request.getEndDate(), data.getUser(), data.getProject()
         ));
         Sprint dbSprint = findSprintById(sprint.getId());
         return sprintMapper.toSprintInfoDto(dbSprint);
@@ -201,7 +201,11 @@ public class SprintsService {
         UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
         checkerUtil.checkExtendedPermission(data.getUser(), data.getProject());
         Sprint sprint = findSprintByIdForUpdate(sprintId, data.getProject());
-        sprint.setName(requestData.getName());
+        // ТП-70: Backlog — системный контейнер (признак defaultSprint):
+        // переименование/изменение дат недоступны, как удаление и архивация.
+        if (sprint.isDefaultSprint())
+            throw new BadRequestException("Backlog — системный спринт: его нельзя переименовать или изменить");
+        sprint.setName(normalizeName(requestData.getName()));
         sprint.setStartDate(requestData.getStartDate());
         sprint.setEndDate(requestData.getEndDate());
         sprintsRepository.flush();
@@ -316,5 +320,12 @@ public class SprintsService {
                 sprint.getStatus(),
                 taskMapper.toDo(tasks)
         );
+    }
+
+    /** Пустое имя спринта хранится как null (имя опционально, ТП-70). */
+    private String normalizeName(String name) {
+        if (name == null || name.isBlank())
+            return null;
+        return name.trim();
     }
 }

@@ -1,6 +1,7 @@
 import MenuItem from '@mui/material/MenuItem'
 import { Menu } from '@mui/material'
 import { useMoveToSprintMenuStore } from './moveToSprintMenuStore'
+import { sprintDisplayLabel } from '@/entities/sprint/label'
 
 export function MoveToSprintMenu() {
   const moveToSprintMenu = useMoveToSprintMenuStore()
@@ -22,7 +23,7 @@ export function MoveToSprintMenu() {
             moveToSprintMenu.closePopup()
           }}
         >
-          {sprint.name}
+          {sprintDisplayLabel(sprint)}
           {sprint.isActive && ' (Активный)'}
         </MenuItem>
       ))}

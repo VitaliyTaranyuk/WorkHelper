@@ -6,6 +6,25 @@
 
 ---
 
+## Завершено 2026-07-04: ТП-70 «Название и описание спринта» (ветка `feature/tp70-sprint-name-optional`)
+
+Название спринта опционально (паттерн Jira/Linear: идентификатор — даты+статус):
+- **Backend**: SprintDtoRequest.name без @NotNull; create/update нормализуют
+  пустое имя в null (`normalizeName`); техимена не генерируются; колонка name
+  уже была nullable — миграция не нужна. **Backlog защищён от update**
+  (isDefaultSprint → BadRequest), как ранее delete/archive — признак
+  системности АРХИТЕКТУРНЫЙ (defaultSprint), не строковый; «Завершённые» —
+  не спринт, а раздел архива задач (переименовать/удалить нечего).
+- **Frontend**: sprintFormSchema.name optional (и короткие имена «v2» валидны),
+  подпись поля «Название (необязательно)»; mapDTO name??''; единый хелпер
+  `sprintDisplayLabel` (даты · имя | даты | имя | «Спринт без названия») —
+  применён в MoveToSprintMenu, селектах спринта карточки/создания,
+  Finish/ActivateSprintModal, confirm удаления, фоллбэках Sprint/Sidebar.
+- Совместимость: сортировки/инварианты (TaskPlacementService) по id/флагам,
+  от имени не зависят; существующие данные не меняются.
+
+---
+
 ## Завершено 2026-07-04: ТП-71 «Уведомления (toast)» (ветка `feature/tp71-toasts`)
 
 Аудит всех 54 toast-вызовов и централизация (паттерн Linear):

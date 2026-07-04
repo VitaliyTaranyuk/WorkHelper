@@ -12,6 +12,7 @@ import { NOT_ASSIGNED_OPTION, type FormValues } from './TaskForm/useTaskForm'
 import { TASK_PRIORITY_OPTIONS } from './TaskForm/contants'
 import { PendingAttachments } from './PendingAttachments'
 import { DictationButton } from '@/features/voice/DictationButton'
+import { sprintDisplayLabel } from '@/entities/sprint/label'
 import { getFullName } from '@/entities/user/utils'
 import type { User } from '@/entities/user/types'
 
@@ -254,7 +255,8 @@ export function CreateTaskContent({
                 >
                   {sortedSprints.map((sprint) => (
                     <MenuItem key={sprint.id} value={sprint.id}>
-                      {sprint.name} {sprint.isActive ? ' (Активный)' : ''}
+                      {sprintDisplayLabel(sprint)}
+                      {sprint.isActive ? ' (Активный)' : ''}
                     </MenuItem>
                   ))}
                 </Select>

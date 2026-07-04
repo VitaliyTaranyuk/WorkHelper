@@ -32,7 +32,8 @@ export function SprintForm(props: SprintFormProps) {
     >
       {!props.isActivateMode && (
         <Stack gap={'4px'} flexDirection={'column'}>
-          <FormCaption>Заголовок</FormCaption>
+          {/* ТП-70: название опционально — спринт идентифицируют даты и статус */}
+          <FormCaption>Название (необязательно)</FormCaption>
           <StyledTextField
             fullWidth
             size="small"

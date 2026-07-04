@@ -1,4 +1,5 @@
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
+import { sprintDisplayLabel } from '@/entities/sprint/label'
 import {
   Dialog,
   DialogTitle,
@@ -61,7 +62,7 @@ function ActivateSprintModalInner(props: ActivateSprintModalProps) {
       }}
     >
       <DialogTitle sx={{ padding: '0', fontSize: '24px', fontWeight: 500 }}>
-        {props.sprint.name}
+        {sprintDisplayLabel(props.sprint)}
       </DialogTitle>
       <IconButton
         aria-label="close"
