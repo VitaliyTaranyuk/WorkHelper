@@ -28,6 +28,7 @@ class InAppNotificationServiceTest {
     @Mock private NotificationRepository notificationRepository;
     @Mock private UserRepository userRepository;
     @Mock private UserContext userContext;
+    @Mock private UserSettingsService userSettingsService;
 
     @InjectMocks
     private InAppNotificationService service;
@@ -50,6 +51,8 @@ class InAppNotificationServiceTest {
     @Test
     void createMentionNotifications_shouldCreateNotificationForMentionedUser() {
         when(userRepository.findByUsername("petrov")).thenReturn(Optional.of(mentioned));
+        when(userSettingsService.effectiveFor("user-2"))
+                .thenReturn(new ru.worktechlab.work_task.models.tables.UserSettings("user-2"));
 
         service.createMentionNotifications("эй @petrov глянь", actor, task, "comment-1");
 
@@ -73,6 +76,9 @@ class InAppNotificationServiceTest {
 
     @Test
     void createTaskCreatedNotification_shouldNotifyCreatorWithTaskLink() {
+        when(userSettingsService.effectiveFor("actor-1"))
+                .thenReturn(new ru.worktechlab.work_task.models.tables.UserSettings("actor-1"));
+
         service.createTaskCreatedNotification(actor, task);
 
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);

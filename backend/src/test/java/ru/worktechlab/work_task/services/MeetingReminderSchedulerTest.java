@@ -13,6 +13,8 @@ import ru.worktechlab.work_task.models.tables.Meeting;
 import ru.worktechlab.work_task.models.tables.Notification;
 import ru.worktechlab.work_task.models.tables.Project;
 import ru.worktechlab.work_task.models.tables.User;
+import ru.worktechlab.work_task.models.tables.UserSettings;
+import ru.worktechlab.work_task.repositories.MeetingReminderLogRepository;
 import ru.worktechlab.work_task.repositories.MeetingRepository;
 import ru.worktechlab.work_task.repositories.NotificationRepository;
 
@@ -21,6 +23,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,6 +31,8 @@ class MeetingReminderSchedulerTest {
 
     @Mock private MeetingRepository meetingRepository;
     @Mock private NotificationRepository notificationRepository;
+    @Mock private MeetingReminderLogRepository reminderLogRepository;
+    @Mock private UserSettingsService userSettingsService;
 
     @InjectMocks
     private MeetingReminderScheduler scheduler;
@@ -43,9 +48,9 @@ class MeetingReminderSchedulerTest {
         project = TestFixtures.project("project-1", creator);
     }
 
-    private Meeting meeting(String id, String link) {
+    private Meeting meeting(String id, String link, int minutesUntilStart) {
         Meeting meeting = new Meeting(project, "Планёрка", null,
-                LocalDateTime.now().plusMinutes(10), null, creator);
+                LocalDateTime.now().plusMinutes(minutesUntilStart), null, creator);
         ReflectionTestUtils.setField(meeting, "id", id);
         meeting.setLink(link);
         meeting.setParticipants(List.of(participant));
@@ -54,8 +59,11 @@ class MeetingReminderSchedulerTest {
 
     @Test
     void sendDueReminders_shouldCarryMeetingIdProjectIdAndLink() {
-        Meeting due = meeting("meeting-1", "https://telemost.yandex.ru/j/123");
-        when(meetingRepository.findDueReminders(any(), any())).thenReturn(List.of(due));
+        // Встреча через 10 минут, дефолтное окно 15 → входит в окно напоминания
+        Meeting due = meeting("meeting-1", "https://telemost.yandex.ru/j/123", 10);
+        when(meetingRepository.findUpcoming(any(), any())).thenReturn(List.of(due));
+        when(userSettingsService.effectiveFor("user-2")).thenReturn(new UserSettings("user-2"));
+        when(reminderLogRepository.existsByMeetingIdAndUserId("meeting-1", "user-2")).thenReturn(false);
 
         scheduler.sendDueReminders();
 
@@ -67,27 +75,65 @@ class MeetingReminderSchedulerTest {
         assertThat(n.getMeetingId()).isEqualTo("meeting-1");
         assertThat(n.getProjectId()).isEqualTo("project-1");
         assertThat(n.getLink()).isEqualTo("https://telemost.yandex.ru/j/123");
-        assertThat(due.isReminderSent()).isTrue();
+        verify(reminderLogRepository).save(any());
     }
 
     @Test
-    void sendDueReminders_withoutLink_shouldStillReferenceMeeting() {
-        Meeting due = meeting("meeting-2", null);
-        when(meetingRepository.findDueReminders(any(), any())).thenReturn(List.of(due));
+    void sendDueReminders_shouldSkip_whenAlreadyLogged() {
+        Meeting due = meeting("meeting-2", null, 10);
+        when(meetingRepository.findUpcoming(any(), any())).thenReturn(List.of(due));
+        when(userSettingsService.effectiveFor("user-2")).thenReturn(new UserSettings("user-2"));
+        when(reminderLogRepository.existsByMeetingIdAndUserId("meeting-2", "user-2")).thenReturn(true);
 
         scheduler.sendDueReminders();
 
-        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(captor.capture());
-        Notification n = captor.getValue();
-        assertThat(n.getLink()).isNull();
-        assertThat(n.getMeetingId()).isEqualTo("meeting-2");
-        assertThat(n.getProjectId()).isEqualTo("project-1");
+        verify(notificationRepository, never()).save(any());
     }
 
     @Test
-    void sendDueReminders_shouldDoNothing_whenNoDueMeetings() {
-        when(meetingRepository.findDueReminders(any(), any())).thenReturn(List.of());
+    void sendDueReminders_shouldSkip_whenMeetingsDisabledInSettings() {
+        Meeting due = meeting("meeting-3", null, 10);
+        UserSettings off = new UserSettings("user-2");
+        off.setNotifyMeetings(false);
+        when(meetingRepository.findUpcoming(any(), any())).thenReturn(List.of(due));
+        when(userSettingsService.effectiveFor("user-2")).thenReturn(off);
+
+        scheduler.sendDueReminders();
+
+        verify(notificationRepository, never()).save(any());
+        verify(reminderLogRepository, never()).existsByMeetingIdAndUserId(anyString(), anyString());
+    }
+
+    @Test
+    void sendDueReminders_shouldSkip_whenOutsideReminderWindow() {
+        // Встреча через 40 минут, дефолтное окно 15 → ещё рано
+        Meeting due = meeting("meeting-4", null, 40);
+        when(meetingRepository.findUpcoming(any(), any())).thenReturn(List.of(due));
+        when(userSettingsService.effectiveFor("user-2")).thenReturn(new UserSettings("user-2"));
+
+        scheduler.sendDueReminders();
+
+        verify(notificationRepository, never()).save(any());
+    }
+
+    @Test
+    void sendDueReminders_shouldRespectCustomReminderMinutes() {
+        // Встреча через 40 минут, окно пользователя 60 → пора напомнить
+        Meeting due = meeting("meeting-5", null, 40);
+        UserSettings wide = new UserSettings("user-2");
+        wide.setReminderMinutes(60);
+        when(meetingRepository.findUpcoming(any(), any())).thenReturn(List.of(due));
+        when(userSettingsService.effectiveFor("user-2")).thenReturn(wide);
+        when(reminderLogRepository.existsByMeetingIdAndUserId("meeting-5", "user-2")).thenReturn(false);
+
+        scheduler.sendDueReminders();
+
+        verify(notificationRepository).save(any());
+    }
+
+    @Test
+    void sendDueReminders_shouldDoNothing_whenNoUpcomingMeetings() {
+        when(meetingRepository.findUpcoming(any(), any())).thenReturn(List.of());
 
         scheduler.sendDueReminders();
 
