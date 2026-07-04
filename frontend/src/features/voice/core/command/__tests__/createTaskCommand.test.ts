@@ -6,7 +6,15 @@ import { makeContext } from './fixtures'
 function servicesWith(created: CreatedTask) {
   const createTask = vi.fn(async () => created)
   const navigate = vi.fn()
-  const ctx: VoiceCommandContext = { ...makeContext(), createTask, navigate }
+  const ctx: VoiceCommandContext = {
+    ...makeContext(),
+    createTask,
+    navigate,
+    setStatus: vi.fn(async () => {}),
+    setSprint: vi.fn(async () => {}),
+    patchTask: vi.fn(async () => ({ id: '', code: '', title: '' })),
+    findTask: vi.fn(async () => null),
+  }
   return { ctx, createTask, navigate }
 }
 

@@ -76,9 +76,25 @@ export type CreatedTask = { id: string; code: string; title: string }
  * СУЩЕСТВУЮЩЕЙ мутации/хуку (инвариант: голос не ходит в API в обход UI-слоя).
  * Набор расширяется аддитивно по мере добавления доменов команд (C1..C6).
  */
+/** Изменяемые поля задачи (patch через существующий updateTask, fetch-merge). */
+export type VoiceTaskPatch = {
+  title?: string
+  description?: string
+  priority?: string
+  assignee?: string
+}
+
 export type VoiceServices = {
   createTask(input: VoiceCreateTaskInput): Promise<CreatedTask>
   navigate(target: NavTarget): void
+  /** Статус задачи — через updateTaskStatus (TaskPlacementService). */
+  setStatus(taskId: string, statusId: number): Promise<void>
+  /** Спринт задачи — через updateTasksSprint (TaskPlacementService). */
+  setSprint(taskId: string, sprintId: string): Promise<void>
+  /** Правка полей задачи по коду — fetch текущей + merge + updateTask. */
+  patchTask(code: string, changes: VoiceTaskPatch): Promise<CreatedTask>
+  /** Найти задачу по коду (для команд, действующих на задачу по коду). */
+  findTask(code: string): Promise<CreatedTask | null>
 }
 
 /** Контекст исполнения = данные + сервисы. */
