@@ -189,7 +189,14 @@ command.execute() → feedback/log`. `UnrecognizedCommandError`/`clarification` 
 
 ## 5. Где живёт распознавание намерения (NLU)
 
-**Решение: backend‑прокси, провайдер за интерфейсом.** Фронт шлёт `POST /voice/resolve`
+> **Уточнение (повторный анализ ТП‑94):** правила НЕ требуют ключа, поэтому
+> `RuleBasedResolver` работает **на клиенте** (без сетевого round‑trip) — Веха 1
+> полностью офлайн. Backend‑прокси нужен ТОЛЬКО для LLM (там живёт секрет) и
+> вводится в ТП‑96 (I2), а не в ТП‑94. Оба резолвера реализуют один фронт‑интерфейс
+> `IntentResolver` (`resolve(text, ctx) → IntentResolution`), `RemoteResolver`
+> делает авто‑фолбэк на `RuleBasedResolver`. Ниже описан именно LLM‑путь.
+
+**Решение (LLM‑путь): backend‑прокси, провайдер за интерфейсом.** Фронт шлёт `POST /voice/resolve`
 (`transcript` + `context` + схема команд из реестра) → бэкенд вызывает `IntentResolver`
 (Strategy) → возвращает `IntentResolution`. Причины:
 - **Секреты только на сервере** (SECURITY из CLAUDE.md; снимает блокер ТП‑10 без утечки ключа).

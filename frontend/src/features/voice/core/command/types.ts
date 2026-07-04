@@ -129,8 +129,21 @@ export interface VoiceCommand {
   riskLevel: RiskLevel
   /** Спецификация слотов для резолвера. */
   slots: SlotSpec[]
+  /**
+   * Дешёвое офлайн-распознавание (ТП-94, Веха 1 без AI): по тексту определяет,
+   * «моя ли это команда», и извлекает сырые слоты. Возвращает null — «не моя».
+   * Опционально: LLM-резолвер (ТП-96) использует `description`/`examples`/`slots`,
+   * а не `rule`. Колокация триггеров с командой (высокая связность).
+   */
+  rule?(text: string): RuleMatch | null
   /** Разбор/резолвинг слотов → замыкание `run` или уточнение. Без побочных эффектов. */
   prepare(raw: Record<string, string>, ctx: VoiceContext): PrepareResult
+}
+
+/** Результат офлайн-правила команды: сырые слоты + уверенность (0..1). */
+export type RuleMatch = {
+  slots: Record<string, string>
+  confidence?: number
 }
 
 /** Схема команды для передачи резолверу (ТП-94). Сериализуема. */

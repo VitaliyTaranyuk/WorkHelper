@@ -6,6 +6,28 @@
 
 ---
 
+## Завершено 2026-07-05: ТП-94 «Голосовой помощник — I1: RuleBased Intent Resolver» (ветка `feature/tp94-rule-based-resolver`)
+
+**Уточнение плана (повторный анализ):** правила НЕ требуют ключа → работают на
+КЛИЕНТЕ (без сетевого round-trip). Backend-прокси нужен только LLM (там секрет) —
+перенесён в ТП-96 (I2). Это упрощает Веху 1 (офлайн, без бэкенда) и co-locates
+бэкенд с его драйвером (ключ). ADR обновлён (§5).
+
+- `core/resolve/intentResolver.ts` — интерфейс `IntentResolver`
+  (`resolve(text, ctx) → Promise<IntentResolution>`) + `createRuleBasedResolver`:
+  опрашивает офлайн-правила команд по порядку реестра, первое совпадение выигрывает.
+- Тип `VoiceCommand` расширен опциональным `rule(text) → RuleMatch|null`
+  (дешёвое офлайн-распознавание, колокация триггеров с командой; LLM-путь его не
+  использует — он на `description`/`examples`/`slots`).
+- `createTaskCommand.rule` (триггер «создай/добавь/заведи … задачу»), 
+  `navigateCommand.rule` (открой/перейди + голый раздел).
+- Тесты: 9 тестов резолвера на реальном реестре. Весь voice-модуль зелёный.
+
+Проверка: `npm run test`, `npm run lint` (0), `npm run build` — зелёные.
+Далее: ТП-95 (X1 — лаунчер + Confirmation + Feedback: первый сквозной срез без AI).
+
+---
+
 ## Завершено 2026-07-05: ТП-93 «Голосовой помощник — F3: Slot/Entity Resolver» (ветка `feature/tp93-entity-resolver`)
 
 Детерминированный резолвинг слотов: человекочитаемое значение → сущность из
