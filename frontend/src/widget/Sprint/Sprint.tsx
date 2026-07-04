@@ -235,14 +235,28 @@ export function Sprint({ sprint, projectId, taskFilter, droppableId }: SprintPro
           // DnD-режим (ТП-24): Droppable рендерится и при пустом списке,
           // чтобы в пустой спринт/бэклог можно было бросить задачу.
           <Droppable droppableId={droppableId} type="TASK">
-            {(provided) => (
+            {(provided, snapshot) => (
               <Stack
                 ref={provided.innerRef}
                 {...provided.droppableProps}
                 flexDirection={'column'}
                 gap={'8px'}
                 component={'ul'}
-                sx={{ m: 0, p: 0, listStyle: 'none', minHeight: 48 }}
+                sx={{
+                  m: 0,
+                  p: 0,
+                  listStyle: 'none',
+                  minHeight: 48,
+                  // ТП-86: визуальная индикация целевого спринта при
+                  // перетаскивании (в т.ч. между спринтами) — подсветка зоны
+                  // сброса, паттерн Jira/Linear backlog.
+                  borderRadius: 2,
+                  transition: 'background-color 120ms ease, box-shadow 120ms ease',
+                  ...(snapshot.isDraggingOver && {
+                    backgroundColor: 'rgba(99,102,241,0.08)',
+                    boxShadow: 'inset 0 0 0 2px rgba(99,102,241,0.35)',
+                  }),
+                }}
               >
                 {sprintTasks.map((task, index) => (
                   <Draggable key={task.id} draggableId={task.id} index={index}>
