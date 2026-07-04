@@ -6,6 +6,32 @@
 
 ---
 
+## Завершено 2026-07-05: ТП-95 «Голосовой помощник — X1: лаунчер + Confirmation + Feedback» (ветка `feature/tp95-voice-launcher`) — ВЕХА 1 ЗАКРЫТА
+
+Первый сквозной срез командного голоса без AI. Полный конвейер работает:
+речь → rule-резолвер → prepare → подтверждение (по риску) → existing мутация → фидбэк.
+
+- `command/VoiceLauncher.tsx` — плавающая кнопка (FAB) + хоткей (useVoiceHotkey из
+  истории 211d152~1, раскладко-независимо). Монтируется в DashboardLayout ВНУТРИ
+  RouterProvider (TD-015). Скрыт, если Web Speech не поддерживается.
+- `command/useVoiceCommandSession.ts` — конечный автомат конвейера (idle/listening/
+  processing/confirm/message); safe → сразу, confirm/destructive → подтверждение.
+- `command/VoiceOverlay.tsx` — немодальная панель снизу: слушаю/распознаю/подтверждение/
+  результат/уточнение/ошибка; «Открыть» для созданной задачи.
+- `command/useVoiceServices.ts` — проводка к existing мутациям: createTask →
+  useCreateTask, navigate → router (voiceNavPath — чистая, тестируется).
+- Тесты: 12 (voiceNavPath + VoiceOverlay через @testing-library). Всего 92 зелёных.
+
+**Верификация:** пайплайн и UI покрыты unit+компонентными тестами (92). Браузерный
+E2E через preview заблокирован кэшированием env превью на мёртвый :8080 (известная
+ловушка) + отсутствием Web Speech в headless — живая проверка перенесена на прод-деплой
+пакета Вехи 1 (реальный Chrome + бэкенд).
+
+Проверка: `npm run test` (92/92), `npm run lint` (0), `npm run build` — зелёные.
+Далее: деплой Вехи 1 + живая проверка; затем ТП-96 (I2) / C1..C6.
+
+---
+
 ## Завершено 2026-07-05: ТП-94 «Голосовой помощник — I1: RuleBased Intent Resolver» (ветка `feature/tp94-rule-based-resolver`)
 
 **Уточнение плана (повторный анализ):** правила НЕ требуют ключа → работают на
