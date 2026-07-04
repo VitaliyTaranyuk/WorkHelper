@@ -11,6 +11,7 @@ import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery
 import { NOT_ASSIGNED_OPTION, type FormValues } from './TaskForm/useTaskForm'
 import { TASK_PRIORITY_OPTIONS } from './TaskForm/contants'
 import { PendingAttachments } from './PendingAttachments'
+import { DictationButton } from '@/features/voice/DictationButton'
 import { getFullName } from '@/entities/user/utils'
 import type { User } from '@/entities/user/types'
 
@@ -106,7 +107,21 @@ export function CreateTaskContent({
         </Stack>
 
         <Stack gap={0.5}>
-          <FormCaption>Описание</FormCaption>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <FormCaption>Описание</FormCaption>
+            {/* ТП-58: диктовка описания голосом — текст добавляется в поле */}
+            <DictationButton
+              targetLabel="описание"
+              onText={(text) => {
+                const current = form.getValues('description') ?? ''
+                form.setValue(
+                  'description',
+                  current ? `${current}\n${text}` : text,
+                  { shouldDirty: true },
+                )
+              }}
+            />
+          </Stack>
           <TextField
             fullWidth
             multiline

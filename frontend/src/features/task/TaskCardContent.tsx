@@ -28,6 +28,7 @@ import { TaskHistory } from './TaskHistory'
 import { TaskAttachments } from './TaskAttachments'
 import { TaskLinks } from './TaskLinks'
 import { TaskDevPanel } from './TaskDevPanel'
+import { DictationButton } from '@/features/voice/DictationButton'
 import { formatUserName, getFullName } from '@/entities/user/utils'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
 import type { ITaskCard } from '@/entities/task/types'
@@ -253,7 +254,21 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
         </Stack>
 
         <Stack gap={0.5}>
-          <FormCaption>Описание</FormCaption>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <FormCaption>Описание</FormCaption>
+            {/* ТП-58: диктовка описания голосом — текст добавляется в поле */}
+            <DictationButton
+              targetLabel="описание"
+              onText={(text) => {
+                const current = form.getValues('description') ?? ''
+                form.setValue(
+                  'description',
+                  current ? `${current}\n${text}` : text,
+                  { shouldDirty: true },
+                )
+              }}
+            />
+          </Stack>
           {/* Большие тексты (тех. задания, спецификации, 500+ строк) должны
               быть полностью читаемы/редактируемы. Решение по образцу Jira/Linear:
               минимум 8 строк, рост до 24 строк, дальше — внутренний скролл
