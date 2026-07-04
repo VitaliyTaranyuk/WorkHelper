@@ -47,6 +47,29 @@ type Props = {
 export function TaskFormFields({ form, projectUsers, sprints }: Props) {
   return (
     <>
+      {/* ТП-85: порядок полей — Статус (рендерится выше карточкой), Спринт,
+          Исполнитель, Приоритет, Тип. «Спринт» сразу под «Статусом» — они
+          логически связаны и чаще всего меняются вместе (паттерн Jira/Linear). */}
+      <Stack gap={0.5}>
+        <FormCaption>Спринт</FormCaption>
+        <FormControl fullWidth size="small">
+          <Controller
+            control={form.control}
+            name="sprint"
+            render={({ field }) => (
+              <Select value={field.value} onChange={(e) => field.onChange(e.target.value)}>
+                {sprints.map((sprint) => (
+                  <MenuItem key={sprint.id} value={sprint.id}>
+                    {sprintDisplayLabel(sprint)}
+                    {sprint.isActive ? ' (Активный)' : ''}
+                  </MenuItem>
+                ))}
+              </Select>
+            )}
+          />
+        </FormControl>
+      </Stack>
+
       <Stack gap={0.5}>
         <FormCaption>Исполнитель</FormCaption>
         <FormControl fullWidth size="small" error={Boolean(form.formState.errors.assignee)}>
@@ -123,26 +146,6 @@ export function TaskFormFields({ form, projectUsers, sprints }: Props) {
             </ToggleButtonGroup>
           )}
         />
-      </Stack>
-
-      <Stack gap={0.5}>
-        <FormCaption>Спринт</FormCaption>
-        <FormControl fullWidth size="small">
-          <Controller
-            control={form.control}
-            name="sprint"
-            render={({ field }) => (
-              <Select value={field.value} onChange={(e) => field.onChange(e.target.value)}>
-                {sprints.map((sprint) => (
-                  <MenuItem key={sprint.id} value={sprint.id}>
-                    {sprintDisplayLabel(sprint)}
-                    {sprint.isActive ? ' (Активный)' : ''}
-                  </MenuItem>
-                ))}
-              </Select>
-            )}
-          />
-        </FormControl>
       </Stack>
     </>
   )
