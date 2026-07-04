@@ -19,6 +19,7 @@ import ru.worktechlab.work_task.dto.tasks.TaskDataDto;
 import ru.worktechlab.work_task.dto.tasks.TaskModelDTO;
 import ru.worktechlab.work_task.dto.tasks.BulkTaskRequestDTO;
 import ru.worktechlab.work_task.dto.tasks.ReorderColumnDTO;
+import ru.worktechlab.work_task.dto.tasks.ReorderSprintDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateStatusRequestDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateTaskModelDTO;
 import ru.worktechlab.work_task.exceptions.DuplicateLinkException;
@@ -446,6 +447,26 @@ public class TaskService {
             taskPlacementService.placeInSprint(task, sprint, data.getProject());
         taskRepository.flush();
         return new ApiResponse(String.format("Перемещено задач в спринт %s: %d", sprint.getName(), tasks.size()));
+    }
+
+    /**
+     * Перенос задачи в спринт с сохранением позиции (ТП-24, DnD в «Списке
+     * задач»): применяет целевой спринт и переписывает позиции задач списка
+     * по порядку из запроса. Поле position — единый ранг задачи (Jira-style):
+     * его же использует доска для порядка карточек в колонке.
+     */
+    @TransactionRequired
+    public ApiResponse reorderSprint(String projectId, ReorderSprintDTO dto) throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        Sprint sprint = sprintsService.findSprintByIdAndProject(dto.getSprintId(), data.getProject());
+        int index = 0;
+        for (String taskId : dto.getTaskIds()) {
+            TaskModel task = findTaskByIdAndProject(taskId, data.getProject());
+            taskPlacementService.placeInSprint(task, sprint, data.getProject());
+            task.setPosition(index++);
+        }
+        taskRepository.flush();
+        return new ApiResponse("Порядок задач спринта обновлён");
     }
 
     // ===== Board ordering (drag-and-drop within a column) =====

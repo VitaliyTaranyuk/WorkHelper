@@ -462,6 +462,34 @@ class TaskServiceTest {
     }
 
     @Test
+    void reorderSprint_shouldApplySprintAndPositions() throws Exception {
+        // ТП-24: DnD в «Списке задач» — задача переезжает в спринт и получает
+        // позицию по порядку из запроса
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        Sprint target = TestFixtures.sprint("sprint-2", project, creator);
+        when(sprintsService.findSprintByIdAndProject("sprint-2", project)).thenReturn(target);
+        TaskModel second = TestFixtures.task("task-2", creator, project, sprint, defaultStatus);
+        when(taskRepository.findTaskModelByIdAndProject("task-1", project)).thenReturn(Optional.of(task));
+        when(taskRepository.findTaskModelByIdAndProject("task-2", project)).thenReturn(Optional.of(second));
+        doAnswer(inv -> {
+            ((TaskModel) inv.getArgument(0)).setSprint(inv.getArgument(1));
+            return null;
+        }).when(taskPlacementService).placeInSprint(any(TaskModel.class), any(Sprint.class), any(Project.class));
+
+        ru.worktechlab.work_task.dto.tasks.ReorderSprintDTO dto = new ru.worktechlab.work_task.dto.tasks.ReorderSprintDTO();
+        dto.setSprintId("sprint-2");
+        dto.setTaskIds(List.of("task-2", "task-1"));
+
+        taskService.reorderSprint("project-1", dto);
+
+        assertThat(second.getPosition()).isZero();
+        assertThat(task.getPosition()).isEqualTo(1);
+        assertThat(task.getSprint()).isEqualTo(target);
+        assertThat(second.getSprint()).isEqualTo(target);
+    }
+
+    @Test
     void bulkMoveStatus_shouldMoveAllTasksToTargetStatus() throws Exception {
         UserAndProjectData data = new UserAndProjectData(project, creator);
         when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
