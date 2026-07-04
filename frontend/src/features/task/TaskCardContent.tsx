@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type MutableRefObject } from 'react'
-import { sprintDisplayLabel } from '@/entities/sprint/label'
 import {
   Box,
   Button,
@@ -10,7 +9,6 @@ import {
   Tabs,
   Typography,
 } from '@mui/material'
-import { Controller } from 'react-hook-form'
 import { orderBy } from 'lodash'
 import { MUIPrimaryButton } from '@/shared/ui/Button'
 import { MenuItem, Select } from '@/shared/ui/mui/Select'
@@ -19,8 +17,7 @@ import { FormCaption } from '@/shared/ui/components/FormCaption'
 import { Loader } from '@/shared/ui/components/Loader'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
-import { useEditTaskForm, NOT_ASSIGNED_OPTION } from './TaskForm/useTaskForm'
-import { TASK_PRIORITY_OPTIONS } from './TaskForm/contants'
+import { useEditTaskForm } from './TaskForm/useTaskForm'
 import { useEditTask } from './mutation/useEditTask'
 import { useDeleteTask } from './mutation/useDeleteTask'
 import { useUpdateTaskStatus } from './mutation/useUpdateTaskStatus'
@@ -30,7 +27,8 @@ import { TaskAttachments } from './TaskAttachments'
 import { TaskLinks } from './TaskLinks'
 import { TaskDevPanel } from './TaskDevPanel'
 import { DictationButton } from '@/features/voice/DictationButton'
-import { formatUserName, getFullName } from '@/entities/user/utils'
+import { TaskFormFields } from './TaskFormFields'
+import { formatUserName } from '@/entities/user/utils'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
 import type { ITaskCard } from '@/entities/task/types'
 import type { User } from '@/entities/user/types'
@@ -406,94 +404,12 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
           </FormControl>
         </Stack>
 
-        <Stack gap={0.5}>
-          <FormCaption>Исполнитель</FormCaption>
-          <FormControl fullWidth size="small" error={Boolean(errors.assignee)}>
-            <Controller
-              control={form.control}
-              name="assignee"
-              render={({ field }) => (
-                <Select
-                  value={field.value}
-                  onChange={(e) => field.onChange(e.target.value)}
-                >
-                  <MenuItem value={NOT_ASSIGNED_OPTION.value}>
-                    {NOT_ASSIGNED_OPTION.label}
-                  </MenuItem>
-                  {projectUsers.map((user) => (
-                    <MenuItem key={user.id} value={user.id}>
-                      {getFullName(user)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              )}
-            />
-          </FormControl>
-        </Stack>
-
-        <Stack gap={0.5}>
-          <FormCaption>Приоритет</FormCaption>
-          <FormControl fullWidth size="small">
-            <Controller
-              control={form.control}
-              name="priority"
-              render={({ field }) => (
-                <Select
-                  value={field.value}
-                  onChange={(e) => field.onChange(e.target.value)}
-                >
-                  {TASK_PRIORITY_OPTIONS.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              )}
-            />
-          </FormControl>
-        </Stack>
-
-        <Stack gap={0.5}>
-          <FormCaption>Тип</FormCaption>
-          <FormControl fullWidth size="small">
-            <Controller
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <Select
-                  value={field.value}
-                  onChange={(e) => field.onChange(e.target.value)}
-                >
-                  <MenuItem value="TASK">Задача</MenuItem>
-                  <MenuItem value="BUG">Баг</MenuItem>
-                </Select>
-              )}
-            />
-          </FormControl>
-        </Stack>
-
-        <Stack gap={0.5}>
-          <FormCaption>Спринт</FormCaption>
-          <FormControl fullWidth size="small">
-            <Controller
-              control={form.control}
-              name="sprint"
-              render={({ field }) => (
-                <Select
-                  value={field.value}
-                  onChange={(e) => field.onChange(e.target.value)}
-                >
-                  {sortedSprints.map((sprint) => (
-                    <MenuItem key={sprint.id} value={sprint.id}>
-                      {sprintDisplayLabel(sprint)}
-                      {sprint.isActive ? ' (Активный)' : ''}
-                    </MenuItem>
-                  ))}
-                </Select>
-              )}
-            />
-          </FormControl>
-        </Stack>
+        {/* ТП-76: те же поля и порядок, что в форме создания (общий компонент) */}
+        <TaskFormFields
+          form={form}
+          projectUsers={projectUsers}
+          sprints={sortedSprints}
+        />
 
         <Divider />
 
