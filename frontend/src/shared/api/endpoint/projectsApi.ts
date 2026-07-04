@@ -47,6 +47,56 @@ export type ProjectHistoryDto = {
   createdAt: string
 }
 
+/** Приглашения в проект (ТП-35). */
+export type InviteCreateResponseDto = {
+  token: string
+  projectName: string
+}
+
+export type InviteAcceptResponseDto = {
+  projectId: string
+  projectName: string
+  alreadyMember: boolean
+}
+
+/**
+ * @name CreateInvite
+ * @summary Создать одноразовую ссылку-приглашение в проект
+ * @request POST:/projects/{projectId}/invites
+ */
+export function createInvite({
+  projectId,
+  otherParams = {},
+}: {
+  projectId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<InviteCreateResponseDto>({
+    method: 'POST',
+    url: API_ENDPOINT_PATH.PROJECTS.CREATE_INVITE({ projectId }),
+    ...otherParams,
+  })
+}
+
+/**
+ * @name AcceptInvite
+ * @summary Присоединиться к проекту по ссылке-приглашению
+ * @request POST:/projects/invites/{token}/accept
+ */
+export function acceptInvite({
+  token,
+  otherParams = {},
+}: {
+  token: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<InviteAcceptResponseDto>({
+    method: 'POST',
+    url: API_ENDPOINT_PATH.PROJECTS.ACCEPT_INVITE({ token }),
+    ...otherParams,
+  })
+}
+
 export function getProjectHistory({
   projectId,
   otherParams = {},

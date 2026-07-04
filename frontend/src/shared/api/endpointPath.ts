@@ -63,6 +63,12 @@ export const API_ENDPOINT_PATH = {
 
     ADD_USERS: ({ projectId }: ProjectId) => `/projects/${projectId}/add-users`,
 
+    CREATE_INVITE: ({ projectId }: ProjectId) =>
+      `/projects/${projectId}/invites`,
+
+    ACCEPT_INVITE: ({ token }: { token: string }) =>
+      `/projects/invites/${token}/accept`,
+
     REMOVE_USERS: ({ projectId }: ProjectId) =>
       `/projects/${projectId}/delete-users`,
   },

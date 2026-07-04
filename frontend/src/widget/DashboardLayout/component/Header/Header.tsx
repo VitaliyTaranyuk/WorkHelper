@@ -18,8 +18,11 @@ import { useProjectData } from '@/features/project/query/useProjectData'
 import IconButton from '@mui/material/IconButton'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt'
 import { useBoardEditModeStore } from '@/features/board/boardEditModeStore'
 import { Link } from '@tanstack/react-router'
+import { useModal } from '@ebay/nice-modal-react'
+import { InviteUsersModal } from '@/widget/modal/project/InviteUsersModal'
 type HeaderProps = {
   headerActions: HeaderActionsProps
 }
@@ -27,6 +30,7 @@ type HeaderProps = {
 export function Header({ headerActions }: HeaderProps) {
   const { activeProject } = useProjectData()
   const { editMode, isDirty, toggle } = useBoardEditModeStore()
+  const inviteModal = useModal(InviteUsersModal)
 
   const safeToggle = () => {
     if (editMode && isDirty) {
@@ -61,6 +65,15 @@ export function Header({ headerActions }: HeaderProps) {
           size="small"
         >
           <EditOutlinedIcon fontSize="small" />
+        </IconButton>
+        {/* ТП-35: приглашение пользователей в проект (вручную/по ссылке) */}
+        <IconButton
+          aria-label="Пригласить в проект"
+          title="Пригласить в проект"
+          onClick={() => inviteModal.show()}
+          size="small"
+        >
+          <PersonAddAltIcon fontSize="small" />
         </IconButton>
         <Spacer />
         <HeaderActions actions={headerActions} />
