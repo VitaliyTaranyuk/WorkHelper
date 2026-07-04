@@ -1,10 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import { RouterProvider, createRouter } from '@tanstack/react-router'
+import { RouterProvider } from '@tanstack/react-router'
 import NiceModal from '@ebay/nice-modal-react'
 import { Toaster } from 'sonner'
-import { routeTree } from './routeTree.gen'
+import { router } from './application/router'
 import { useAuthStore } from './features/auth/authStore'
 import { AuthLoader } from './features/auth/AuthLoader'
 import { addWorkTechApiAuthMiddleware } from './features/auth/apiMiddleware'
@@ -14,19 +14,6 @@ import {
   workTechApiClient,
 } from './shared/api/workTechHttpClient'
 import { QueryProvider } from './application/provider/QueryProvider'
-
-declare module '@tanstack/react-router' {
-  interface Register {
-    router: typeof router
-  }
-}
-
-const router = createRouter({
-  routeTree,
-  context: {
-    isAuthenticated: false,
-  },
-})
 
 function InnerApp() {
   const isAuthenticated = useAuthStore((store) => store.isAuthenticated)
@@ -44,7 +31,8 @@ createRoot(document.getElementById('root')!).render(
         <AuthLoader>
           <NiceModal.Provider>
             <InnerApp />
-            <Toaster position="bottom-right" richColors />
+            {/* closeButton — ручное закрытие тостов (ТП-59) */}
+            <Toaster position="bottom-right" richColors closeButton />
           </NiceModal.Provider>
         </AuthLoader>
       </ThemeProvider>
