@@ -10,7 +10,6 @@ import { useProjectData } from '@/features/project/query/useProjectData'
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
 import { type FormValues } from './TaskForm/useTaskForm'
 import { PendingAttachments } from './PendingAttachments'
-import { DictationButton } from '@/features/voice/DictationButton'
 import { TaskDictationButton } from '@/features/voice/TaskDictationButton'
 import { TaskFormFields } from './TaskFormFields'
 import { isBoardSprintId } from '@/entities/sprint/board'
@@ -140,21 +139,10 @@ export function CreateTaskContent({
         </Stack>
 
         <Stack gap={0.5}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between">
-            <FormCaption>Описание</FormCaption>
-            {/* ТП-58: диктовка описания голосом — текст добавляется в поле */}
-            <DictationButton
-              targetLabel="описание"
-              onText={(text) => {
-                const current = form.getValues('description') ?? ''
-                form.setValue(
-                  'description',
-                  current ? `${current}\n${text}` : text,
-                  { shouldDirty: true },
-                )
-              }}
-            />
-          </Stack>
+          {/* ТП-88: в создании один голосовой ввод — «Надиктовать задачу»
+              (делит на название и описание); отдельный микрофон описания убран,
+              чтобы не дублировать точки диктовки. */}
+          <FormCaption>Описание</FormCaption>
           <TextField
             fullWidth
             multiline

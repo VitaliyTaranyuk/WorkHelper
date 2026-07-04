@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from 'react'
+import { memo } from 'react'
 import {
   Box,
   Button,
@@ -10,7 +10,6 @@ import {
   Switch,
   Typography,
 } from '@mui/material'
-import KeyboardIcon from '@mui/icons-material/Keyboard'
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined'
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined'
 import RestartAltIcon from '@mui/icons-material/RestartAlt'
@@ -18,12 +17,6 @@ import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import { useSettingsStore } from '@/features/settings/settingsStore'
 import { useThemeMode, type ThemeMode } from '@/features/settings/themeMode'
-import {
-  DEFAULT_HOTKEY,
-  formatHotkey,
-  hotkeyFromEvent,
-  useHotkeySetting,
-} from '@/features/voice/useVoiceHotkey'
 import {
   useNotificationSettings,
   useUpdateNotificationSettings,
@@ -43,34 +36,10 @@ import {
  */
 export const SettingsPage = memo(function SettingsPageInner() {
   const resetSettings = useSettingsStore((s) => s.reset)
-  const [hotkey, setHotkey] = useHotkeySetting()
-  const [capturing, setCapturing] = useState(false)
-
-  // Захват нового сочетания для голосового управления.
-  useEffect(() => {
-    if (!capturing) return
-    const onKey = (e: KeyboardEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      if (e.key === 'Escape') {
-        setCapturing(false)
-        return
-      }
-      const next = hotkeyFromEvent(e)
-      if (next) {
-        // ТП-71: без тоста — новое сочетание сразу видно рядом с кнопкой
-        setHotkey(next)
-        setCapturing(false)
-      }
-    }
-    window.addEventListener('keydown', onKey, true)
-    return () => window.removeEventListener('keydown', onKey, true)
-  }, [capturing, setHotkey])
 
   const resetAll = () => {
     // ТП-71: без тоста — сброшенные значения видны на этой же странице
     resetSettings()
-    setHotkey(DEFAULT_HOTKEY)
   }
 
   return (
@@ -85,34 +54,6 @@ export const SettingsPage = memo(function SettingsPageInner() {
         <Divider />
 
         <NotificationSettingsSection />
-
-        <Divider />
-
-        <section>
-          <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
-            <KeyboardIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              Голосовое управление
-            </Typography>
-          </Stack>
-          <Stack direction="row" alignItems="center" gap={2}>
-            <Typography variant="body2" color="text.secondary">
-              Горячая клавиша запуска диктовки:
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {capturing ? 'нажмите сочетание… (Esc — отмена)' : formatHotkey(hotkey)}
-            </Typography>
-            {!capturing && (
-              <Button size="small" onClick={() => setCapturing(true)}>
-                Изменить
-              </Button>
-            )}
-          </Stack>
-          <Typography variant="caption" color="text.secondary">
-            Голосовая команда: «Создай задачу. Название. Описание…» — работает
-            с любого экрана. Кнопка-микрофон находится в шапке.
-          </Typography>
-        </section>
 
         <Divider />
 
@@ -145,7 +86,7 @@ export const SettingsPage = memo(function SettingsPageInner() {
             color="text.secondary"
             sx={{ display: 'block', mt: 0.5 }}
           >
-            Вернёт вид календаря и горячую клавишу к значениям по умолчанию.
+            Вернёт вид календаря к значению по умолчанию.
           </Typography>
         </section>
       </Stack>
