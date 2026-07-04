@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { sprintFormSchema } from './sprintFormSchema'
-import { getDifferenceInDays, makeDateObj } from '@/shared/utils/date'
+import { makeDateObj } from '@/shared/utils/date'
 
 export type FormValues = z.infer<typeof sprintFormSchema>
 
@@ -18,7 +18,7 @@ export interface EditFormSprint {
 const DEFAULT_SPRINT_FORM_VALUE = {
   name: '',
   goal: '',
-  duration: null,
+  endDate: null,
   startDate: null,
 }
 
@@ -38,15 +38,10 @@ export function useSprintForm({ sprint }: { sprint?: EditFormSprint } = {}) {
 }
 
 function mapSprintInfoToFormValues(sprint: EditFormSprint): FormValues {
-  let duration = null
-
-  if (sprint.startDate && sprint.endDate) {
-    duration = getDifferenceInDays(sprint.startDate, sprint.endDate)
-  }
-
   return {
     ...sprint,
     startDate: sprint.startDate ? Number(makeDateObj(sprint.startDate)) : null,
-    duration,
+    // ТП-48: дата завершения — датапикер, как дата старта
+    endDate: sprint.endDate ? Number(makeDateObj(sprint.endDate)) : null,
   }
 }

@@ -12,7 +12,7 @@ import { Button } from '@/shared/ui/Button'
 import { useSprintForm } from '@/features/sprint/SprintForm/useSprintForm'
 import { modalStyle } from '@/shared/ui/modalStyles'
 import { SprintForm } from '@/features/sprint/SprintForm'
-import { formatDateForBackend, getEndDate } from '@/shared/utils/date'
+import { formatDateForBackend } from '@/shared/utils/date'
 import { Spacer } from '@/shared/ui/Spacer'
 import type { SprintFull } from '@/entities/sprint/type'
 import { useEditSprint } from '@/features/sprint/mutation/useEditSprint'
@@ -38,18 +38,16 @@ function EditSprintModalInner(props: EditSprintModalProps) {
   }
 
   const onSubmit = form.handleSubmit(async (formValues) => {
-    const endDate = getEndDate({
-      startDate: formValues.startDate,
-      durationInDays: formValues.duration,
-    })
-
+    // ТП-48: дата завершения выбирается в календаре напрямую
     editSprint.mutateAsync({
       name: formValues.name,
       ...(formValues.goal ? { goal: formValues.goal } : {}),
       ...(formValues.startDate
         ? { startDate: formatDateForBackend(formValues.startDate) }
         : {}),
-      ...(endDate ? { endDate: formatDateForBackend(endDate) } : {}),
+      ...(formValues.endDate
+        ? { endDate: formatDateForBackend(formValues.endDate) }
+        : {}),
     })
 
     modal.resolve(formValues)
