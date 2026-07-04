@@ -35,6 +35,7 @@ export const API_ENDPOINT_PATH = {
     PROFILE: () => `/users/profile`,
     UPDATE: () => `/users/update`,
     GENDER_VALUES: () => `/users/gender-values`,
+    SETTINGS: () => `/users/settings`,
   },
 
   PROJECTS: {

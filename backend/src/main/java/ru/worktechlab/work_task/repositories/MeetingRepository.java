@@ -18,4 +18,14 @@ public interface MeetingRepository extends JpaRepository<Meeting, String> {
             "where m.reminderSent = false and m.startAt between :from and :to")
     List<Meeting> findDueReminders(@Param("from") LocalDateTime from,
                                    @Param("to") LocalDateTime to);
+
+    /**
+     * Предстоящие встречи в окне [from, to] (ТП-65): за окно берётся максимально
+     * возможное время напоминания среди пользователей. Решение «слать ли уже» —
+     * по индивидуальным настройкам получателя в планировщике.
+     */
+    @Query("select distinct m from Meeting m left join fetch m.participants " +
+            "where m.startAt between :from and :to")
+    List<Meeting> findUpcoming(@Param("from") LocalDateTime from,
+                               @Param("to") LocalDateTime to);
 }

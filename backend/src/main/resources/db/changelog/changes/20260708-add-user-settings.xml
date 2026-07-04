@@ -1,0 +1,56 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- ТП-65: серверные настройки уведомлений пользователя. -->
+    <changeSet id="20260708-add-user-settings" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="user_settings"/></not>
+        </preConditions>
+        <createTable tableName="user_settings">
+            <column name="id" type="varchar(255)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="varchar(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="notify_mentions" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="notify_task_created" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="notify_meetings" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reminder_minutes" type="int" defaultValueNumeric="15">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_settings" baseColumnNames="user_id"
+                                 constraintName="fk_user_settings_user"
+                                 referencedTableName="users" referencedColumnNames="id"/>
+    </changeSet>
+
+    <!-- ТП-65: журнал отправленных напоминаний о встречах (пара meeting+user). -->
+    <changeSet id="20260708-add-meeting-reminder-log" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="meeting_reminder_log"/></not>
+        </preConditions>
+        <createTable tableName="meeting_reminder_log">
+            <column name="id" type="varchar(255)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="meeting_id" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="meeting_reminder_log" columnNames="meeting_id, user_id"
+                             constraintName="uq_meeting_reminder_log"/>
+    </changeSet>
+
+</databaseChangeLog>

@@ -43,6 +43,49 @@ export function getUserProfile({
   })
 }
 
+/** Серверные настройки уведомлений пользователя (ТП-65). */
+export type UserSettingsDto = {
+  notifyMentions: boolean
+  notifyTaskCreated: boolean
+  notifyMeetings: boolean
+  reminderMinutes: number
+}
+
+/**
+ * @name GetUserSettings
+ * @summary Настройки уведомлений текущего пользователя
+ * @request GET:/users/settings
+ */
+export function getUserSettings({
+  otherParams = {},
+}: { otherParams?: RequestParams } = {}) {
+  return workTechApiClient<UserSettingsDto>({
+    method: 'GET',
+    url: API_ENDPOINT_PATH.USERS.SETTINGS(),
+    ...otherParams,
+  })
+}
+
+/**
+ * @name UpdateUserSettings
+ * @summary Обновить настройки уведомлений
+ * @request PUT:/users/settings
+ */
+export function updateUserSettings({
+  data,
+  otherParams = {},
+}: {
+  data: UserSettingsDto
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<UserSettingsDto>({
+    method: 'PUT',
+    url: API_ENDPOINT_PATH.USERS.SETTINGS(),
+    data,
+    ...otherParams,
+  })
+}
+
 /** Минимальное редактирование профиля текущего пользователя (ТП-63). */
 export type UpdateProfileRequest = {
   firstName: string

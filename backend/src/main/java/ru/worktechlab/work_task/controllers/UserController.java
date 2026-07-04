@@ -12,9 +12,11 @@ import ru.worktechlab.work_task.dto.users.UpdateProfileRequest;
 import ru.worktechlab.work_task.dto.users.UpdateUserRequest;
 import ru.worktechlab.work_task.dto.users.UserDataDto;
 import ru.worktechlab.work_task.dto.users.UserPickerDto;
+import ru.worktechlab.work_task.dto.users.UserSettingsDto;
 import ru.worktechlab.work_task.dto.users.UserShortDataDto;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.services.UserService;
+import ru.worktechlab.work_task.services.UserSettingsService;
 
 import java.util.List;
 
@@ -27,6 +29,7 @@ import static ru.worktechlab.work_task.models.enums.Roles.Fields.*;
 public class UserController {
 
     private final UserService userService;
+    private final UserSettingsService userSettingsService;
 
     @RolesAllowed({ADMIN, PROJECT_OWNER})
     @Operation(summary = "Список всех пользователей")
@@ -89,5 +92,20 @@ public class UserController {
     @GetMapping("/gender-values")
     public EnumValuesResponse getGenderValues() {
         return userService.getGenderValues();
+    }
+
+    @RolesAllowed({ADMIN, PROJECT_OWNER, PROJECT_MEMBER, POWER_USER})
+    @Operation(summary = "Настройки уведомлений текущего пользователя (ТП-65)")
+    @GetMapping("/settings")
+    public UserSettingsDto getSettings() {
+        return userSettingsService.getForCurrentUser();
+    }
+
+    @RolesAllowed({ADMIN, PROJECT_OWNER, PROJECT_MEMBER, POWER_USER})
+    @Operation(summary = "Обновить настройки уведомлений текущего пользователя (ТП-65)")
+    @PutMapping("/settings")
+    public UserSettingsDto updateSettings(
+            @jakarta.validation.Valid @RequestBody UserSettingsDto data) {
+        return userSettingsService.updateForCurrentUser(data);
     }
 }

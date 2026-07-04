@@ -6,6 +6,26 @@
 
 ---
 
+## Завершено 2026-07-04: ТП-65 «Серверные настройки уведомлений» (ветка `feature/tp65-notification-settings`)
+
+Настоящие серверные настройки (не муляж, как было в ТП-56):
+- **Backend**: entity `UserSettings` (userId unique, notifyMentions/notifyTaskCreated/
+  notifyMeetings, reminderMinutes) + миграция `20260708` (аддитивная, 2 таблицы).
+  Нет записи = дефолты (всё включено, 15 мин) — `UserSettingsService.effectiveFor`
+  не плодит строки. Endpoints GET/PUT `/users/settings`.
+- **InAppNotificationService**: перед созданием MENTION/TASK_CREATED проверяет
+  настройку получателя — отключённые не создаются (счётчик непрочитанных не
+  разъезжается: не создаём, а не фильтруем на клиенте).
+- **MeetingReminderScheduler переписан** под per-user время: `findUpcoming` (окно
+  до 24ч) + для каждого участника проверка notifyMeetings и reminderMinutes;
+  дубли исключает новая таблица `meeting_reminder_log` (пара meeting+user) вместо
+  единого флага reminderSent (он не годился для разных окон). +6 тестов на шедулер.
+- **Frontend**: `useNotificationSettings` (query+mutation), секция «Уведомления»
+  на странице настроек (свитчи + селект времени напоминания). Подзадача ТП-56
+  закрыта по-настоящему.
+
+---
+
 ## Завершено 2026-07-04: ТП-67 «Календарь — единый стиль и UX» (ветка `feature/tp67-calendar-ui`)
 
 Календарь приведён к дизайн-системе и паттернам календарей (Google/Outlook):

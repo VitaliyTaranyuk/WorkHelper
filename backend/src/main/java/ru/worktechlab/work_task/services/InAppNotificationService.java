@@ -40,6 +40,7 @@ public class InAppNotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final UserContext userContext;
+    private final UserSettingsService userSettingsService;
 
     /** Parse @username tokens in text and create a MENTION notification per mentioned user (not self). */
     @TransactionMandatory
@@ -50,6 +51,8 @@ public class InAppNotificationService {
         for (String username : usernames) {
             userRepository.findByUsername(username).ifPresent(recipient -> {
                 if (recipient.getId().equals(actor.getId())) return;
+                // ТП-65: получатель мог отключить уведомления об упоминаниях
+                if (!userSettingsService.effectiveFor(recipient.getId()).isNotifyMentions()) return;
                 String message = String.format("%s упомянул(а) вас в задаче %s", actorName(actor), task.getCode());
                 notificationRepository.save(new Notification(recipient, actor, TYPE_MENTION, message, task.getId(), task.getCode(), commentId));
                 log.debug("MENTION notification: {} -> {} (task {})", actor.getId(), recipient.getId(), task.getCode());
@@ -64,6 +67,8 @@ public class InAppNotificationService {
      */
     @TransactionMandatory
     public void createTaskCreatedNotification(User creator, TaskModel task) {
+        // ТП-65: создатель мог отключить уведомления о создании задач
+        if (!userSettingsService.effectiveFor(creator.getId()).isNotifyTaskCreated()) return;
         String message = String.format("Создана задача %s «%s»", task.getCode(), task.getTitle());
         notificationRepository.save(new Notification(creator, creator, TYPE_TASK_CREATED, message,
                 task.getId(), task.getCode(), null));
