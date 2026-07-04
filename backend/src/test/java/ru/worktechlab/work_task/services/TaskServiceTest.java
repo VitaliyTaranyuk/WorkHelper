@@ -17,6 +17,8 @@ import ru.worktechlab.work_task.dto.task_comment.CommentResponseDto;
 import ru.worktechlab.work_task.dto.task_link.LinkDto;
 import ru.worktechlab.work_task.dto.tasks.TaskDataDto;
 import ru.worktechlab.work_task.dto.tasks.TaskModelDTO;
+import ru.worktechlab.work_task.dto.tasks.UpdateStatusRequestDTO;
+import ru.worktechlab.work_task.exceptions.BadRequestException;
 import ru.worktechlab.work_task.exceptions.DuplicateLinkException;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.mappers.CommentMapper;
@@ -209,6 +211,47 @@ class TaskServiceTest {
         taskService.createTask(dto);
 
         verify(inAppNotificationService).createTaskCreatedNotification(eq(creator), any(TaskModel.class));
+    }
+
+    @Test
+    void updateTaskStatus_shouldApply_whenTaskOnBoard() throws Exception {
+        UpdateStatusRequestDTO dto = new UpdateStatusRequestDTO();
+        dto.setProjectId("project-1");
+        dto.setId("task-1");
+        dto.setStatus(2L);
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(taskRepository.findTaskModelByIdAndProjectForUpdate("task-1", "project-1"))
+                .thenReturn(Optional.of(task));
+        when(taskPlacementService.isOnBoard(project, sprint)).thenReturn(true);
+        when(taskRepository.findById("task-1")).thenReturn(Optional.of(task));
+        when(taskMapper.toDo(any(TaskModel.class))).thenReturn(mock(TaskDataDto.class));
+
+        taskService.updateTaskStatus(dto);
+
+        // ТП-74: у задачи доскового спринта статус применяется штатно
+        verify(taskHistorySaverService).saveTaskModelChanges(eq(task), eq(dto), eq(project), eq(creator));
+    }
+
+    @Test
+    void updateTaskStatus_shouldReject_whenTaskNotOnBoard() throws Exception {
+        UpdateStatusRequestDTO dto = new UpdateStatusRequestDTO();
+        dto.setProjectId("project-1");
+        dto.setId("task-1");
+        dto.setStatus(2L);
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(taskRepository.findTaskModelByIdAndProjectForUpdate("task-1", "project-1"))
+                .thenReturn(Optional.of(task));
+        when(taskPlacementService.isOnBoard(project, sprint)).thenReturn(false);
+
+        // ТП-74: у задачи бэклога/неактивного спринта статус менять нельзя
+        assertThatThrownBy(() -> taskService.updateTaskStatus(dto))
+                .isInstanceOf(BadRequestException.class);
+        verify(taskHistorySaverService, never())
+                .saveTaskModelChanges(any(), any(UpdateStatusRequestDTO.class), any(), any());
     }
 
     @Test

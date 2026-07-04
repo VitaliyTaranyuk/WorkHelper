@@ -27,6 +27,7 @@ import ru.worktechlab.work_task.dto.tasks.TaskModelDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateStatusRequestDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateTaskModelDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateTasksSprintRequestDto;
+import ru.worktechlab.work_task.exceptions.BadRequestException;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.services.TaskHistoryService;
 import ru.worktechlab.work_task.services.TaskService;
@@ -96,7 +97,7 @@ public class TaskController {
                             schema = @Schema(implementation = UpdateStatusRequestDTO.class)
                     )
             )
-            @RequestBody UpdateStatusRequestDTO requestDto) throws NotFoundException {
+            @RequestBody UpdateStatusRequestDTO requestDto) throws NotFoundException, BadRequestException {
         return taskService.updateTaskStatus(requestDto);
     }
 

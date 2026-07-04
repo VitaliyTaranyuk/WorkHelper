@@ -88,11 +88,24 @@ public class TaskPlacementService {
     }
 
     /**
+     * Спринт задачи — досковый (активный, а без активного — Backlog)? Только у
+     * таких задач статус-колонка доски имеет смысл: доска показывает именно эти
+     * задачи (ТП-74).
+     */
+    @TransactionMandatory
+    public boolean isOnBoard(Project project, Sprint sprint) throws NotFoundException {
+        return sprint != null && boardSprint(project).getId().equals(sprint.getId());
+    }
+
+    /**
      * Статус новой задачи с учётом явно выбранной колонки доски (ТП-36):
      * допустима только видимая колонка; без выбора — первая колонка.
+     * ТП-74: колонку доски можно задать только для задачи доскового спринта;
+     * для бэклога/неактивного спринта колонок нет — назначаем первую колонку
+     * автоматически, явно запрошенный статус игнорируем (защита от обхода через API).
      */
     public TaskStatus initialStatusFor(Sprint sprint, Project project, Long requestedStatusId) throws NotFoundException {
-        if (requestedStatusId == null)
+        if (requestedStatusId == null || !isOnBoard(project, sprint))
             return initialStatusFor(sprint, project);
         return project.getStatuses().stream()
                 .filter(TaskStatus::isViewed)

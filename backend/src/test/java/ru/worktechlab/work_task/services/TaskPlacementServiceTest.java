@@ -69,21 +69,40 @@ class TaskPlacementServiceTest {
     }
 
     @Test
-    void initialStatusFor_withRequestedStatus_shouldApplyForBacklogSprintToo() throws Exception {
-        assertThat(placement.initialStatusFor(backlog, project, 2L)).isEqualTo(inProgressStatus);
+    void initialStatusFor_withRequestedStatus_shouldApply_forActiveBoardSprint() throws Exception {
+        // ТП-74: sprint активен (досковый) → явно выбранная видимая колонка применяется
+        when(sprintsRepository.getSprintInfoByProjectId(project)).thenReturn(sprint);
         assertThat(placement.initialStatusFor(sprint, project, 2L)).isEqualTo(inProgressStatus);
     }
 
     @Test
-    void initialStatusFor_withHiddenRequestedStatus_shouldThrow() {
+    void initialStatusFor_withRequestedStatus_shouldIgnore_forNonBoardSprint() throws Exception {
+        // ТП-74: активен sprint → backlog не досковый → запрошенный статус
+        // игнорируется, назначается первая колонка (защита от обхода через API)
+        when(sprintsRepository.getSprintInfoByProjectId(project)).thenReturn(sprint);
+        assertThat(placement.initialStatusFor(backlog, project, 2L)).isEqualTo(todoStatus);
+    }
+
+    @Test
+    void initialStatusFor_withHiddenRequestedStatus_shouldThrow_onBoard() {
+        when(sprintsRepository.getSprintInfoByProjectId(project)).thenReturn(sprint);
         assertThatThrownBy(() -> placement.initialStatusFor(sprint, project, 5L))
                 .isInstanceOf(NotFoundException.class);
     }
 
     @Test
-    void initialStatusFor_withUnknownRequestedStatus_shouldThrow() {
+    void initialStatusFor_withUnknownRequestedStatus_shouldThrow_onBoard() {
+        when(sprintsRepository.getSprintInfoByProjectId(project)).thenReturn(sprint);
         assertThatThrownBy(() -> placement.initialStatusFor(sprint, project, 999L))
                 .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void isOnBoard_shouldBeTrueForActiveSprint_andFalseForBacklog() throws Exception {
+        when(sprintsRepository.getSprintInfoByProjectId(project)).thenReturn(sprint);
+        assertThat(placement.isOnBoard(project, sprint)).isTrue();
+        assertThat(placement.isOnBoard(project, backlog)).isFalse();
+        assertThat(placement.isOnBoard(project, null)).isFalse();
     }
 
     @Test

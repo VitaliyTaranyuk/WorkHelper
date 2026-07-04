@@ -17,6 +17,7 @@ import { FormCaption } from '@/shared/ui/components/FormCaption'
 import { Loader } from '@/shared/ui/components/Loader'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
+import { isBoardSprintId } from '@/entities/sprint/board'
 import { useEditTaskForm } from './TaskForm/useTaskForm'
 import { useEditTask } from './mutation/useEditTask'
 import { useDeleteTask } from './mutation/useDeleteTask'
@@ -127,7 +128,14 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
     [activeProject?.statuses],
   )
 
-  const isStatusDirty = statusId !== baselineStatusId
+  // ТП-74: статус доски осмыслен только для задачи доскового спринта
+  // (активного; без активного — Backlog). При выборе бэклога/неактивного
+  // спринта поле «Статус» скрываем и не отправляем его изменение — так же,
+  // как это проверяет бэкенд. Реагирует на смену спринта в форме без перезагрузки.
+  const selectedSprintId = form.watch('sprint')
+  const statusApplicable = isBoardSprintId(sortedSprints, selectedSprintId)
+
+  const isStatusDirty = statusApplicable && statusId !== baselineStatusId
   const isFormDirty = Object.keys(form.formState.dirtyFields).length > 0
 
   /**
@@ -384,25 +392,32 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
           alignSelf: 'flex-start',
         }}
       >
-        <Stack gap={0.5}>
-          <FormCaption>Статус</FormCaption>
-          <FormControl fullWidth size="small">
-            {/* Явное сохранение (ТП-34): выбор меняет только локальное
-                значение, на сервер уходит по кнопке «Сохранить». */}
-            <Select
-              value={statusId}
-              onChange={(e) => setStatusId(Number(e.target.value))}
-            >
-              {projectStatuses.map((s) => (
-                <MenuItem key={s.id} value={s.id}>
-                  {/* code — единое отображаемое имя колонки, заданное
-                      пользователем. Никаких подмен на description / переводов. */}
-                  {s.code}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Stack>
+        {/* ТП-74: «Статус» — только для задачи активного (доскового) спринта. */}
+        {statusApplicable ? (
+          <Stack gap={0.5}>
+            <FormCaption>Статус</FormCaption>
+            <FormControl fullWidth size="small">
+              {/* Явное сохранение (ТП-34): выбор меняет только локальное
+                  значение, на сервер уходит по кнопке «Сохранить». */}
+              <Select
+                value={statusId}
+                onChange={(e) => setStatusId(Number(e.target.value))}
+              >
+                {projectStatuses.map((s) => (
+                  <MenuItem key={s.id} value={s.id}>
+                    {/* code — единое отображаемое имя колонки, заданное
+                        пользователем. Никаких подмен на description / переводов. */}
+                    {s.code}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Stack>
+        ) : (
+          <FormCaption>
+            Статус доступен только для задач активного спринта
+          </FormCaption>
+        )}
 
         {/* ТП-76: те же поля и порядок, что в форме создания (общий компонент) */}
         <TaskFormFields

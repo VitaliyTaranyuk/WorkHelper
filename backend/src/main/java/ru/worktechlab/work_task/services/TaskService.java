@@ -22,6 +22,7 @@ import ru.worktechlab.work_task.dto.tasks.ReorderColumnDTO;
 import ru.worktechlab.work_task.dto.tasks.ReorderSprintDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateStatusRequestDTO;
 import ru.worktechlab.work_task.dto.tasks.UpdateTaskModelDTO;
+import ru.worktechlab.work_task.exceptions.BadRequestException;
 import ru.worktechlab.work_task.exceptions.DuplicateLinkException;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.mappers.CommentMapper;
@@ -187,10 +188,16 @@ public class TaskService {
     }
 
     @TransactionRequired
-    public TaskDataDto updateTaskStatus(UpdateStatusRequestDTO requestDto) throws NotFoundException {
+    public TaskDataDto updateTaskStatus(UpdateStatusRequestDTO requestDto) throws NotFoundException, BadRequestException {
         log.debug("Обновить статус задачи");
         UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(requestDto.getProjectId(), false, false);
         TaskModel task = findTaskByIdAndProjectForUpdate(requestDto.getId(), data.getProject());
+        // ТП-74: статус-колонка доски осмыслена только для задач доскового
+        // спринта. У бэклога/неактивного спринта колонок нет — менять статус
+        // нельзя (серверная защита от обхода ограничения через API).
+        if (!taskPlacementService.isOnBoard(data.getProject(), task.getSprint()))
+            throw new BadRequestException(
+                    "Статус можно задать только для задачи активного спринта — она отображается на доске");
         taskHistorySaverService.saveTaskModelChanges(task, requestDto, data.getProject(), data.getUser());
         taskRepository.flush();
         return taskMapper.toDo(findTaskByIdOrThrow(task.getId()));
