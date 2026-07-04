@@ -29,6 +29,24 @@ public class ProjectController {
 
     private final ProjectsService projectsService;
     private final ProjectHistoryService projectHistoryService;
+    private final ru.worktechlab.work_task.services.ProjectInviteService projectInviteService;
+
+    @RolesAllowed({PROJECT_OWNER})
+    @PostMapping("/{projectId}/invites")
+    @Operation(summary = "Создать одноразовую ссылку-приглашение в проект")
+    public ru.worktechlab.work_task.dto.invites.InviteCreateResponseDto createInvite(
+            @PathVariable String projectId) throws NotFoundException, BadRequestException {
+        return projectInviteService.createInvite(projectId);
+    }
+
+    // Без @RolesAllowed: достаточно аутентификации — приглашение принимает
+    // в том числе только что зарегистрированный пользователь без проектов.
+    @PostMapping("/invites/{token}/accept")
+    @Operation(summary = "Присоединиться к проекту по ссылке-приглашению")
+    public ru.worktechlab.work_task.dto.invites.InviteAcceptResponseDto acceptInvite(
+            @PathVariable String token) throws NotFoundException, BadRequestException {
+        return projectInviteService.acceptInvite(token);
+    }
 
     @RolesAllowed({ADMIN, PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
     @GetMapping("/for-user")

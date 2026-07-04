@@ -52,7 +52,12 @@ function useLoginSubmit() {
 
     try {
       await auth.login({ userName: data.email, password: data.password })
-      navigate({ to: redirect || '/' })
+      // ТП-35: недопринятое приглашение переживает регистрацию/логин —
+      // возвращаем пользователя на страницу приглашения (она его применит).
+      const pendingInvite = localStorage.getItem('pendingInviteToken')
+      navigate({
+        to: redirect || (pendingInvite ? `/invite/${pendingInvite}` : '/'),
+      })
     } catch {
       setError('Неверное имя пользователя или пароль')
     } finally {

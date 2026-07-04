@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedMainRouteImport } from './routes/_authenticated/main'
 import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
@@ -33,6 +34,11 @@ const AuthRoute = AuthRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof AuthRegisterRoute
   '/main': typeof AuthenticatedMainRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/task/$code': typeof AuthenticatedTaskCodeRoute
   '/task/create': typeof AuthenticatedTaskCreateRoute
   '/project/$projectId/backlog': typeof AuthenticatedProjectProjectIdBacklogRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/register': typeof AuthRegisterRoute
   '/main': typeof AuthenticatedMainRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/task/$code': typeof AuthenticatedTaskCodeRoute
   '/task/create': typeof AuthenticatedTaskCreateRoute
   '/project/$projectId/backlog': typeof AuthenticatedProjectProjectIdBacklogRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/_auth/register': typeof AuthRegisterRoute
   '/_authenticated/main': typeof AuthenticatedMainRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/_authenticated/task/$code': typeof AuthenticatedTaskCodeRoute
   '/_authenticated/task/create': typeof AuthenticatedTaskCreateRoute
   '/_authenticated/project/$projectId/backlog': typeof AuthenticatedProjectProjectIdBacklogRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/main'
     | '/settings'
+    | '/invite/$token'
     | '/task/$code'
     | '/task/create'
     | '/project/$projectId/backlog'
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/main'
     | '/settings'
+    | '/invite/$token'
     | '/task/$code'
     | '/task/create'
     | '/project/$projectId/backlog'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/_auth/register'
     | '/_authenticated/main'
     | '/_authenticated/settings'
+    | '/invite/$token'
     | '/_authenticated/task/$code'
     | '/_authenticated/task/create'
     | '/_authenticated/project/$projectId/backlog'
@@ -168,6 +180,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  InviteTokenRoute: typeof InviteTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/settings': {
@@ -302,6 +322,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  InviteTokenRoute: InviteTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
