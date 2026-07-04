@@ -10,7 +10,7 @@ export const Card = styled.div`
   flex-direction: column;
   gap: 6px;
   padding: 12px 14px;
-  background-color: ${COLOR.background[200]};
+  background-color: var(--wt-surface);
   border-radius: 16px;
   font-size: 13px;
   cursor: pointer;
@@ -40,7 +40,7 @@ export const TaskTitle = styled(ButtonWithoutStyles)`
   text-align: left;
 
   ${TEXT_STYLES.body}
-  color: ${COLOR.text.primary};
+  color: var(--wt-text);
 
   // TODO: уточнить у дизайна на счет ховера заголовка
   :hover {

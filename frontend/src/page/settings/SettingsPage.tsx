@@ -12,8 +12,12 @@ import {
 } from '@mui/material'
 import KeyboardIcon from '@mui/icons-material/Keyboard'
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined'
+import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined'
 import RestartAltIcon from '@mui/icons-material/RestartAlt'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import { useSettingsStore } from '@/features/settings/settingsStore'
+import { useThemeMode, type ThemeMode } from '@/features/settings/themeMode'
 import {
   DEFAULT_HOTKEY,
   formatHotkey,
@@ -76,6 +80,10 @@ export const SettingsPage = memo(function SettingsPageInner() {
       </Typography>
 
       <Stack gap={3}>
+        <ThemeSection />
+
+        <Divider />
+
         <NotificationSettingsSection />
 
         <Divider />
@@ -144,6 +152,46 @@ export const SettingsPage = memo(function SettingsPageInner() {
     </Box>
   )
 })
+
+const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
+  { value: 'light', label: 'Светлая' },
+  { value: 'dark', label: 'Тёмная' },
+  { value: 'system', label: 'Системная' },
+]
+
+/** Выбор темы оформления (ТП-64): light / dark / system. */
+function ThemeSection() {
+  const { mode, setMode } = useThemeMode()
+  return (
+    <section>
+      <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
+        <DarkModeOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+          Тема оформления
+        </Typography>
+      </Stack>
+      <ToggleButtonGroup
+        size="small"
+        exclusive
+        value={mode}
+        onChange={(_, v: ThemeMode | null) => v && setMode(v)}
+      >
+        {THEME_OPTIONS.map((o) => (
+          <ToggleButton key={o.value} value={o.value} sx={{ textTransform: 'none' }}>
+            {o.label}
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: 'block', mt: 0.5 }}
+      >
+        «Системная» следует настройке оформления вашей ОС.
+      </Typography>
+    </section>
+  )
+}
 
 const REMINDER_OPTIONS = [5, 10, 15, 30, 60, 120] as const
 

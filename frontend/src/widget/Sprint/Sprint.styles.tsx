@@ -27,7 +27,7 @@ export const SprintBlock = styled.div`
   z-index: 1;
 
   border-radius: 8px;
-  background-color: ${COLOR.background[500]};
+  background-color: var(--wt-bg);
 
   ::before {
     content: '';
@@ -36,7 +36,7 @@ export const SprintBlock = styled.div`
     height: 5px;
     position: absolute;
     top: -5px;
-    background-color: ${COLOR.background[500]};
+    background-color: var(--wt-bg);
   }
 `
 
