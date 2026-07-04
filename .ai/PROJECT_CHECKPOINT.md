@@ -6,6 +6,17 @@
 
 ---
 
+## Завершено 2026-07-04: ТП-52 «Удалить Оценку из карточки задачи» (ветка `feature/tp52-remove-estimation`)
+
+Поле «Оценка» убрано из карточки задачи: формы создания (`CreateTaskContent`,
+`CreateTaskModal`, `CreateTaskDetails`) и редактирования (`TaskCardContent`), из
+схемы формы (`taskFormSchema`/`useTaskForm`) и хелперов (`transformEstimaionByLimit`,
+`ESTIMATION_MAX` удалены как мёртвый код). Backend-поле `estimation` НЕ трогали
+(аддитивность, контракт совместим); отображение старых оценок на доске/в спринтах
+(`TaskCard`, `SprintTask`, «Общая оценка» в FinishSprintModal) сохранено.
+
+---
+
 ## Завершено 2026-07-04: ТП-53 «Открытие вложений в карточке задачи» (ветка `feature/tp53-attachment-open`)
 
 - Форма создания задачи (`PendingAttachments`): клик по превью изображения открывает

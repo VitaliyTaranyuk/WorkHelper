@@ -12,8 +12,6 @@ export const PRIORITY_COLORS_BORDERS: Record<TaskPriority, string> = {
   HIGH: '#F6D2CB',
 } as const
 
-export const ESTIMATION_MAX = 9999
-
 export type TaskFilterId = 'my'
 
 export interface TaskFilterDef {
