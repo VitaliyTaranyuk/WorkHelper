@@ -34,6 +34,9 @@ public class Meeting {
     @Column(name = "end_at")
     private LocalDateTime endAt;
 
+    @Column(length = 2048)
+    private String link;
+
     @ManyToOne
     @JoinColumn(name = "creator_id")
     private User creator;
@@ -70,6 +73,10 @@ public class Meeting {
 
     public void setEndAt(LocalDateTime endAt) {
         this.endAt = endAt;
+    }
+
+    public void setLink(String link) {
+        this.link = link;
     }
 
     public void setParticipants(List<User> users) {

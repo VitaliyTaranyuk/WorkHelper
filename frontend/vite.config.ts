@@ -20,6 +20,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    // PORT задаёт тулинг (preview/CI), чтобы не конфликтовать с другим дев-сервером
+    port: Number(process.env.PORT) || 3000,
   },
 })

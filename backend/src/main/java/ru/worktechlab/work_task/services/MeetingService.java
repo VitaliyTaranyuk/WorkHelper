@@ -39,6 +39,7 @@ public class MeetingService {
         UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
         Meeting meeting = new Meeting(data.getProject(), request.getTitle(), request.getDescription(),
                 request.getStartAt(), request.getEndAt(), data.getUser());
+        meeting.setLink(normalizeLink(request.getLink()));
         meeting.setParticipants(resolveParticipants(request.getParticipantIds()));
         meetingRepository.saveAndFlush(meeting);
         return toDto(meeting);
@@ -52,6 +53,7 @@ public class MeetingService {
         meeting.setDescription(request.getDescription());
         meeting.setStartAt(request.getStartAt());
         meeting.setEndAt(request.getEndAt());
+        meeting.setLink(normalizeLink(request.getLink()));
         meeting.setParticipants(resolveParticipants(request.getParticipantIds()));
         meetingRepository.flush();
         return toDto(meeting);
@@ -71,6 +73,12 @@ public class MeetingService {
                 () -> new NotFoundException(String.format("Встреча %s не найдена", meetingId)));
     }
 
+    private String normalizeLink(String link) {
+        if (link == null || link.isBlank())
+            return null;
+        return link.trim();
+    }
+
     private List<User> resolveParticipants(List<String> participantIds) {
         if (participantIds == null || participantIds.isEmpty())
             return List.of();
@@ -83,7 +91,7 @@ public class MeetingService {
                 .toList();
         String creatorName = meeting.getCreator() != null ? participantName(meeting.getCreator()) : null;
         return new MeetingDto(meeting.getId(), meeting.getTitle(), meeting.getDescription(),
-                meeting.getStartAt(), meeting.getEndAt(), creatorName, participants);
+                meeting.getStartAt(), meeting.getEndAt(), meeting.getLink(), creatorName, participants);
     }
 
     private String participantName(User user) {

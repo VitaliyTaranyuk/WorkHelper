@@ -1,0 +1,27 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- ТП-37: ссылка на встречу (Телемост и т.п.) + кликабельные напоминания о встречах. -->
+    <changeSet id="20260707-add-meeting-link" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="meeting" columnName="link"/></not>
+        </preConditions>
+        <addColumn tableName="meeting">
+            <column name="link" type="varchar(2048)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="20260707-add-notification-meeting-fields" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="notification" columnName="meeting_id"/></not>
+        </preConditions>
+        <addColumn tableName="notification">
+            <column name="meeting_id" type="varchar(255)"/>
+            <column name="project_id" type="varchar(255)"/>
+            <column name="link" type="varchar(2048)"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>
