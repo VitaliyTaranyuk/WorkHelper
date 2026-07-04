@@ -71,37 +71,51 @@ export function NotificationBell() {
           </MenuItem>
         )}
 
-        {notifications.map((n) => (
-          <MenuItem
-            key={n.id}
-            onClick={() => {
-              if (!n.read) markRead.mutate(n.id)
-              if (n.taskCode) {
+        {notifications.map((n) => {
+          // Уведомление кликабельно: задача — по taskCode; встреча — внешняя
+          // ссылка (Телемост) или запись встречи в календаре (ТП-37).
+          const clickable = Boolean(n.taskCode || n.link || n.meetingId)
+          return (
+            <MenuItem
+              key={n.id}
+              onClick={() => {
+                if (!n.read) markRead.mutate(n.id)
+                if (!clickable) return
                 setAnchorEl(null)
-                navigate({ to: '/task/$code', params: { code: n.taskCode } })
-              }
-            }}
-            sx={{
-              whiteSpace: 'normal',
-              cursor: n.taskCode ? 'pointer' : 'default',
-              backgroundColor: n.read ? 'transparent' : 'rgba(99,102,241,0.08)',
-            }}
-          >
-            <ListItemText
-              primary={n.message}
-              secondary={
-                n.taskCode
-                  ? `${n.taskCode} · ${new Date(n.createdAt).toLocaleString()}`
-                  : new Date(n.createdAt).toLocaleString()
-              }
-              slotProps={{
-                primary: {
-                  sx: { color: n.taskCode ? 'primary.main' : 'inherit' },
-                },
+                if (n.taskCode) {
+                  navigate({ to: '/task/$code', params: { code: n.taskCode } })
+                } else if (n.link) {
+                  window.open(n.link, '_blank', 'noopener,noreferrer')
+                } else if (n.meetingId && n.projectId) {
+                  navigate({
+                    to: '/project/$projectId/calendar',
+                    params: { projectId: n.projectId },
+                    search: { meetingId: n.meetingId },
+                  })
+                }
               }}
-            />
-          </MenuItem>
-        ))}
+              sx={{
+                whiteSpace: 'normal',
+                cursor: clickable ? 'pointer' : 'default',
+                backgroundColor: n.read ? 'transparent' : 'rgba(99,102,241,0.08)',
+              }}
+            >
+              <ListItemText
+                primary={n.message}
+                secondary={
+                  n.taskCode
+                    ? `${n.taskCode} · ${new Date(n.createdAt).toLocaleString()}`
+                    : new Date(n.createdAt).toLocaleString()
+                }
+                slotProps={{
+                  primary: {
+                    sx: { color: clickable ? 'primary.main' : 'inherit' },
+                  },
+                }}
+              />
+            </MenuItem>
+          )
+        })}
       </Menu>
     </>
   )

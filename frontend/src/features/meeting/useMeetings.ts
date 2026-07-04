@@ -21,6 +21,21 @@ export function useCreateMeeting(projectId: string) {
   })
 }
 
+export function useUpdateMeeting(projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      meetingId,
+      data,
+    }: {
+      meetingId: string
+      data: CreateMeetingRequest
+    }) => workTechApi.meeting.updateMeeting({ meetingId, data }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['meetings', projectId] }),
+  })
+}
+
 export function useDeleteMeeting(projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
