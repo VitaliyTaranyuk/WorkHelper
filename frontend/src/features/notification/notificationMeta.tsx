@@ -3,6 +3,8 @@ import AlternateEmailIcon from '@mui/icons-material/AlternateEmail'
 import AddTaskIcon from '@mui/icons-material/AddTask'
 import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined'
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline'
+import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined'
 
 /**
  * Реестр типов уведомлений (ТП-59): единая точка расширения — новый тип
@@ -38,4 +40,23 @@ const FALLBACK_META: NotificationMeta = {
 
 export function getNotificationMeta(type: string): NotificationMeta {
   return NOTIFICATION_META[type] ?? FALLBACK_META
+}
+
+/**
+ * ТП-83: иконка уведомления о создании задачи отражает ТЕКУЩЕЕ состояние задачи —
+ * завершена / отменена / активна (различие прежде всего иконкой, стиль тот же).
+ * То же уведомление, без создания новых. Легко расширяется новыми состояниями.
+ */
+const TASK_STATE_ICON: Record<string, ReactElement> = {
+  DONE: <CheckCircleOutlineIcon sx={iconSx} />,
+  CANCELED: <CancelOutlinedIcon sx={iconSx} />,
+}
+
+export function getNotificationIcon(
+  type: string,
+  taskState?: string | null,
+): ReactElement {
+  if (type === 'TASK_CREATED' && taskState && TASK_STATE_ICON[taskState])
+    return TASK_STATE_ICON[taskState]
+  return getNotificationMeta(type).icon
 }

@@ -15,7 +15,10 @@ import {
   useNotifications,
   useUnreadCount,
 } from '@/features/notification/useNotifications'
-import { getNotificationMeta } from '@/features/notification/notificationMeta'
+import {
+  getNotificationMeta,
+  getNotificationIcon,
+} from '@/features/notification/notificationMeta'
 import { formatRelativeTime } from '@/shared/utils/date'
 import type { NotificationDto } from '@/shared/api/endpoint/notificationsApi'
 
@@ -157,7 +160,7 @@ export function NotificationBell() {
                   backgroundColor: 'rgba(99,102,241,0.1)',
                 }}
               >
-                {meta.icon}
+                {getNotificationIcon(n.type, n.taskState)}
               </Stack>
 
               <Stack sx={{ minWidth: 0, flex: 1 }}>

@@ -22,4 +22,9 @@ public class NotificationDto {
     private String actorUsername;
     private boolean read;
     private LocalDateTime createdAt;
+    // ТП-83: текущее состояние связанной задачи (ACTIVE | DONE | CANCELED),
+    // вычисляется на лету — уведомление о создании задачи меняет иконку по
+    // статусу задачи, без создания новых уведомлений. null, если задачи нет.
+    @Schema(description = "Состояние связанной задачи: ACTIVE | DONE | CANCELED")
+    private String taskState;
 }

@@ -15,6 +15,8 @@ export type NotificationDto = {
   actorUsername?: string | null
   read: boolean
   createdAt: string
+  // ТП-83: текущее состояние связанной задачи для выбора иконки уведомления.
+  taskState?: 'ACTIVE' | 'DONE' | 'CANCELED' | null
 }
 
 export type UnreadCountDto = { count: number }

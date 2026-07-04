@@ -6,6 +6,26 @@
 
 ---
 
+## Завершено 2026-07-04: ТП-83 «Состояние задачи в уведомлениях» (ветка `feature/tp83-notification-task-state`)
+
+Уведомление о создании задачи меняет иконку по ТЕКУЩЕМУ статусу задачи
+(активна/завершена/отменена) — то же уведомление, новых не создаётся, состояние
+вычисляется на лету:
+- **Backend**: `NotificationDto.taskState` (ACTIVE|DONE|CANCELED, nullable).
+  `getMyNotifications` пакетно грузит связанные задачи (`findAllById`) и через
+  `taskStateOf` классифицирует по семантике доски: DONE — завершающая колонка
+  (`completedBoardStatus`, ТП-33); CANCELED — скрытая колонка (`!viewed`); иначе
+  ACTIVE. Удалённая задача → null (фоллбэк). Записи уведомлений не меняются.
+- **Frontend**: `getNotificationIcon(type, taskState)` — для TASK_CREATED иконка
+  по состоянию (DONE→CheckCircle, CANCELED→Cancel, иначе AddTask). Различие
+  прежде всего иконкой, стиль и заголовок не меняются (по ТЗ).
+- **Тесты**: +3 в `InAppNotificationServiceTest` (DONE/CANCELED/ACTIVE). Проверено
+  вживую (backend из main): в ответе `/notifications` taskState заполнен корректно
+  (DONE у завершённых, ACTIVE у активных, null у удалённых); фронт рендерит без
+  регрессий. Контекст Spring поднимается (циклов внедрения нет).
+
+---
+
 ## Завершено 2026-07-04: ТП-73 «Рефакторинг карточки задачи» (ветка `feature/tp73-card-refactor`)
 
 Точечный UX-рефакторинг: компактные пустые состояния, меньше пустого места, без
