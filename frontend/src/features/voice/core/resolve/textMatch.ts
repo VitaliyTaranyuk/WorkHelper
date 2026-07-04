@@ -41,8 +41,10 @@ export function wordSimilar(a: string, b: string): boolean {
   if (!a || !b) return false
   if (a === b) return true
   const minL = Math.min(a.length, b.length)
-  if (minL >= 3 && (a.startsWith(b) || b.startsWith(a))) return true
   const maxL = Math.max(a.length, b.length)
+  // Префикс — только при БЛИЗКОЙ длине (склонение ±3 симв.): иначе короткое слово
+  // «про» ложно совпадает с длинным ключевым «прокомментируй».
+  if (minL >= 3 && maxL - minL <= 3 && (a.startsWith(b) || b.startsWith(a))) return true
   if (maxL >= 4 && levenshtein(a, b) <= (maxL >= 6 ? 2 : 1)) return true
   return false
 }

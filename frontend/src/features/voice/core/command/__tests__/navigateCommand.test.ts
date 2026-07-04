@@ -1,23 +1,15 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { navigateCommand } from '../commands/navigateCommand'
-import type { NavTarget, VoiceCommandContext } from '../types'
-import { makeContext } from './fixtures'
+import type { NavTarget } from '../types'
+import { makeContext, makeCommandContext } from './fixtures'
 
 function servicesCapture() {
-  let captured: NavTarget | undefined
-  const navigate = vi.fn((t: NavTarget) => {
-    captured = t
-  })
-  const ctx: VoiceCommandContext = {
-    ...makeContext(),
-    createTask: vi.fn(async () => ({ id: '', code: '', title: '' })),
+  const { ctx, navigate } = makeCommandContext()
+  return {
+    ctx,
     navigate,
-    setStatus: vi.fn(async () => {}),
-    setSprint: vi.fn(async () => {}),
-    patchTask: vi.fn(async () => ({ id: '', code: '', title: '' })),
-    findTask: vi.fn(async () => null),
+    target: () => navigate.mock.calls.at(-1)?.[0] as NavTarget | undefined,
   }
-  return { ctx, navigate, target: () => captured }
 }
 
 describe('navigateCommand.prepare', () => {

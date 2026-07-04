@@ -55,6 +55,7 @@ export type VoiceContext = {
 export type NavTarget =
   | { kind: 'board' }
   | { kind: 'tasks' }
+  | { kind: 'sprint' }
   | { kind: 'calendar' }
   | { kind: 'settings' }
   | { kind: 'task'; code: string }
@@ -95,6 +96,16 @@ export type VoiceServices = {
   patchTask(code: string, changes: VoiceTaskPatch): Promise<CreatedTask>
   /** Найти задачу по коду (для команд, действующих на задачу по коду). */
   findTask(code: string): Promise<CreatedTask | null>
+  /** Комментарий к задаче — через createComment. */
+  addComment(taskId: string, text: string): Promise<void>
+  /** Создать спринт — через createSprint. */
+  createSprint(name: string): Promise<void>
+  /** Активировать спринт — через activateSprint. */
+  activateSprint(sprintId: string): Promise<void>
+  /** Завершить спринт — через finishSprint. */
+  finishSprint(sprintId: string): Promise<void>
+  /** Отметить все уведомления прочитанными — через markAllRead. */
+  markNotificationsRead(): Promise<void>
 }
 
 /** Контекст исполнения = данные + сервисы. */
