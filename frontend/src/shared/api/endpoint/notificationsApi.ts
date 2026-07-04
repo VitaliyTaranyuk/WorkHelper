@@ -9,6 +9,9 @@ export type NotificationDto = {
   taskId?: string | null
   taskCode?: string | null
   commentId?: string | null
+  meetingId?: string | null
+  projectId?: string | null
+  link?: string | null
   actorUsername?: string | null
   read: boolean
   createdAt: string

@@ -10,6 +10,7 @@ import {
 import { UserPopupMenu } from './Menu/UserPopupMenu'
 import { NotificationBell } from './NotificationBell'
 import { ProjectSwitcher } from './ProjectSwitcher'
+import { VoiceControl } from '@/features/voice/VoiceControl'
 import { Spacer } from '@/shared/ui/Spacer'
 import { HeaderActions } from '@/widget/HeaderActions'
 import type { HeaderActionsProps } from '@/widget/HeaderActions/HeaderActions'
@@ -63,6 +64,8 @@ export function Header({ headerActions }: HeaderProps) {
         </IconButton>
         <Spacer />
         <HeaderActions actions={headerActions} />
+        {/* ТП-22: голосовое управление (кнопка + настраиваемый хоткей) */}
+        <VoiceControl />
         <NotificationBell />
         <IconButton
           component={Link}

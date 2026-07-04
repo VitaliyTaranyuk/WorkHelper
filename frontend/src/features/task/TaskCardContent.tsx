@@ -19,7 +19,6 @@ import { Loader } from '@/shared/ui/components/Loader'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
 import { useEditTaskForm, NOT_ASSIGNED_OPTION } from './TaskForm/useTaskForm'
-import { transformEstimaionByLimit } from './TaskForm/taskFormSchema'
 import { TASK_PRIORITY_OPTIONS } from './TaskForm/contants'
 import { useEditTask } from './mutation/useEditTask'
 import { useDeleteTask } from './mutation/useDeleteTask'
@@ -30,7 +29,6 @@ import { TaskAttachments } from './TaskAttachments'
 import { TaskLinks } from './TaskLinks'
 import { TaskDevPanel } from './TaskDevPanel'
 import { formatUserName, getFullName } from '@/entities/user/utils'
-import { ESTIMATION_MAX } from '@/entities/task/constants'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
 import type { ITaskCard } from '@/entities/task/types'
 import type { User } from '@/entities/user/types'
@@ -65,14 +63,13 @@ type TaskCardContentProps = {
  */
 const BACKEND_TO_FORM_FIELD: Record<
   string,
-  'taskTitle' | 'priority' | 'type' | 'estimation' | 'assignee' | 'sprint' | 'description'
+  'taskTitle' | 'priority' | 'type' | 'assignee' | 'sprint' | 'description'
 > = {
   title: 'taskTitle',
   taskTitle: 'taskTitle',
   priority: 'priority',
   taskType: 'type',
   type: 'type',
-  estimation: 'estimation',
   assignee: 'assignee',
   sprintId: 'sprint',
   sprint: 'sprint',
@@ -82,7 +79,7 @@ const BACKEND_TO_FORM_FIELD: Record<
 /**
  * Единое тело карточки задачи (Linear/Jira-стиль): слева — рабочая область
  * (название, описание, активность: комментарии + история), справа — метаданные
- * (статус, исполнитель, приоритет, тип, спринт, оценка, проект, даты, автор).
+ * (статус, исполнитель, приоритет, тип, спринт, проект, даты, автор).
  *
  * Используется и в модальном окне (TaskCardModal), и на отдельной странице
  * (EditTaskPage, для deep-link из уведомлений). Единственная реализация —
@@ -152,7 +149,6 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
             ...(formValues.assignee === '-1'
               ? {}
               : { assignee: formValues.assignee }),
-            ...(formValues.estimation ? { estimation: formValues.estimation } : {}),
             ...(formValues.description
               ? { description: formValues.description }
               : {}),
@@ -324,17 +320,6 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
 
         <Divider />
 
-        {/* Связи задач (ТП-38): тип + гиперссылка на связанную задачу. */}
-        {activeProject && (
-          <TaskLinks
-            projectId={activeProject.id}
-            taskId={task.id}
-            taskCode={task.code}
-          />
-        )}
-
-        <Divider />
-
         {/* Панель «Разработка» (ТП-21): ветки и PR GitHub по коду задачи. */}
         {activeProject && (
           <TaskDevPanel
@@ -346,7 +331,7 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
 
         <Divider />
 
-        {/* Активность: комментарии + история */}
+        {/* Активность: комментарии + связи (ТП-51) + история */}
         <Box>
           <Tabs
             value={activityTab}
@@ -354,12 +339,20 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
             sx={{ minHeight: 36, mb: 1 }}
           >
             <Tab label="Комментарии" sx={{ minHeight: 36, py: 0 }} />
+            <Tab label="Связи" sx={{ minHeight: 36, py: 0 }} />
             <Tab label="История" sx={{ minHeight: 36, py: 0 }} />
           </Tabs>
           {activityTab === 0 && activeProject && (
             <TaskComments projectId={activeProject.id} taskId={task.id} />
           )}
           {activityTab === 1 && activeProject && (
+            <TaskLinks
+              projectId={activeProject.id}
+              taskId={task.id}
+              taskCode={task.code}
+            />
+          )}
+          {activityTab === 2 && activeProject && (
             <TaskHistory projectId={activeProject.id} taskId={task.id} />
           )}
         </Box>
@@ -483,27 +476,6 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
               )}
             />
           </FormControl>
-        </Stack>
-
-        <Stack gap={0.5}>
-          <FormCaption>Оценка</FormCaption>
-          <TextField
-            type="number"
-            size="small"
-            slotProps={{ htmlInput: { min: 0, max: ESTIMATION_MAX } }}
-            {...form.register('estimation')}
-            onChange={(e) => {
-              const newValue = transformEstimaionByLimit(e.target.value)
-              if (newValue === form.formState.defaultValues?.estimation) {
-                form.resetField('estimation')
-              } else {
-                form.setValue('estimation', newValue, { shouldDirty: true })
-              }
-            }}
-            placeholder="0"
-            error={Boolean(errors.estimation)}
-            helperText={errors.estimation?.message}
-          />
         </Stack>
 
         <Divider />

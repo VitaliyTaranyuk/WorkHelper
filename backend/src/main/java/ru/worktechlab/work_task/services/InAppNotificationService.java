@@ -118,6 +118,7 @@ public class InAppNotificationService {
     private NotificationDto toDto(Notification n) {
         String actorUsername = n.getActor() != null ? n.getActor().getUsername() : null;
         return new NotificationDto(n.getId(), n.getType(), n.getMessage(), n.getTaskId(), n.getTaskCode(),
-                n.getCommentId(), actorUsername, n.isRead(), n.getCreatedAt());
+                n.getCommentId(), n.getMeetingId(), n.getProjectId(), n.getLink(),
+                actorUsername, n.isRead(), n.getCreatedAt());
     }
 }
