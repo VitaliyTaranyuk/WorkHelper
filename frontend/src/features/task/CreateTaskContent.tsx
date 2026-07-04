@@ -9,11 +9,9 @@ import { Loader } from '@/shared/ui/components/Loader'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
 import { NOT_ASSIGNED_OPTION, type FormValues } from './TaskForm/useTaskForm'
-import { transformEstimaionByLimit } from './TaskForm/taskFormSchema'
 import { TASK_PRIORITY_OPTIONS } from './TaskForm/contants'
 import { PendingAttachments } from './PendingAttachments'
 import { getFullName } from '@/entities/user/utils'
-import { ESTIMATION_MAX } from '@/entities/task/constants'
 import type { User } from '@/entities/user/types'
 
 type CreateTaskContentProps = {
@@ -28,7 +26,7 @@ type CreateTaskContentProps = {
  * Тело формы создания задачи в макете карточки редактирования
  * (TaskCardContent): слева — название, описание и вложения (грузятся после
  * создания, ТП-30), справа — метаданные (исполнитель, приоритет, тип, спринт,
- * колонка, оценка). Единый вид создания и редактирования; для Backlog-спринта
+ * колонка). Единый вид создания и редактирования; для Backlog-спринта
  * выбор колонки скрыт — статус фиксирован инвариантом (TaskPlacementService).
  */
 export function CreateTaskContent({
@@ -274,26 +272,6 @@ export function CreateTaskContent({
           </Stack>
         )}
 
-        <Stack gap={0.5}>
-          <FormCaption>Оценка</FormCaption>
-          <TextField
-            type="number"
-            size="small"
-            slotProps={{ htmlInput: { min: 0, max: ESTIMATION_MAX } }}
-            {...form.register('estimation')}
-            onChange={(e) => {
-              const newValue = transformEstimaionByLimit(e.target.value)
-              if (newValue === form.formState.defaultValues?.estimation) {
-                form.resetField('estimation')
-              } else {
-                form.setValue('estimation', newValue, { shouldDirty: true })
-              }
-            }}
-            placeholder="0"
-            error={Boolean(errors.estimation)}
-            helperText={errors.estimation?.message}
-          />
-        </Stack>
       </Stack>
     </Stack>
   )

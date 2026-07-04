@@ -1,4 +1,3 @@
-import { ESTIMATION_MAX } from '@/entities/task/constants'
 import { TASK_PRIORITY_TUPPLE, TASK_TYPE_TUPPLE } from '@/entities/task/types'
 import { z } from 'zod'
 
@@ -11,8 +10,6 @@ export const compactTaskFormSchema = z.object({
 
   type: z.enum(TASK_TYPE_TUPPLE),
 
-  estimation: z.coerce.number().or(z.null()),
-
   // ID исполнителя или '-1' для "Не назначен"
   assignee: z.string(),
 
@@ -22,13 +19,3 @@ export const compactTaskFormSchema = z.object({
   // (первая колонка на бэкенде); не используется формой редактирования.
   status: z.number().nullable().optional(),
 })
-
-export function transformEstimaionByLimit(v: unknown) {
-  const num = typeof v === 'number' ? v : Number(v)
-
-  if (!num || Number.isNaN(num) || num < 0) return null
-
-  if (num > ESTIMATION_MAX) return ESTIMATION_MAX
-
-  return num
-}

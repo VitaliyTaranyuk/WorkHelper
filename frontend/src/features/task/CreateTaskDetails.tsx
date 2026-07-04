@@ -41,8 +41,6 @@ export function CreateTaskDetails({
           ? {}
           : { assignee: formValues.assignee }),
 
-        ...(formValues.estimation ? { estimation: formValues.estimation } : {}),
-
         ...(formValues.description
           ? { description: formValues.description }
           : {}),
