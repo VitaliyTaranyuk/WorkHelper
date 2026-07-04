@@ -1,3 +1,4 @@
+import { sprintDisplayLabel } from '@/entities/sprint/label'
 import type { ITaskCard } from '@/entities/task/types'
 import { FormCaption } from '@/shared/ui/components/FormCaption'
 import { Stack } from '@mui/material'
@@ -94,12 +95,12 @@ export function FinishSprintForm(props: FinishSprintFormProps) {
               const selectedSprint = props.availableSprints.find(
                 (sprint) => sprint.id === selected,
               )
-              return <>{selectedSprint!.name}</>
+              return <>{sprintDisplayLabel(selectedSprint!)}</>
             }}
           >
             {props.availableSprints.map((availableSprint) => (
               <MenuItem value={availableSprint.id}>
-                {truncateText(availableSprint.name, SPRINT_TITLE_MAX)}
+                {truncateText(sprintDisplayLabel(availableSprint), SPRINT_TITLE_MAX)}
               </MenuItem>
             ))}
           </Select>

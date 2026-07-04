@@ -39,7 +39,10 @@ export function Sidebar({ className }: SideBarProps) {
           end: activeSprint.endDate,
         })
       : ''
-  const sprintLabel = activeSprint ? sprintDateRange || activeSprint.name : ''
+  // ТП-70: имя спринта опционально — фоллбэк, если нет ни дат, ни имени
+  const sprintLabel = activeSprint
+    ? sprintDateRange || activeSprint.name || 'Активный спринт'
+    : ''
 
   return (
     <SidebarContainer className={className}>

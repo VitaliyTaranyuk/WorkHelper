@@ -35,8 +35,9 @@ function CreateSprintModalInner() {
     assertIsDefined(activeProject)
 
     // ТП-48: дата завершения выбирается в календаре напрямую
+    // ТП-70: название опционально — пустое бэкенд хранит как null
     const sprintData = {
-      name: formValues.name,
+      name: formValues.name?.trim() ?? '',
       ...(formValues.goal ? { goal: formValues.goal } : {}),
       ...(formValues.startDate
         ? { startDate: formatDateForBackend(formValues.startDate) }

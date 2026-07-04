@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type MutableRefObject } from 'react'
+import { sprintDisplayLabel } from '@/entities/sprint/label'
 import {
   Box,
   Button,
@@ -484,7 +485,8 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
                 >
                   {sortedSprints.map((sprint) => (
                     <MenuItem key={sprint.id} value={sprint.id}>
-                      {sprint.name} {sprint.isActive ? ' (Активный)' : ''}
+                      {sprintDisplayLabel(sprint)}
+                      {sprint.isActive ? ' (Активный)' : ''}
                     </MenuItem>
                   ))}
                 </Select>

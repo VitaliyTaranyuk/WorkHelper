@@ -15,7 +15,8 @@ export function mapSprintMinDtoToSprintMinWithTasks(
 ): SprintMinWithTasks {
   return {
     id: sprint.id,
-    name: sprint.name,
+    // ТП-70: имя спринта опционально (null с бэкенда) — во фронте пустая строка
+    name: sprint.name ?? '',
     startDate: sprint.startDate,
     endDate: sprint.endDate,
     isActive: sprint.active,
@@ -29,7 +30,8 @@ export function mapSprintMinDtoToSprintMinWithTasks(
 export function mapSprintMinDtoToSprintMin(sprint: SprintMinDto): SprintMin {
   return {
     id: sprint.id,
-    name: sprint.name,
+    // ТП-70: имя спринта опционально (null с бэкенда) — во фронте пустая строка
+    name: sprint.name ?? '',
     startDate: sprint.startDate,
     endDate: sprint.endDate,
     isActive: sprint.active,

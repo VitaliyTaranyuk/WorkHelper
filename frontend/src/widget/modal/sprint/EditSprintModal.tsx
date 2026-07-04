@@ -39,8 +39,9 @@ function EditSprintModalInner(props: EditSprintModalProps) {
 
   const onSubmit = form.handleSubmit(async (formValues) => {
     // ТП-48: дата завершения выбирается в календаре напрямую
+    // ТП-70: название опционально — пустое бэкенд хранит как null
     editSprint.mutateAsync({
-      name: formValues.name,
+      name: formValues.name?.trim() ?? '',
       ...(formValues.goal ? { goal: formValues.goal } : {}),
       ...(formValues.startDate
         ? { startDate: formatDateForBackend(formValues.startDate) }

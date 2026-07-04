@@ -24,6 +24,7 @@ import { SprintTask } from '@/entities/task/ui/SprintTask'
 import { Spacer } from '@/shared/ui/Spacer'
 import { pluralTasks, truncateText } from '@/shared/utils/text'
 import { SPRINT_TITLE_MAX } from '@/entities/sprint/constants'
+import { sprintDisplayLabel } from '@/entities/sprint/label'
 import {
   ButtonBlock,
   ControlsBlock,
@@ -120,9 +121,12 @@ export function Sprint({ sprint, projectId, taskFilter, droppableId }: SprintPro
   // ТП-61 (паттерн Jira/Linear): основной текст секции — рабочий период
   // (диапазон дат), а не техническое имя спринта; имя — компактной подписью.
   // Бэклог — постоянная секция с собственным заголовком.
+  // ТП-70: имя опционально — фоллбэк для спринта без имени и без дат
   const primaryLabel = sprint.isDefault
     ? 'Бэклог'
-    : sprintDateRange || truncateText(sprint.name, SPRINT_TITLE_MAX)
+    : sprintDateRange ||
+      truncateText(sprint.name, SPRINT_TITLE_MAX) ||
+      'Спринт без названия'
   const secondaryName =
     !sprint.isDefault && sprintDateRange && sprint.name.trim()
       ? truncateText(sprint.name, SPRINT_TITLE_MAX)
@@ -212,7 +216,7 @@ export function Sprint({ sprint, projectId, taskFilter, droppableId }: SprintPro
                   onClick={() => {
                     if (
                       window.confirm(
-                        `Удалить спринт «${sprint.name}»? Его задачи перейдут в Backlog.`,
+                        `Удалить спринт «${sprintDisplayLabel(sprint)}»? Его задачи перейдут в Бэклог.`,
                       )
                     ) {
                       deleteSprint.mutate({ projectId, sprintId: sprint.id })

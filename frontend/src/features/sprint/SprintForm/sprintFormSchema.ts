@@ -2,8 +2,9 @@ import { z } from 'zod'
 
 export const sprintFormSchema = z
   .object({
-    // TODO: уточнить по максимуму для заголовка
-    name: z.string().min(5, 'Минимальная длина 5 символов'),
+    // ТП-70: название опционально — идентификатор спринта это даты и статус;
+    // если указано, короткие имена тоже допустимы («v2», «MVP»).
+    name: z.string().max(120, 'Максимум 120 символов').optional().or(z.literal('')),
     goal: z.string().optional(),
 
     startDate: z.number().or(z.null()),
