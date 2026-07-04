@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Chip, Stack, Typography } from '@mui/material'
+import { Chip, IconButton, Stack, Typography } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline'
 import { useModal } from '@ebay/nice-modal-react'
 import { TaskCardModal } from '@/widget/modal/task'
 import { TaskType } from '@/entities/task/ui/TaskType'
@@ -12,7 +11,7 @@ import { mapTaskMinDTOToTaskCard } from '@/entities/task/mapDTO'
 import { workTechApi } from '@/shared/api/endpoint'
 import { LISTS_POLL_INTERVAL_MS } from '@/features/task/query/pollingConfig'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
-import { truncateText } from '@/shared/utils/text'
+import { pluralTasks, truncateText } from '@/shared/utils/text'
 import type { ITaskCard } from '@/entities/task/types'
 import type { TaskFilter } from '@/features/task/hook/useTaskFilter/useTaskFilter.type'
 
@@ -50,24 +49,33 @@ export function CompletedTasksSection({ projectId, taskFilter }: Props) {
 
   return (
     <Stack gap={1}>
+      {/* Заголовок в стиле секций спринтов (ТП-61): шеврон + заголовок +
+          счётчик. Зелёная иконка убрана — статус виден по чипам строк. */}
       <Stack
         direction="row"
         alignItems="center"
         gap={1}
         onClick={() => setIsExpanded((prev) => !prev)}
-        sx={{ cursor: 'pointer', userSelect: 'none' }}
+        sx={{ cursor: 'pointer', userSelect: 'none', minHeight: 36 }}
       >
-        {isExpanded ? (
-          <ExpandMoreIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-        ) : (
-          <ChevronRightIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-        )}
-        <CheckCircleOutlineIcon fontSize="small" sx={{ color: 'success.main' }} />
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+        <IconButton
+          size="small"
+          aria-label={isExpanded ? 'Свернуть секцию' : 'Развернуть секцию'}
+        >
+          {isExpanded ? (
+            <ExpandMoreIcon fontSize="small" />
+          ) : (
+            <ChevronRightIcon fontSize="small" />
+          )}
+        </IconButton>
+        <Typography
+          component="h2"
+          sx={{ fontSize: 16, fontWeight: 600, lineHeight: '24px', m: 0 }}
+        >
           Завершённые
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {visibleTasks.length} задач
+        <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+          {pluralTasks(visibleTasks.length)}
         </Typography>
       </Stack>
 

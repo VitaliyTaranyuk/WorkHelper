@@ -1,5 +1,3 @@
-import { IconImg } from '@/shared/ui/IconImg'
-import iconArrow from '@/shared/assets/icons/arrow-small.svg'
 import { useCallback, useMemo, useState } from 'react'
 import type { ITaskCard } from '@/entities/task/types'
 import type { SprintMinWithTasks } from '@/entities/sprint/type'
@@ -16,27 +14,25 @@ import {
   SPRINT_STATUS_COLOR,
   SPRINT_STATUS_LABEL,
 } from '@/entities/sprint/status'
-import { Stack } from '@mui/material'
+import { Chip, Stack } from '@mui/material'
 import IconButton from '@mui/material/IconButton'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import { useDeleteSprint } from '@/features/sprint/mutation/useDeleteSprint'
 import { SprintTask } from '@/entities/task/ui/SprintTask'
 import { Spacer } from '@/shared/ui/Spacer'
-import { truncateText } from '@/shared/utils/text'
+import { pluralTasks, truncateText } from '@/shared/utils/text'
 import { SPRINT_TITLE_MAX } from '@/entities/sprint/constants'
 import {
   ButtonBlock,
   ControlsBlock,
-  EstimationSum,
-  ExpandBlock,
-  ExpandButton,
+  SecondaryName,
+  SectionTitle,
   SprintBlock,
   SprintContainer,
-  SprintDate,
   TaskAmount,
   TaskBlock,
-  TaskSumInfo,
-  Title,
   TitleBlock,
 } from './Sprint.styles'
 import type { FinishingSprint } from '../modal/sprint/FinishSprintModal/type'
@@ -88,11 +84,6 @@ export function Sprint({ sprint, projectId, taskFilter, droppableId }: SprintPro
     return sprint.tasks
   }, [sprint, taskFilter])
 
-  const tasksSumEstimation = useMemo(
-    () => getSumEstimation(sprintTasks),
-    [sprintTasks],
-  )
-
   const onTaskEditClick = useCallback(
     (task: ITaskCard) => taskCardModal.show({ task }),
     [taskCardModal],
@@ -126,48 +117,51 @@ export function Sprint({ sprint, projectId, taskFilter, droppableId }: SprintPro
     [taskCardModal, sprint.id],
   )
 
+  // ТП-61 (паттерн Jira/Linear): основной текст секции — рабочий период
+  // (диапазон дат), а не техническое имя спринта; имя — компактной подписью.
+  // Бэклог — постоянная секция с собственным заголовком.
+  const primaryLabel = sprint.isDefault
+    ? 'Бэклог'
+    : sprintDateRange || truncateText(sprint.name, SPRINT_TITLE_MAX)
+  const secondaryName =
+    !sprint.isDefault && sprintDateRange && sprint.name.trim()
+      ? truncateText(sprint.name, SPRINT_TITLE_MAX)
+      : ''
+
   return (
     <SprintContainer>
       <SprintBlock>
-        <TitleBlock>
-          <Title>
-            {truncateText(sprint.name, SPRINT_TITLE_MAX)}
-
-            {!!sprint.tasks.length && (
-              <ExpandBlock>
-                <ExpandButton
-                  onClick={() => setIsExpanded((prev) => !prev)}
-                  isExpanded={isExpaneded}
-                >
-                  <IconImg iconUrl={iconArrow} iconAlt="раскрыть/свернуть" />
-                </ExpandButton>
-              </ExpandBlock>
-            )}
-          </Title>
-
-          {(sprintDateRange || !sprint.isDefault) && (
-            <SprintDate>
-              {sprintDateRange}
-              {!sprint.isDefault && (
-                <span
-                  style={{
-                    marginLeft: sprintDateRange ? 8 : 0,
-                    color: SPRINT_STATUS_COLOR[sprint.status],
-                    fontWeight: 600,
-                  }}
-                >
-                  {SPRINT_STATUS_LABEL[sprint.status]}
-                </span>
-              )}
-            </SprintDate>
+        <IconButton
+          size="small"
+          aria-label={isExpaneded ? 'Свернуть секцию' : 'Развернуть секцию'}
+          onClick={() => setIsExpanded((prev) => !prev)}
+        >
+          {isExpaneded ? (
+            <ExpandMoreIcon fontSize="small" />
+          ) : (
+            <ChevronRightIcon fontSize="small" />
           )}
+        </IconButton>
+        <TitleBlock onClick={() => setIsExpanded((prev) => !prev)}>
+          <SectionTitle>{primaryLabel}</SectionTitle>
+          {!sprint.isDefault && (
+            <Chip
+              size="small"
+              label={SPRINT_STATUS_LABEL[sprint.status]}
+              sx={{
+                height: 20,
+                fontSize: 12,
+                fontWeight: 600,
+                color: '#fff',
+                backgroundColor: SPRINT_STATUS_COLOR[sprint.status],
+              }}
+            />
+          )}
+          {secondaryName && <SecondaryName>{secondaryName}</SecondaryName>}
         </TitleBlock>
         <Spacer />
         <ControlsBlock>
-          <TaskSumInfo isDefault={sprint.isDefault}>
-            {<TaskAmount>{sprintTasks.length || 0} задач</TaskAmount>}
-            <EstimationSum>{tasksSumEstimation}</EstimationSum>
-          </TaskSumInfo>
+          <TaskAmount>{pluralTasks(sprintTasks.length)}</TaskAmount>
           {!sprint.isDefault && (
             <ButtonBlock>
               {/* Просмотр доски — для запущенных/приостановленных */}
@@ -323,6 +317,3 @@ function mapToActiveSprint(sprint: SprintMinWithTasks): FinishingSprint {
   }
 }
 
-function getSumEstimation(tasks: ITaskCard[]) {
-  return tasks.reduce((acc, task) => acc + (task.estimation || 0), 0)
-}

@@ -255,6 +255,12 @@ public class UserService {
         User user = findActiveUserByIdForUpdate(userId);
         user.setFirstName(data.getFirstName());
         user.setDisplayName(data.getDisplayName());
+        // Фамилия опциональна (совместимость со старыми клиентами): null/blank — не менять
+        if (data.getLastName() != null && !data.getLastName().isBlank())
+            user.setLastName(data.getLastName().trim());
+        // Телефон: null — не менять, пустая строка — очистить (ТП-63)
+        if (data.getPhone() != null)
+            user.setPhone(data.getPhone().isBlank() ? null : data.getPhone().trim());
         if (data.getUsername() != null && !data.getUsername().isBlank()) {
             if (userRepository.existsByUsernameAndIdNot(data.getUsername(), userId))
                 throw new BadRequestException(String.format("Username '%s' уже занят", data.getUsername()));
