@@ -10,7 +10,6 @@ import {
 import { UserPopupMenu } from './Menu/UserPopupMenu'
 import { NotificationBell } from './NotificationBell'
 import { ProjectSwitcher } from './ProjectSwitcher'
-import { VoiceControl } from '@/features/voice/VoiceControl'
 import { Spacer } from '@/shared/ui/Spacer'
 import { HeaderActions } from '@/widget/HeaderActions'
 import type { HeaderActionsProps } from '@/widget/HeaderActions/HeaderActions'
@@ -34,8 +33,8 @@ export function Header({ headerActions }: HeaderProps) {
             к одному разделу и терялась среди глобальных действий. */}
         <Spacer />
         <HeaderActions actions={headerActions} />
-        {/* ТП-22: голосовое управление (кнопка + настраиваемый хоткей) */}
-        <VoiceControl />
+        {/* ТП-88: глобальный командный микрофон убран — голос теперь способ
+            ВВОДА в контексте (диктовка в полях/создании задачи), а не команды. */}
         <NotificationBell />
         {/* ТП-56: шестерёнка убрана — настройки открываются из левого меню,
             дубль точки входа вводил в заблуждение (аудит ТП-63, п.3) */}
