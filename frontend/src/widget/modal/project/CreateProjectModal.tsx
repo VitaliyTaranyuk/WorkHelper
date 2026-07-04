@@ -59,7 +59,7 @@ export const CreateProjectModal = NiceModal.create(() => {
       >
         <CloseIcon fontSize="small" />
       </IconButton>
-      <DialogContent sx={{ p: 0, mt: '16px' }}>
+      <DialogContent sx={modalStyle.modalContent}>
         <Stack gap={2}>
           <TextField
             label="Название"
