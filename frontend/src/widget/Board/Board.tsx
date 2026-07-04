@@ -30,6 +30,7 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import CloseIcon from '@mui/icons-material/Close'
+import TuneIcon from '@mui/icons-material/Tune'
 import {
   useCreateStatus,
   useDeleteStatus,
@@ -316,6 +317,22 @@ function BoardInner(props: BoardProps) {
 
   return (
     <DragDropContext onDragEnd={onDragEndAll}>
+      {/* ТП-60: вход в настройку доски — на самой доске (паттерн Jira/Trello:
+          board settings живут на доске, а не в глобальной шапке). */}
+      {!editMode && (
+        <Stack direction="row" justifyContent="flex-end" sx={{ mb: 0.5 }}>
+          <Button
+            size="small"
+            variant="text"
+            color="inherit"
+            startIcon={<TuneIcon fontSize="small" />}
+            onClick={() => setEditMode(true)}
+            sx={{ textTransform: 'none', color: 'text.secondary' }}
+          >
+            Настроить доску
+          </Button>
+        </Stack>
+      )}
       {editMode && (
         <Stack
           direction="row"
