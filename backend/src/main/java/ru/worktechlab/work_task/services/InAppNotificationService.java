@@ -53,7 +53,10 @@ public class InAppNotificationService {
                 if (recipient.getId().equals(actor.getId())) return;
                 // ТП-65: получатель мог отключить уведомления об упоминаниях
                 if (!userSettingsService.effectiveFor(recipient.getId()).isNotifyMentions()) return;
-                String message = String.format("%s упомянул(а) вас в задаче %s", actorName(actor), task.getCode());
+                // ТП-72: сообщение — только содержание события; тип («Упоминание»)
+                // и код задачи фронтенд показывает из структурных полей (type,
+                // taskCode) в заголовке строки. Дублировать их в тексте не нужно.
+                String message = String.format("%s упомянул(а) вас", actorName(actor));
                 notificationRepository.save(new Notification(recipient, actor, TYPE_MENTION, message, task.getId(), task.getCode(), commentId));
                 log.debug("MENTION notification: {} -> {} (task {})", actor.getId(), recipient.getId(), task.getCode());
             });
@@ -69,7 +72,10 @@ public class InAppNotificationService {
     public void createTaskCreatedNotification(User creator, TaskModel task) {
         // ТП-65: создатель мог отключить уведомления о создании задач
         if (!userSettingsService.effectiveFor(creator.getId()).isNotifyTaskCreated()) return;
-        String message = String.format("Создана задача %s «%s»", task.getCode(), task.getTitle());
+        // ТП-72: тип («Задача создана») и код задачи фронтенд рендерит из
+        // структурных полей в заголовке — в тексте оставляем только название,
+        // чтобы информация не дублировалась.
+        String message = task.getTitle();
         notificationRepository.save(new Notification(creator, creator, TYPE_TASK_CREATED, message,
                 task.getId(), task.getCode(), null));
         notificationRepository.flush();

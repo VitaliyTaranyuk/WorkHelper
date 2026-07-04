@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import Badge from '@mui/material/Badge'
 import IconButton from '@mui/material/IconButton'
@@ -40,6 +40,21 @@ export function NotificationBell() {
   const unread = unreadQuery.data ?? 0
   const notifications = listQuery.data ?? []
 
+  // ТП-72: наведение мышью помечает уведомление прочитанным (паттерн
+  // GitHub/Linear — не требуется переходить в объект). Set уже отправленных
+  // id страхует от повторных запросов, пока список не перезапросился после
+  // инвалидции; сбрасывается при закрытии меню.
+  const markedRef = useRef<Set<string>>(new Set())
+  const markReadOnce = (n: NotificationDto) => {
+    if (n.read || markedRef.current.has(n.id)) return
+    markedRef.current.add(n.id)
+    markRead.mutate(n.id)
+  }
+  const closeMenu = () => {
+    markedRef.current.clear()
+    setAnchorEl(null)
+  }
+
   // Куда ведёт уведомление: задача (по коду), внешняя ссылка (Телемост),
   // запись встречи в календаре. Общая логика для всех типов.
   const openTarget = (n: NotificationDto) => {
@@ -75,7 +90,7 @@ export function NotificationBell() {
       <Menu
         anchorEl={anchorEl}
         open={open}
-        onClose={() => setAnchorEl(null)}
+        onClose={closeMenu}
         slotProps={{ paper: { sx: { width: 400, maxHeight: 480 } } }}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
@@ -112,10 +127,11 @@ export function NotificationBell() {
           return (
             <MenuItem
               key={n.id}
+              onMouseEnter={() => markReadOnce(n)}
               onClick={() => {
-                if (!n.read) markRead.mutate(n.id)
+                markReadOnce(n)
                 if (!clickable) return
-                setAnchorEl(null)
+                closeMenu()
                 openTarget(n)
               }}
               sx={{
