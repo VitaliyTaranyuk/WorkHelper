@@ -60,3 +60,31 @@ export function getNotificationIcon(
     return TASK_STATE_ICON[taskState]
   return getNotificationMeta(type).icon
 }
+
+/**
+ * ТП-87: цвет иконки-кружка уведомления по состоянию задачи — завершённые
+ * выделяются зелёным (успех, конвенция TMS: GitHub/Linear), отменённые
+ * приглушены серым; активные — фирменный индиго. `color` — цвет иконки,
+ * `backgroundColor` — фон кружка. Тон согласован с дизайн-системой.
+ */
+export type NotificationIconStyle = { color: string; backgroundColor: string }
+
+const DEFAULT_ICON_STYLE: NotificationIconStyle = {
+  color: 'primary.main',
+  backgroundColor: 'rgba(99,102,241,0.1)',
+}
+
+const TASK_STATE_ICON_STYLE: Record<string, NotificationIconStyle> = {
+  DONE: { color: 'success.main', backgroundColor: 'rgba(46,125,50,0.12)' },
+  CANCELED: { color: 'text.disabled', backgroundColor: 'rgba(0,0,0,0.06)' },
+  ACTIVE: DEFAULT_ICON_STYLE,
+}
+
+export function getNotificationIconStyle(
+  type: string,
+  taskState?: string | null,
+): NotificationIconStyle {
+  if (type === 'TASK_CREATED' && taskState && TASK_STATE_ICON_STYLE[taskState])
+    return TASK_STATE_ICON_STYLE[taskState]
+  return DEFAULT_ICON_STYLE
+}

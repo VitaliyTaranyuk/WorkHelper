@@ -18,6 +18,7 @@ import {
 import {
   getNotificationMeta,
   getNotificationIcon,
+  getNotificationIconStyle,
 } from '@/features/notification/notificationMeta'
 import { formatRelativeTime } from '@/shared/utils/date'
 import type { NotificationDto } from '@/shared/api/endpoint/notificationsApi'
@@ -146,7 +147,8 @@ export function NotificationBell() {
                 backgroundColor: n.read ? 'transparent' : 'rgba(99,102,241,0.06)',
               }}
             >
-              {/* Иконка типа события */}
+              {/* Иконка типа события. ТП-87: кружок окрашен по состоянию
+                  задачи — завершённые зелёным, отменённые серым. */}
               <Stack
                 alignItems="center"
                 justifyContent="center"
@@ -156,8 +158,7 @@ export function NotificationBell() {
                   borderRadius: '50%',
                   flexShrink: 0,
                   mt: 0.25,
-                  color: 'primary.main',
-                  backgroundColor: 'rgba(99,102,241,0.1)',
+                  ...getNotificationIconStyle(n.type, n.taskState),
                 }}
               >
                 {getNotificationIcon(n.type, n.taskState)}
