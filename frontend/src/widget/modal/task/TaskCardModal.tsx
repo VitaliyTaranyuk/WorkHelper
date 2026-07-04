@@ -15,9 +15,17 @@ import {
   TaskCardContent,
   type TaskCardGuard,
 } from '@/features/task/TaskCardContent'
+import { useProjectData } from '@/features/project/query/useProjectData'
+import { useTaskByCode } from '@/features/task/query/useTaskByCode'
+import { Loader } from '@/shared/ui/components/Loader'
 
+/**
+ * ТП-89: карточку можно открыть либо по объекту задачи (доска/список), либо
+ * по коду (уведомления) — единый компонент/модалка вместо отдельной страницы.
+ */
 export type TaskCardModalProps = {
-  task: ITaskCard
+  task?: ITaskCard
+  taskCode?: string
 }
 
 /**
@@ -29,11 +37,21 @@ export type TaskCardModalProps = {
  * «Сохранить изменения / Отменить изменения и закрыть» (паттерн Jira/Linear).
  */
 export const TaskCardModal = NiceModal.create(
-  ({ task }: TaskCardModalProps) => {
+  ({ task: taskProp, taskCode }: TaskCardModalProps) => {
     const modal = useModal()
     const guardRef = useRef<TaskCardGuard | null>(null)
     const [confirmOpen, setConfirmOpen] = useState(false)
     const [saving, setSaving] = useState(false)
+
+    // ТП-89: если передан только код (из уведомлений) — грузим задачу по коду;
+    // с доски/списка задача уже есть, запрос не выполняется.
+    const { activeProject } = useProjectData()
+    const byCode = useTaskByCode({
+      projectId: activeProject?.id,
+      taskCode: taskProp ? undefined : taskCode,
+    })
+    const task = taskProp ?? byCode.data
+    const code = task?.code ?? taskCode ?? ''
 
     const forceClose = () => {
       setConfirmOpen(false)
@@ -94,7 +112,7 @@ export const TaskCardModal = NiceModal.create(
         <DialogTitle
           sx={{ padding: '20px 28px', fontSize: '24px', fontWeight: 500, flexShrink: 0 }}
         >
-          {task.code}
+          {code}
         </DialogTitle>
         <IconButton
           aria-label="close"
@@ -105,7 +123,11 @@ export const TaskCardModal = NiceModal.create(
           <CloseIcon fontSize="small" />
         </IconButton>
         <DialogContent sx={{ flex: 1, overflowY: 'auto', padding: '0 28px 28px' }}>
-          <TaskCardContent task={task} onDeleted={forceClose} guardRef={guardRef} />
+          {task ? (
+            <TaskCardContent task={task} onDeleted={forceClose} guardRef={guardRef} />
+          ) : (
+            <Loader isLoading />
+          )}
         </DialogContent>
 
         {/* Guard несохранённых изменений (ТП-34). Клик мимо/Escape —
@@ -114,7 +136,7 @@ export const TaskCardModal = NiceModal.create(
           <DialogTitle>Несохранённые изменения</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              В задаче {task.code} есть несохранённые изменения. Сохранить их
+              В задаче {code} есть несохранённые изменения. Сохранить их
               перед закрытием?
             </DialogContentText>
           </DialogContent>

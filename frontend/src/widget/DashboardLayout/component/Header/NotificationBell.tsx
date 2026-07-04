@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
+import { useModal } from '@ebay/nice-modal-react'
+import { TaskCardModal } from '@/widget/modal/task'
 import Badge from '@mui/material/Badge'
 import IconButton from '@mui/material/IconButton'
 import Menu from '@mui/material/Menu'
@@ -35,6 +37,10 @@ export function NotificationBell() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const open = Boolean(anchorEl)
   const navigate = useNavigate()
+  const bellRef = useRef<HTMLButtonElement>(null)
+  // ТП-89: задача из уведомления открывается той же модальной карточкой, что и
+  // с доски/списка (единый компонент), а не отдельной страницей.
+  const taskCardModal = useModal(TaskCardModal)
 
   const unreadQuery = useUnreadCount()
   const listQuery = useNotifications(open)
@@ -59,11 +65,24 @@ export function NotificationBell() {
     setAnchorEl(null)
   }
 
+  // ТП-89: открыть карточку задачи модалкой (как с доски) и после закрытия
+  // вернуть пользователя к списку уведомлений без перезагрузки страницы.
+  const openTaskCard = async (taskCode: string) => {
+    const anchor = bellRef.current
+    closeMenu()
+    try {
+      await taskCardModal.show({ taskCode })
+    } catch {
+      // модалка закрыта без сохранения — это не ошибка
+    }
+    if (anchor) setAnchorEl(anchor)
+  }
+
   // Куда ведёт уведомление: задача (по коду), внешняя ссылка (Телемост),
   // запись встречи в календаре. Общая логика для всех типов.
   const openTarget = (n: NotificationDto) => {
     if (n.taskCode) {
-      navigate({ to: '/task/$code', params: { code: n.taskCode } })
+      openTaskCard(n.taskCode)
       return
     }
     if (n.link) {
@@ -82,6 +101,7 @@ export function NotificationBell() {
   return (
     <>
       <IconButton
+        ref={bellRef}
         aria-label="Уведомления"
         onClick={(e) => setAnchorEl(e.currentTarget)}
         size="large"
