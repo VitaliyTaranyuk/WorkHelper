@@ -4,6 +4,7 @@ import { Sidebar } from './component/Sidebar'
 import { MAIN_BLOCK_PADDING_TOP_PX } from './constants'
 import { memo } from 'react'
 import { useMatchRoute } from '@tanstack/react-router'
+import { VoiceLauncher } from '@/features/voice/command/VoiceLauncher'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -27,6 +28,9 @@ export const DashboardLayout = memo(({ children }: DashboardLayoutProps) => {
         <Sidebar />
         <ContentBlock>{children}</ContentBlock>
       </MainBlock>
+      {/* ТП-95: глобальный командный голос (кнопка + хоткей + оверлей).
+          Внутри RouterProvider — нужен маршрут/навигация (TD-015). */}
+      <VoiceLauncher />
     </PageWrapper>
   )
 })
