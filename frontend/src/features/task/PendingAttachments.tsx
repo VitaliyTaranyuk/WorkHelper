@@ -4,7 +4,7 @@ import AttachFileIcon from '@mui/icons-material/AttachFile'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined'
-import { toast } from 'sonner'
+import { notify as toast } from '@/shared/ui/notify'
 import { LightboxDialog } from './ImageLightbox'
 import { isBrowserViewable } from './useTaskAttachments'
 

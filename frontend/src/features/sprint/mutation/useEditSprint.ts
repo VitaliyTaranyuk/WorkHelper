@@ -1,7 +1,7 @@
 import type { SprintDtoRequest } from '@/data-contracts'
 import { workTechApi } from '@/shared/api/endpoint'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { notify as toast } from '@/shared/ui/notify'
 
 export function useEditSprint({
   projectId,

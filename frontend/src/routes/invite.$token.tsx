@@ -4,7 +4,7 @@ import { Button, CircularProgress, Stack, Typography } from '@mui/material'
 import { workTechApi } from '@/shared/api/endpoint'
 import { useAuthStore } from '@/features/auth/authStore'
 import { extractGeneralError } from '@/shared/api/extractFieldErrors'
-import { toast } from 'sonner'
+import { notify as toast } from '@/shared/ui/notify'
 
 export const Route = createFileRoute('/invite/$token')({
   component: InvitePage,

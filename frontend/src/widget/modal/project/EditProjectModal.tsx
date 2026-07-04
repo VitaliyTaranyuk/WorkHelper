@@ -10,7 +10,7 @@ import {
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import { useState } from 'react'
-import { toast } from 'sonner'
+import { notify as toast } from '@/shared/ui/notify'
 import { Button } from '@/shared/ui/Button'
 import { modalStyle } from '@/shared/ui/modalStyles'
 import { useUpdateProject } from '@/features/project/mutation/useProjectActions'

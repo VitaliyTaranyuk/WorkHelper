@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { workTechApiClient } from '@/shared/api/workTechHttpClient'
-import { toast } from 'sonner'
+import { notify as toast } from '@/shared/ui/notify'
 
 export type AttachmentDto = {
   id: string
@@ -64,8 +64,8 @@ export function useUploadAttachment({
   return useMutation({
     mutationFn: (file: File) => uploadAttachmentFile(projectId, taskId, file),
     onSuccess: () => {
+      // ТП-71: без success-тоста — файл сразу появляется в списке карточки
       qc.invalidateQueries({ queryKey: ['taskAttachments', projectId, taskId] })
-      toast.success('Файл загружен')
     },
   })
 }
@@ -85,8 +85,8 @@ export function useDeleteAttachment({
         url: `${base(projectId, taskId)}/${attachmentId}`,
       }),
     onSuccess: () => {
+      // ТП-71: без success-тоста — исчезновение из списка видно сразу
       qc.invalidateQueries({ queryKey: ['taskAttachments', projectId, taskId] })
-      toast.success('Вложение удалено')
     },
     onError: () => toast.error('Не удалось удалить вложение'),
   })

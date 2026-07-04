@@ -13,7 +13,7 @@ import {
 } from '@mui/material'
 import LinkIcon from '@mui/icons-material/Link'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-import { toast } from 'sonner'
+import { notify as toast } from '@/shared/ui/notify'
 import { MenuItem, Select } from '@/shared/ui/mui/Select'
 import { workTechApi } from '@/shared/api/endpoint'
 import { workTechApiClient } from '@/shared/api/workTechHttpClient'
@@ -92,9 +92,9 @@ export function TaskLinks({ projectId, taskId, taskCode }: Props) {
         },
       }),
     onSuccess: () => {
+      // ТП-71: без success-тоста — связь сразу появляется в списке
       qc.invalidateQueries({ queryKey: ['taskLinks', projectId] })
       setSelected(null)
-      toast.success('Связь добавлена')
     },
     onError: (err) =>
       toast.error(extractGeneralError(err) ?? 'Не удалось добавить связь'),
@@ -107,8 +107,8 @@ export function TaskLinks({ projectId, taskId, taskCode }: Props) {
         url: API_ENDPOINT_PATH.TASKS.DELETE_LINK({ projectId, linkId }),
       }),
     onSuccess: () => {
+      // ТП-71: без success-тоста — удаление из списка видно сразу
       qc.invalidateQueries({ queryKey: ['taskLinks', projectId] })
-      toast.success('Связь удалена')
     },
     onError: () => toast.error('Не удалось удалить связь'),
   })
