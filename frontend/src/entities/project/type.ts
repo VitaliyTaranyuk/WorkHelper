@@ -5,6 +5,7 @@ export type ProjectInfo = {
   id: string
   name: string
   code: string
+  description?: string
   statuses: TaskStatus[]
   users: UserWithEmail[]
 }
