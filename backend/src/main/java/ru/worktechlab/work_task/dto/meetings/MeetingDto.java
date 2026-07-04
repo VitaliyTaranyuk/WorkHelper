@@ -17,6 +17,7 @@ public class MeetingDto {
     private String description;
     private LocalDateTime startAt;
     private LocalDateTime endAt;
+    private String link;
     private String creatorName;
     private List<ParticipantDto> participants;
 

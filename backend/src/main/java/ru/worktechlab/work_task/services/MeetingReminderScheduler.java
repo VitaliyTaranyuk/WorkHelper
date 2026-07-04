@@ -43,8 +43,9 @@ public class MeetingReminderScheduler {
             String message = String.format("Встреча «%s» начнётся в %s",
                     meeting.getTitle(), meeting.getStartAt().format(TIME));
             for (User participant : meeting.getParticipants()) {
-                notificationRepository.save(new Notification(
-                        participant, meeting.getCreator(), TYPE_MEETING_REMINDER, message, null, null, null));
+                notificationRepository.save(Notification.meetingReminder(
+                        participant, meeting.getCreator(), TYPE_MEETING_REMINDER, message,
+                        meeting.getId(), meeting.getProject().getId(), meeting.getLink()));
                 notified++;
             }
             meeting.setReminderSent(true);
