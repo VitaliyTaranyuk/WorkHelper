@@ -4,10 +4,7 @@ import {
   Button,
   Chip,
   IconButton,
-  MenuItem,
-  Select,
   Stack,
-  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
@@ -15,24 +12,23 @@ import {
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
+import AddIcon from '@mui/icons-material/Add'
 import dayjs, { type Dayjs } from 'dayjs'
-import { useProjectData } from '@/features/project/query/useProjectData'
+import { useModal } from '@ebay/nice-modal-react'
 import { useSettingsStore } from '@/features/settings/settingsStore'
 import {
-  useCreateMeeting,
   useDeleteMeeting,
   useMeetings,
   useUpdateMeeting,
 } from '@/features/meeting/useMeetings'
 import type { MeetingDto } from '@/shared/api/endpoint/meetingsApi'
 import { MeetingDetailsDialog } from './MeetingDetailsDialog'
+import { CreateMeetingModal } from '@/widget/modal/meeting/CreateMeetingModal'
 
 type Props = { projectId: string; focusMeetingId?: string }
 
 type CalendarView = 'week' | 'month'
 
-const TELEMOST_CREATE_URL = 'https://telemost.yandex.ru/create'
-const LINK_PATTERN = /^https?:\/\/.+/
 const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
 function withSeconds(local: string): string {
@@ -59,15 +55,9 @@ function formatTime(iso: string): string {
 
 export function CalendarPage({ projectId, focusMeetingId }: Props) {
   const { data: meetings } = useMeetings(projectId)
-  const createMeeting = useCreateMeeting(projectId)
   const updateMeeting = useUpdateMeeting(projectId)
   const deleteMeeting = useDeleteMeeting(projectId)
-
-  // Участники встречи выбираются из участников проекта: встречи привязаны
-  // к проекту, а GET /users доступен только ADMIN/PROJECT_OWNER (участник
-  // проекта получал 403 при открытии календаря).
-  const { activeProject } = useProjectData()
-  const users = activeProject?.users
+  const createModal = useModal(CreateMeetingModal)
 
   // ТП-56: настройка календаря живёт в календаре — выбранный вид
   // запоминается (localStorage) и восстанавливается при следующем открытии.
@@ -81,15 +71,13 @@ export function CalendarPage({ projectId, focusMeetingId }: Props) {
   const [anchor, setAnchor] = useState<Dayjs>(dayjs())
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingDto | null>(null)
 
-  const [title, setTitle] = useState('')
-  const [startAt, setStartAt] = useState('')
-  const [endAt, setEndAt] = useState('')
-  const [link, setLink] = useState('')
-  const [participantIds, setParticipantIds] = useState<string[]>([])
-
-  const linkTrimmed = link.trim()
-  const linkValid = linkTrimmed.length === 0 || LINK_PATTERN.test(linkTrimmed)
-  const valid = title.trim().length > 0 && startAt.length > 0 && linkValid
+  // ТП-67: создание встречи — модалка в общем стиле приложения (было —
+  // постоянная боковая форма, выбивавшаяся из паттернов TMS/календарей).
+  const openCreate = (date?: Dayjs) =>
+    createModal.show({
+      projectId,
+      initialDate: date ? date.format('YYYY-MM-DD') : undefined,
+    })
 
   // Переход из уведомления-напоминания: открыть запись встречи (ТП-37).
   useEffect(() => {
@@ -133,22 +121,6 @@ export function CalendarPage({ projectId, focusMeetingId }: Props) {
   const shift = (direction: 1 | -1) =>
     setAnchor(anchor.add(direction, view === 'month' ? 'month' : 'week'))
 
-  const submit = async () => {
-    if (!valid) return
-    await createMeeting.mutateAsync({
-      title: title.trim(),
-      startAt: withSeconds(startAt),
-      endAt: endAt ? withSeconds(endAt) : undefined,
-      link: linkTrimmed.length > 0 ? linkTrimmed : undefined,
-      participantIds,
-    })
-    setTitle('')
-    setStartAt('')
-    setEndAt('')
-    setLink('')
-    setParticipantIds([])
-  }
-
   const saveLink = (meeting: MeetingDto, newLink: string) => {
     updateMeeting.mutate(
       {
@@ -181,7 +153,10 @@ export function CalendarPage({ projectId, focusMeetingId }: Props) {
       size="small"
       icon={m.link ? <VideocamOutlinedIcon /> : undefined}
       label={`${formatTime(m.startAt)} ${m.title}`}
-      onClick={() => setSelectedMeeting(m)}
+      onClick={(e) => {
+        e.stopPropagation()
+        setSelectedMeeting(m)
+      }}
       sx={{
         justifyContent: 'flex-start',
         maxWidth: '100%',
@@ -192,170 +167,105 @@ export function CalendarPage({ projectId, focusMeetingId }: Props) {
   )
 
   return (
-    <Stack direction="row" gap={4} sx={{ p: 2 }}>
-      <Stack gap={1.5} sx={{ width: 320, flexShrink: 0 }}>
-        <Typography variant="h6">Новая встреча</Typography>
-        <TextField
-          label="Название"
-          size="small"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <TextField
-          label="Начало"
-          type="datetime-local"
-          size="small"
-          value={startAt}
-          onChange={(e) => setStartAt(e.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
-        <TextField
-          label="Окончание"
-          type="datetime-local"
-          size="small"
-          value={endAt}
-          onChange={(e) => setEndAt(e.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
-        <Select
-          multiple
-          size="small"
-          displayEmpty
-          value={participantIds}
-          onChange={(e) => setParticipantIds(e.target.value as string[])}
-          renderValue={(selected) =>
-            selected.length === 0 ? 'Участники' : `Участников: ${selected.length}`
-          }
-        >
-          {(users ?? []).map((u) => (
-            <MenuItem key={u.id} value={u.id}>
-              {u.firstName} {u.lastName}
-            </MenuItem>
-          ))}
-        </Select>
-        <TextField
-          label="Ссылка на встречу"
-          size="small"
-          placeholder="https://telemost.yandex.ru/j/…"
-          value={link}
-          onChange={(e) => setLink(e.target.value)}
-          error={!linkValid}
-          helperText={
-            !linkValid
-              ? 'Ссылка должна начинаться с http:// или https://'
-              : undefined
-          }
-        />
-        <Button
-          variant="outlined"
-          startIcon={<VideocamOutlinedIcon />}
-          onClick={() =>
-            window.open(TELEMOST_CREATE_URL, '_blank', 'noopener,noreferrer')
-          }
-        >
-          Создать встречу в Телемосте
-        </Button>
-        <Typography variant="caption" color="text.secondary">
-          Телемост откроется в новой вкладке — скопируйте оттуда ссылку на
-          встречу и вставьте её в поле выше.
+    <Stack gap={1.5} sx={{ p: 2, minWidth: 0 }}>
+      <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
+        <Typography variant="h6" sx={{ flex: 1, minWidth: 160 }}>
+          {periodLabel}
         </Typography>
+        <Button size="small" onClick={() => setAnchor(dayjs())}>
+          Сегодня
+        </Button>
+        <IconButton size="small" aria-label="Назад" onClick={() => shift(-1)}>
+          <ChevronLeftIcon />
+        </IconButton>
+        <IconButton size="small" aria-label="Вперёд" onClick={() => shift(1)}>
+          <ChevronRightIcon />
+        </IconButton>
+        <ToggleButtonGroup
+          size="small"
+          exclusive
+          value={view}
+          onChange={(_, v: CalendarView | null) => v && setView(v)}
+        >
+          <ToggleButton value="week">Неделя</ToggleButton>
+          <ToggleButton value="month">Месяц</ToggleButton>
+        </ToggleButtonGroup>
         <Button
           variant="contained"
-          disabled={!valid || createMeeting.isPending}
-          onClick={submit}
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={() => openCreate()}
         >
-          Создать встречу
+          Встреча
         </Button>
       </Stack>
 
-      <Stack gap={1.5} sx={{ flex: 1, minWidth: 0 }}>
-        <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
-          <Typography variant="h6" sx={{ flex: 1 }}>
-            {periodLabel}
-          </Typography>
-          <Button size="small" onClick={() => setAnchor(dayjs())}>
-            Сегодня
-          </Button>
-          <IconButton size="small" aria-label="Назад" onClick={() => shift(-1)}>
-            <ChevronLeftIcon />
-          </IconButton>
-          <IconButton size="small" aria-label="Вперёд" onClick={() => shift(1)}>
-            <ChevronRightIcon />
-          </IconButton>
-          <ToggleButtonGroup
-            size="small"
-            exclusive
-            value={view}
-            onChange={(_, v: CalendarView | null) => v && setView(v)}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(7, 1fr)',
+          gap: '1px',
+          backgroundColor: 'divider',
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 2,
+          overflow: 'hidden',
+        }}
+      >
+        {WEEKDAYS.map((label) => (
+          <Box
+            key={label}
+            sx={{ p: 0.5, textAlign: 'center', backgroundColor: 'background.paper' }}
           >
-            <ToggleButton value="week">Неделя</ToggleButton>
-            <ToggleButton value="month">Месяц</ToggleButton>
-          </ToggleButtonGroup>
-        </Stack>
-
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            gap: '1px',
-            backgroundColor: 'divider',
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 2,
-            overflow: 'hidden',
-          }}
-        >
-          {WEEKDAYS.map((label) => (
-            <Box
-              key={label}
-              sx={{ p: 0.5, textAlign: 'center', backgroundColor: 'background.paper' }}
+            <Typography variant="caption" color="text.secondary">
+              {label}
+            </Typography>
+          </Box>
+        ))}
+        {days.map((day) => {
+          const key = day.format('YYYY-MM-DD')
+          const dayMeetings = meetingsByDay.get(key) ?? []
+          const isToday = key === today
+          const outsideMonth = view === 'month' && !day.isSame(anchor, 'month')
+          return (
+            <Stack
+              key={key}
+              gap={0.5}
+              onClick={() => openCreate(day)}
+              title="Нажмите, чтобы создать встречу"
+              sx={{
+                p: 0.75,
+                minHeight: view === 'month' ? 96 : 320,
+                backgroundColor: 'background.paper',
+                opacity: outsideMonth ? 0.45 : 1,
+                cursor: 'pointer',
+                '&:hover': { backgroundColor: 'rgba(99,102,241,0.04)' },
+              }}
             >
-              <Typography variant="caption" color="text.secondary">
-                {label}
-              </Typography>
-            </Box>
-          ))}
-          {days.map((day) => {
-            const key = day.format('YYYY-MM-DD')
-            const dayMeetings = meetingsByDay.get(key) ?? []
-            const isToday = key === today
-            const outsideMonth = view === 'month' && !day.isSame(anchor, 'month')
-            return (
-              <Stack
-                key={key}
-                gap={0.5}
+              <Typography
+                variant="caption"
                 sx={{
-                  p: 0.75,
-                  minHeight: view === 'month' ? 96 : 320,
-                  backgroundColor: 'background.paper',
-                  opacity: outsideMonth ? 0.45 : 1,
+                  alignSelf: 'flex-start',
+                  fontWeight: isToday ? 700 : 400,
+                  ...(isToday && {
+                    color: 'primary.contrastText',
+                    backgroundColor: 'primary.main',
+                    borderRadius: '50%',
+                    width: 20,
+                    height: 20,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }),
                 }}
               >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    alignSelf: 'flex-start',
-                    fontWeight: isToday ? 700 : 400,
-                    ...(isToday && {
-                      color: 'primary.contrastText',
-                      backgroundColor: 'primary.main',
-                      borderRadius: '50%',
-                      width: 20,
-                      height: 20,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }),
-                  }}
-                >
-                  {day.date()}
-                </Typography>
-                {dayMeetings.map(renderMeetingChip)}
-              </Stack>
-            )
-          })}
-        </Box>
-      </Stack>
+                {day.date()}
+              </Typography>
+              {dayMeetings.map(renderMeetingChip)}
+            </Stack>
+          )
+        })}
+      </Box>
 
       <MeetingDetailsDialog
         meeting={selectedMeeting}
