@@ -33,7 +33,7 @@ import { formatUserName, getFullName } from '@/entities/user/utils'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
 import type { ITaskCard } from '@/entities/task/types'
 import type { User } from '@/entities/user/types'
-import { toast } from 'sonner'
+import { notify as toast } from '@/shared/ui/notify'
 import {
   extractFieldErrors,
   extractGeneralError,

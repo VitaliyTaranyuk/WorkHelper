@@ -5,7 +5,7 @@ import { truncateText } from '@/shared/utils/text'
 // которые монтируются ВНЕ RouterProvider (урок ТП-39) — useNavigate там упадёт.
 import { router } from '@/application/router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { notify as toast } from '@/shared/ui/notify'
 
 export function useCreateTask() {
   const queryClient = useQueryClient()

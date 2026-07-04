@@ -1,4 +1,4 @@
-import { toast } from 'sonner'
+import { notify as toast } from '@/shared/ui/notify'
 import { uploadAttachmentFile } from './useTaskAttachments'
 
 /**
@@ -12,16 +12,13 @@ export async function uploadPendingAttachments(
   files: File[],
 ): Promise<void> {
   if (files.length === 0) return
-  let uploaded = 0
   for (const file of files) {
     try {
       await uploadAttachmentFile(projectId, taskId, file)
-      uploaded++
     } catch {
       toast.error(`Не удалось загрузить «${file.name}» — добавьте его в карточке задачи`)
     }
   }
-  if (uploaded > 0) {
-    toast.success(`Вложений загружено: ${uploaded} из ${files.length}`)
-  }
+  // ТП-71: success-тост о вложениях убран — файлы видны в карточке задачи,
+  // отдельное подтверждение дублирует информацию. Ошибки показываются выше.
 }

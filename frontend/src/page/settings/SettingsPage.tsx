@@ -2,7 +2,6 @@ import { memo, useEffect, useState } from 'react'
 import { Box, Button, Divider, Stack, Typography } from '@mui/material'
 import KeyboardIcon from '@mui/icons-material/Keyboard'
 import RestartAltIcon from '@mui/icons-material/RestartAlt'
-import { toast } from 'sonner'
 import { useSettingsStore } from '@/features/settings/settingsStore'
 import {
   DEFAULT_HOTKEY,
@@ -40,9 +39,9 @@ export const SettingsPage = memo(function SettingsPageInner() {
       }
       const next = hotkeyFromEvent(e)
       if (next) {
+        // ТП-71: без тоста — новое сочетание сразу видно рядом с кнопкой
         setHotkey(next)
         setCapturing(false)
-        toast.success(`Горячая клавиша: ${formatHotkey(next)}`)
       }
     }
     window.addEventListener('keydown', onKey, true)
@@ -50,9 +49,9 @@ export const SettingsPage = memo(function SettingsPageInner() {
   }, [capturing, setHotkey])
 
   const resetAll = () => {
+    // ТП-71: без тоста — сброшенные значения видны на этой же странице
     resetSettings()
     setHotkey(DEFAULT_HOTKEY)
-    toast.success('Настройки интерфейса сброшены')
   }
 
   return (

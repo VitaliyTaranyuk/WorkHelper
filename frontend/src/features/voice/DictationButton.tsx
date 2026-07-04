@@ -3,7 +3,7 @@ import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import MicNoneOutlinedIcon from '@mui/icons-material/MicNoneOutlined'
 import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined'
-import { toast } from 'sonner'
+import { notify as toast } from '@/shared/ui/notify'
 import { useSpeechRecognition } from './useSpeechRecognition'
 import { capitalizeFirst, stripFillers } from './textUtils'
 

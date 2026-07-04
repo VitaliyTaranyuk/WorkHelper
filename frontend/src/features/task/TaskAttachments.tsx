@@ -11,7 +11,7 @@ import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined'
-import { toast } from 'sonner'
+import { notify as toast } from '@/shared/ui/notify'
 import {
   downloadAttachment,
   isBrowserViewable,

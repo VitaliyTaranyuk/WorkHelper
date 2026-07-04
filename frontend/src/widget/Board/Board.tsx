@@ -40,7 +40,7 @@ import { useBoardEditModeStore } from '@/features/board/boardEditModeStore'
 import { useModal } from '@ebay/nice-modal-react'
 import { ProjectHistoryModal } from '@/widget/modal/project/ProjectHistoryModal'
 import HistoryIcon from '@mui/icons-material/History'
-import { toast } from 'sonner'
+import { notify as toast } from '@/shared/ui/notify'
 
 export type BoardProps = {
   editTaskModal: NiceModalHandler<{ task: ITaskCard }>
