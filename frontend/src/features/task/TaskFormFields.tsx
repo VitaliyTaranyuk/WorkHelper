@@ -1,4 +1,4 @@
-import { Stack } from '@mui/material'
+import { Stack, ToggleButton, ToggleButtonGroup } from '@mui/material'
 import FormControl from '@mui/material/FormControl'
 import { Controller, type UseFormReturn } from 'react-hook-form'
 import { MenuItem, Select } from '@/shared/ui/mui/Select'
@@ -6,9 +6,29 @@ import { FormCaption } from '@/shared/ui/components/FormCaption'
 import { getFullName } from '@/entities/user/utils'
 import { sprintDisplayLabel } from '@/entities/sprint/label'
 import { NOT_ASSIGNED_OPTION, type FormValues } from './TaskForm/useTaskForm'
-import { TASK_PRIORITY_OPTIONS } from './TaskForm/contants'
+import { TASK_PRIORITY_OPTIONS, PRIORITY_COLOR } from './TaskForm/contants'
+import BugIcon from '@/shared/assets/icons/task-type-bug.svg?react'
+import TaskIcon from '@/shared/assets/icons/task-type-task.svg?react'
 import type { User } from '@/entities/user/types'
 import type { SprintMin } from '@/entities/sprint/type'
+
+// ТП-82: сегментированные переключатели типа и приоритета — единый паттерн с
+// переключателем вида календаря (MUI ToggleButtonGroup). Один клик, без меню;
+// активный вариант визуально выделен. Тип — иконки задача/баг; приоритет —
+// подсвечен своим цветом (PRIORITY_COLOR: зелёный/жёлтый/красный).
+const TYPE_OPTIONS = [
+  { value: 'TASK', label: 'Задача', Icon: TaskIcon },
+  { value: 'BUG', label: 'Баг', Icon: BugIcon },
+] as const
+
+const segmentSx = {
+  textTransform: 'none' as const,
+  fontSize: 13,
+  fontWeight: 500,
+  gap: 0.75,
+  py: 0.75,
+  '& svg': { width: 16, height: 16 },
+}
 
 type Props = {
   form: UseFormReturn<FormValues>
@@ -51,37 +71,58 @@ export function TaskFormFields({ form, projectUsers, sprints }: Props) {
 
       <Stack gap={0.5}>
         <FormCaption>Приоритет</FormCaption>
-        <FormControl fullWidth size="small">
-          <Controller
-            control={form.control}
-            name="priority"
-            render={({ field }) => (
-              <Select value={field.value} onChange={(e) => field.onChange(e.target.value)}>
-                {TASK_PRIORITY_OPTIONS.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            )}
-          />
-        </FormControl>
+        <Controller
+          control={form.control}
+          name="priority"
+          render={({ field }) => (
+            <ToggleButtonGroup
+              exclusive
+              fullWidth
+              size="small"
+              value={field.value}
+              onChange={(_, v: string | null) => v && field.onChange(v)}
+            >
+              {TASK_PRIORITY_OPTIONS.map((opt) => (
+                <ToggleButton
+                  key={opt.value}
+                  value={opt.value}
+                  sx={{
+                    ...segmentSx,
+                    '&.Mui-selected, &.Mui-selected:hover': {
+                      backgroundColor: PRIORITY_COLOR[opt.value],
+                    },
+                  }}
+                >
+                  {opt.label}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          )}
+        />
       </Stack>
 
       <Stack gap={0.5}>
         <FormCaption>Тип</FormCaption>
-        <FormControl fullWidth size="small">
-          <Controller
-            control={form.control}
-            name="type"
-            render={({ field }) => (
-              <Select value={field.value} onChange={(e) => field.onChange(e.target.value)}>
-                <MenuItem value="TASK">Задача</MenuItem>
-                <MenuItem value="BUG">Баг</MenuItem>
-              </Select>
-            )}
-          />
-        </FormControl>
+        <Controller
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <ToggleButtonGroup
+              exclusive
+              fullWidth
+              size="small"
+              value={field.value}
+              onChange={(_, v: string | null) => v && field.onChange(v)}
+            >
+              {TYPE_OPTIONS.map(({ value, label, Icon }) => (
+                <ToggleButton key={value} value={value} sx={segmentSx}>
+                  <Icon />
+                  {label}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          )}
+        />
       </Stack>
 
       <Stack gap={0.5}>
