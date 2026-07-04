@@ -86,7 +86,9 @@ class InAppNotificationServiceTest {
         Notification n = captor.getValue();
         assertThat(n.getRecipient()).isEqualTo(actor);
         assertThat(n.getType()).isEqualTo(InAppNotificationService.TYPE_TASK_CREATED);
-        assertThat(n.getMessage()).contains(task.getCode());
+        // ТП-72: текст — только название задачи; тип и код фронтенд рендерит из
+        // структурных полей заголовка, поэтому в сообщении их больше нет.
+        assertThat(n.getMessage()).isEqualTo(task.getTitle());
         // taskCode обязателен: по нему фронтенд делает уведомление кликабельным
         assertThat(n.getTaskCode()).isEqualTo(task.getCode());
         assertThat(n.getTaskId()).isEqualTo("task-1");

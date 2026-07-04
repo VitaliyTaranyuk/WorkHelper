@@ -52,7 +52,9 @@ public class MeetingReminderScheduler {
         int notified = 0;
         for (Meeting meeting : upcoming) {
             long minutesUntilStart = Duration.between(now, meeting.getStartAt()).toMinutes();
-            String message = String.format("Встреча «%s» начнётся в %s",
+            // ТП-72: тип («Напоминание о встрече») показывает заголовок строки —
+            // в тексте не повторяем слово «Встреча», оставляем название и время.
+            String message = String.format("«%s» начнётся в %s",
                     meeting.getTitle(), meeting.getStartAt().format(TIME));
             for (User participant : meeting.getParticipants()) {
                 UserSettings settings = userSettingsService.effectiveFor(participant.getId());
