@@ -36,7 +36,7 @@ const PageWrapper = styled.div`
   display: flex;
   flex-direction: column;
 
-  background-color: rgba(224, 228, 234, 1);
+  background-color: var(--wt-bg);
   width: 100%;
   /* Страница целиком не должна иметь горизонтальный скролл —
      прокрутка живёт только внутри доски. */
@@ -53,7 +53,7 @@ const MainBlock = styled.div`
 const ContentBlock = styled.main`
   padding: 0px 40px 30px 20px;
   flex-grow: 1;
-  background-color: rgba(224, 228, 234, 1);
+  background-color: var(--wt-bg);
   /* min-width:0 обязателен: иначе min-content доски распирает flex-элемент и
      появляется горизонтальный скролл всей страницы. */
   min-width: 0;

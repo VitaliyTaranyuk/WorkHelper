@@ -6,6 +6,24 @@
 
 ---
 
+## Завершено 2026-07-04: ТП-64 «Тёмная тема интерфейса» (ветка `feature/tp64-dark-theme`)
+
+Поддержка light/dark/system (по-настоящему, не муляж ТП-56):
+- **CSS-токены** `style/theme.css`: переменные шелла (`--wt-bg/surface/surface-muted/
+  border/text/...`) со значениями для light (`:root`) и dark (`html[data-theme=dark]`).
+- **`themeMode.ts`**: store на useSyncExternalStore (light/dark/system, localStorage,
+  реакция на prefers-color-scheme); `useThemeMode` ставит `data-theme` на `<html>`.
+- **MUI-тема** расширена dark-палитрой (`createWorkTechTheme(mode)`, `getWorkTechTheme`),
+  `ThemeProvider` строит тему по эффективному режиму — MUI-компоненты (Dialog/Menu/
+  Select/Typography, background.paper) адаптируются автоматически.
+- **Кастомный emotion-шелл** переведён на токены: фон рабочей области
+  (DashboardLayout/Sidebar), sticky-заголовки спринтов, колонки доски, карточки
+  задач, контейнер модалок. Переключатель темы — секция «Тема оформления» в настройках.
+- Дефолт — светлая (opt-in), риск для существующих пользователей нулевой. Тонкая
+  доводка отдельных inline-surface и экранов логина — возможный follow-up.
+
+---
+
 ## Завершено 2026-07-04: ТП-65 «Серверные настройки уведомлений» (ветка `feature/tp65-notification-settings`)
 
 Настоящие серверные настройки (не муляж, как было в ТП-56):

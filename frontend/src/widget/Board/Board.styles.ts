@@ -47,7 +47,7 @@ export const BoardColumn = styled.div`
   flex: 1 0 ${BOARD_COLUMN_MIN_WIDTH}px;
   max-width: ${BOARD_COLUMN_MAX_WIDTH}px;
   min-height: 0;
-  background-color: ${COLOR.background[100]};
+  background-color: var(--wt-surface-muted);
   padding: 14px 12px;
   border-radius: 20px;
 `

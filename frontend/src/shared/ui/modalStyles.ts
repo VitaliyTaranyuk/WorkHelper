@@ -6,7 +6,8 @@ const modalContainer: SxProps = {
   padding: '28px 32px',
   border: 'none',
   borderColor: 'primary.light',
-  backgroundColor: 'rgba(224, 228, 234, 1)',
+  // ТП-64: модалка тянет цвет из токена темы (светлая/тёмная)
+  backgroundColor: 'var(--wt-surface)',
   boxShadow: '0 12px 40px rgba(17,24,39,.18)',
   overflow: 'hidden',
 }

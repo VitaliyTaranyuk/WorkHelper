@@ -1,0 +1,37 @@
+/*
+ * Токены темы (ТП-64). Кастомные emotion-стили и шелл приложения используют
+ * CSS-переменные, значения которых переключаются между светлой (по умолчанию)
+ * и тёмной темами через атрибут data-theme на <html>. MUI-компоненты берут
+ * цвета из своей палитры (theme.ts, режим синхронизируется в ThemeProvider).
+ */
+:root,
+html[data-theme='light'] {
+  --wt-bg: rgb(224, 228, 234); /* фон рабочей области */
+  --wt-surface: #ffffff; /* карточки/поповеры/модалки */
+  --wt-surface-muted: #f6f6f6; /* мягкие блоки (вложения, строки) */
+  --wt-surface-hover: rgba(0, 0, 0, 0.05);
+  --wt-border: #e0e4ea;
+  --wt-text: #0f0f0f;
+  --wt-text-secondary: #313131;
+  --wt-text-tertiary: #7b7b7b;
+  --wt-accent-soft: rgba(99, 102, 241, 0.1);
+  --wt-accent-soft-hover: rgba(99, 102, 241, 0.2);
+}
+
+html[data-theme='dark'] {
+  --wt-bg: #14161c; /* глубокий нейтрально-синий фон */
+  --wt-surface: #1e2029;
+  --wt-surface-muted: #262933;
+  --wt-surface-hover: rgba(255, 255, 255, 0.06);
+  --wt-border: #333743;
+  --wt-text: #f2f3f5;
+  --wt-text-secondary: #c9ccd3;
+  --wt-text-tertiary: #9298a3;
+  --wt-accent-soft: rgba(129, 140, 248, 0.22);
+  --wt-accent-soft-hover: rgba(129, 140, 248, 0.34);
+}
+
+html[data-theme='dark'] body {
+  background-color: var(--wt-bg);
+  color: var(--wt-text);
+}

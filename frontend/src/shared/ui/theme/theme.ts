@@ -1,10 +1,25 @@
 import { createTheme } from '@mui/material/styles'
 import { COLOR, TEXT_STYLES } from './constants'
 
-export const createWorkTechTheme = () =>
+// ТП-64: тёмная палитра поверх токенов темы (см. style/theme.css). Значения
+// совпадают с CSS-переменными, чтобы MUI-компоненты и кастомный шелл были
+// согласованы.
+const DARK = {
+  bg: '#14161c',
+  surface: '#1e2029',
+  surfaceMuted: '#262933',
+  border: '#333743',
+  text: '#f2f3f5',
+  textSecondary: '#c9ccd3',
+  textDisabled: '#7c828d',
+} as const
+
+type Mode = 'light' | 'dark'
+
+export const createWorkTechTheme = (mode: Mode = 'light') =>
   ({
     palette: {
-      mode: 'light',
+      mode,
       primary: {
         50: COLOR.main[50],
         100: COLOR.main[100],
@@ -53,15 +68,15 @@ export const createWorkTechTheme = () =>
         contrastText: COLOR.text.light,
       },
       background: {
-        default: COLOR.background[50],
-        paper: COLOR.background[100],
+        default: mode === 'dark' ? DARK.bg : COLOR.background[50],
+        paper: mode === 'dark' ? DARK.surface : COLOR.background[100],
       },
       text: {
-        primary: COLOR.text.primary,
-        secondary: COLOR.text.secondary,
-        disabled: COLOR.text.gray,
+        primary: mode === 'dark' ? DARK.text : COLOR.text.primary,
+        secondary: mode === 'dark' ? DARK.textSecondary : COLOR.text.secondary,
+        disabled: mode === 'dark' ? DARK.textDisabled : COLOR.text.gray,
       },
-      divider: COLOR.background[200],
+      divider: mode === 'dark' ? DARK.border : COLOR.background[200],
     },
     typography: {
       fontFamily: 'Inter, InterVariable, sans-serif',
@@ -232,4 +247,14 @@ export const createWorkTechTheme = () =>
     // },
   }) as const
 
-export const workTechMUITheme = createTheme(createWorkTechTheme())
+export const workTechMUITheme = createTheme(createWorkTechTheme('light'))
+
+// ТП-64: кэш тем по режиму — не пересоздаём тему на каждый рендер.
+const THEME_BY_MODE = {
+  light: workTechMUITheme,
+  dark: createTheme(createWorkTechTheme('dark')),
+} as const
+
+export function getWorkTechTheme(mode: Mode) {
+  return THEME_BY_MODE[mode]
+}

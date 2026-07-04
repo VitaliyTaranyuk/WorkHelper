@@ -175,7 +175,7 @@ const SidebarContainer = styled.aside`
   width: ${LEFT_SIDE_WIDTH_PX};
 
   flex-shrink: 0;
-  background-color: rgba(224, 228, 234, 1);
+  background-color: var(--wt-bg);
 
   display: flex;
   flex-direction: column;
