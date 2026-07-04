@@ -1,10 +1,20 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button, IconButton, Stack, Tooltip, Typography } from '@mui/material'
 import AttachFileIcon from '@mui/icons-material/AttachFile'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined'
 import { toast } from 'sonner'
+import { LightboxDialog } from './ImageLightbox'
+import { isBrowserViewable } from './useTaskAttachments'
+
+/** Открыть локальный файл формы создания в новой вкладке (object URL). */
+function openFileInNewTab(file: File) {
+  const url = URL.createObjectURL(file)
+  const win = window.open(url, '_blank', 'noopener,noreferrer')
+  if (!win) toast.error('Браузер заблокировал открытие вкладки')
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
 
 type Props = {
   files: File[]
@@ -27,6 +37,17 @@ function formatSize(bytes: number) {
  */
 export function PendingAttachments({ files, onChange }: Props) {
   const fileInput = useRef<HTMLInputElement | null>(null)
+  // ТП-53: клик по превью изображения открывает встроенный лайтбокс
+  const [preview, setPreview] = useState<File | null>(null)
+  const previewUrl = useMemo(
+    () => (preview ? URL.createObjectURL(preview) : null),
+    [preview],
+  )
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
 
   const addFiles = useCallback(
     (incoming: FileList | File[] | null) => {
@@ -120,15 +141,32 @@ export function PendingAttachments({ files, onChange }: Props) {
             key={`${f.name}-${f.size}-${idx}`}
             file={f}
             onRemove={() => removeAt(idx)}
+            onPreview={() => setPreview(f)}
           />
         ))}
       </Stack>
+
+      <LightboxDialog
+        open={preview !== null}
+        src={previewUrl}
+        fileName={preview?.name}
+        onClose={() => setPreview(null)}
+      />
     </Stack>
   )
 }
 
-function PendingFileRow({ file, onRemove }: { file: File; onRemove: () => void }) {
+function PendingFileRow({
+  file,
+  onRemove,
+  onPreview,
+}: {
+  file: File
+  onRemove: () => void
+  onPreview: () => void
+}) {
   const isImage = (file.type || '').toLowerCase().startsWith('image/')
+  const viewable = isBrowserViewable(file.type)
   // object URL для превью изображения; освобождаем при смене файла/unmount
   const previewUrl = useMemo(
     () => (isImage ? URL.createObjectURL(file) : null),
@@ -153,20 +191,48 @@ function PendingFileRow({ file, onRemove }: { file: File; onRemove: () => void }
       }}
     >
       {previewUrl ? (
-        <img
-          src={previewUrl}
-          alt={file.name}
-          width={36}
-          height={36}
-          style={{ objectFit: 'cover', borderRadius: 4, display: 'block', flexShrink: 0 }}
-        />
+        <button
+          type="button"
+          onClick={onPreview}
+          title={`${file.name} — открыть просмотр`}
+          style={{
+            display: 'flex',
+            flexShrink: 0,
+            padding: 0,
+            border: 'none',
+            background: 'none',
+            cursor: 'zoom-in',
+          }}
+        >
+          <img
+            src={previewUrl}
+            alt={file.name}
+            width={36}
+            height={36}
+            style={{ objectFit: 'cover', borderRadius: 4, display: 'block' }}
+          />
+        </button>
       ) : isImage ? (
         <ImageOutlinedIcon sx={{ color: 'text.secondary', flexShrink: 0 }} />
       ) : (
         <InsertDriveFileOutlinedIcon sx={{ color: 'text.secondary', flexShrink: 0 }} />
       )}
       <Stack sx={{ minWidth: 0, flex: 1 }}>
-        <Typography variant="body2" noWrap title={file.name} sx={{ fontWeight: 500 }}>
+        {/* ТП-53: просматриваемые типы открываются в новой вкладке по имени файла */}
+        <Typography
+          variant="body2"
+          noWrap
+          title={viewable ? `${file.name} — открыть в новой вкладке` : file.name}
+          onClick={viewable ? () => openFileInNewTab(file) : undefined}
+          sx={{
+            fontWeight: 500,
+            ...(viewable && {
+              cursor: 'pointer',
+              color: 'primary.main',
+              '&:hover': { textDecoration: 'underline' },
+            }),
+          }}
+        >
           {file.name}
         </Typography>
         <Typography variant="caption" color="text.secondary" noWrap>
