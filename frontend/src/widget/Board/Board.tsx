@@ -21,6 +21,7 @@ import { getTasksByStatus } from './utils'
 import IconButton from '@mui/material/IconButton'
 import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 import Tooltip from '@mui/material/Tooltip'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
@@ -37,7 +38,8 @@ import {
   useUpdateStatuses,
 } from '@/features/status/useStatusActions'
 import { useBoardEditModeStore } from '@/features/board/boardEditModeStore'
-import { useModal } from '@ebay/nice-modal-react'
+import NiceModal, { useModal } from '@ebay/nice-modal-react'
+import { TextPromptDialog } from '@/shared/ui/components/TextPromptDialog'
 import { ProjectHistoryModal } from '@/widget/modal/project/ProjectHistoryModal'
 import HistoryIcon from '@mui/icons-material/History'
 import { notify as toast } from '@/shared/ui/notify'
@@ -184,10 +186,19 @@ function BoardInner(props: BoardProps) {
     ...overrides,
   })
 
-  const handleAddColumn = () => {
+  // ТП-69: ввод имени колонки — диалог в стиле приложения вместо window.prompt
+  const handleAddColumn = async () => {
     if (!activeProject) return
-    const name = window.prompt('Название новой колонки')?.trim()
-    if (!name) return
+    let name: string
+    try {
+      name = await NiceModal.show(TextPromptDialog, {
+        title: 'Новая колонка',
+        label: 'Название колонки',
+        submitLabel: 'Создать',
+      })
+    } catch {
+      return // отмена
+    }
     const maxPriority = allStatuses.reduce(
       (max, s) => Math.max(max, s.priority),
       0,
@@ -210,10 +221,19 @@ function BoardInner(props: BoardProps) {
     }
   }
 
-  const handleRenameColumn = (statusId: number, currentCode: string) => {
+  const handleRenameColumn = async (statusId: number, currentCode: string) => {
     if (!activeProject) return
-    const next = window.prompt('Новое название колонки', currentCode)?.trim()
-    if (!next || next === currentCode) return
+    let next: string
+    try {
+      next = await NiceModal.show(TextPromptDialog, {
+        title: 'Переименовать колонку',
+        label: 'Название колонки',
+        initialValue: currentCode,
+      })
+    } catch {
+      return // отмена
+    }
+    if (next === currentCode) return
     // Rename применяется мгновенно — не часть черновика конфигурации.
     const statuses = allStatuses.map((s) =>
       toReq(s, s.id === statusId ? { code: next } : {}),
@@ -334,6 +354,8 @@ function BoardInner(props: BoardProps) {
         </Stack>
       )}
       {editMode && (
+        // ТП-69: палитра дизайн-системы — акцент несохранённых изменений
+        // фирменным цветом (main), не «инородным» жёлтым.
         <Stack
           direction="row"
           gap={1}
@@ -341,27 +363,23 @@ function BoardInner(props: BoardProps) {
           flexWrap="wrap"
           sx={{
             mb: 1,
-            p: 1,
+            p: '8px 12px',
             borderRadius: '12px',
-            backgroundColor: isDirty
-              ? 'rgba(255, 235, 175, .85)'
-              : 'rgba(246, 246, 246, .85)',
-            border: isDirty
-              ? '1px solid rgba(237, 108, 2, .35)'
-              : '1px solid transparent',
+            backgroundColor: isDirty ? '#E9E9FD' : '#F6F6F6',
+            border: isDirty ? '1px solid #BCBBF8' : '1px solid #E0E4EA',
           }}
         >
-          <span style={{ fontSize: 13, fontWeight: 500 }}>
+          <Typography sx={{ fontSize: 13, fontWeight: 500 }}>
             {isDirty
               ? 'Есть несохранённые изменения колонок'
               : 'Режим редактирования доски'}
-          </span>
+          </Typography>
           <div style={{ flex: 1 }} />
           {hiddenColumns.length > 0 && (
             <Stack direction="row" gap={0.5} alignItems="center" flexWrap="wrap">
-              <span style={{ fontSize: 12, color: 'rgba(120,116,134,1)' }}>
+              <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
                 Скрыты:
-              </span>
+              </Typography>
               {hiddenColumns.map((s) => (
                 <Chip
                   key={s.id}
