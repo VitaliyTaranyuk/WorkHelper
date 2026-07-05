@@ -5,6 +5,7 @@ import { orderBy } from 'lodash'
 import { MenuItem, Select } from '@/shared/ui/mui/Select'
 import { TextField } from '@/shared/ui/mui/TextFileld'
 import { FormCaption } from '@/shared/ui/components/FormCaption'
+import { DictationButton } from '@/features/voice/DictationButton'
 import { Loader } from '@/shared/ui/components/Loader'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
@@ -117,7 +118,23 @@ export function CreateTaskContent({
         </Stack>
 
         <Stack gap={0.5}>
-          <FormCaption>Описание</FormCaption>
+          {/* Диктовка — только у «Описание» (содержательный текст); одинаково
+              с карточкой редактирования. Компактная иконка у поля, не отдельная
+              функция (практика Google Docs / MS Word Dictate). */}
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <FormCaption>Описание</FormCaption>
+            <DictationButton
+              targetLabel="описание"
+              onText={(text) => {
+                const current = form.getValues('description') ?? ''
+                form.setValue(
+                  'description',
+                  current ? `${current}\n${text}` : text,
+                  { shouldDirty: true },
+                )
+              }}
+            />
+          </Stack>
           <TextField
             fullWidth
             multiline
