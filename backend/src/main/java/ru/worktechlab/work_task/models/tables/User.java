@@ -43,6 +43,11 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private boolean active;
 
+    // ТП-114: технический/служебный аккаунт (bootstrap-админы, сервисные) —
+    // исключается из выбора участников проекта (picker).
+    @Column(name = "is_system", nullable = false)
+    private boolean system;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "gender")
     private Gender gender;
@@ -84,6 +89,10 @@ public class User {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public void setSystem(boolean system) {
+        this.system = system;
     }
 
     public void setLastProjectId(String lastProjectId) {

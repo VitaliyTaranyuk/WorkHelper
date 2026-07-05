@@ -15,6 +15,8 @@ import ru.worktechlab.work_task.dto.users.RegisterDTO;
 import ru.worktechlab.work_task.dto.users.UpdateProfileRequest;
 import ru.worktechlab.work_task.dto.users.UserDataDto;
 import ru.worktechlab.work_task.dto.users.UserShortDataDto;
+import ru.worktechlab.work_task.dto.users.UserPickerDto;
+import org.springframework.test.util.ReflectionTestUtils;
 import ru.worktechlab.work_task.exceptions.BadRequestException;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.mappers.UserMapper;
@@ -223,5 +225,30 @@ class UserServiceTest {
         dto.setGender("MALE");
         dto.setBirthDate(LocalDate.of(1990, 1, 1));
         return dto;
+    }
+
+    @Test
+    void pickerSearch_excludesSystemInactiveAndUsernamelessAccounts() {
+        User real = pickerUser("ivanov", true, false);
+        User systemAcc = pickerUser("admin", true, true);   // технический
+        User noUsername = pickerUser(null, true, false);    // «неизвестный»
+        User inactive = pickerUser("petrov", false, false); // неактивный
+        when(userRepository.getUsers())
+                .thenReturn(List.of(real, systemAcc, noUsername, inactive));
+
+        List<UserPickerDto> result = userService.pickerSearch("", 20);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getUsername()).isEqualTo("ivanov");
+    }
+
+    private User pickerUser(String username, boolean active, boolean system) {
+        User u = new User("Фамилия", "Имя", null,
+                (username == null ? "x" : username) + "@mail.ru", null,
+                Collections.emptyList(), null, Gender.MALE, "pwd");
+        u.setActive(active);
+        u.setSystem(system);
+        ReflectionTestUtils.setField(u, "username", username);
+        return u;
     }
 }
