@@ -112,6 +112,12 @@ export type VoiceServices = {
   finishSprint(sprintId: string): Promise<void>
   /** Отметить все уведомления прочитанными — через markAllRead. */
   markNotificationsRead(): Promise<void>
+  /** Создать встречу — через createMeeting. */
+  createMeeting(input: {
+    title: string
+    startAt: string
+    endAt?: string
+  }): Promise<void>
 }
 
 /** Контекст исполнения = данные + сервисы. */

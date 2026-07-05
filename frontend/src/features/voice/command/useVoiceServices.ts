@@ -8,6 +8,7 @@ import { useEditTask } from '@/features/task/mutation/useEditTask'
 import { useCreateSprint } from '@/features/sprint/mutation/useCreateSprint'
 import { useActivateSprint } from '@/features/sprint/mutation/useActivateSprint'
 import { useFinishSprint } from '@/features/sprint/mutation/useFinishSprint'
+import { useCreateMeeting } from '@/features/meeting/useMeetings'
 import { workTechApi } from '@/shared/api/endpoint'
 import { mapTaskMinDTOToTaskCard } from '@/entities/task/mapDTO'
 import type { TaskModelDTO } from '@/data-contracts'
@@ -61,6 +62,9 @@ export function useVoiceServices(
   const createSprintMut = useCreateSprint()
   const activateSprintMut = useActivateSprint()
   const finishSprintMut = useFinishSprint()
+  // Мутация встреч требует projectId на этапе вызова хука; для null-контекста
+  // передаём пустую строку — сервис всё равно недоступен (return null ниже).
+  const createMeetingMut = useCreateMeeting(ctx?.projectId ?? '')
 
   return useMemo(() => {
     if (!ctx) return null
@@ -149,6 +153,13 @@ export function useVoiceServices(
         await workTechApi.notification.markAllRead()
         queryClient.invalidateQueries({ queryKey: ['notifications'] })
       },
+      createMeeting: async (input) => {
+        await createMeetingMut.mutateAsync({
+          title: input.title,
+          startAt: input.startAt,
+          ...(input.endAt ? { endAt: input.endAt } : {}),
+        })
+      },
     }
   }, [
     ctx,
@@ -160,5 +171,6 @@ export function useVoiceServices(
     createSprintMut,
     activateSprintMut,
     finishSprintMut,
+    createMeetingMut,
   ])
 }
