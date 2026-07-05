@@ -14,14 +14,19 @@ import {
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
+import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import { useState } from 'react'
 import { Button } from '@/shared/ui/Button'
+import { Spacer } from '@/shared/ui/Spacer'
 import { FormCaption } from '@/shared/ui/components/FormCaption'
 import { modalStyle } from '@/shared/ui/modalStyles'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useCreateMeeting } from '@/features/meeting/useMeetings'
 
-const TELEMOST_CREATE_URL = 'https://telemost.yandex.ru/create'
+// ТП-113: путь /create отдаёт 404 — кнопка вела на несуществующую страницу и
+// «не позволяла создать встречу». Рабочая точка входа — главная Телемоста, где
+// «Создать видеовстречу» генерирует ссылку автоматически (нужен аккаунт Яндекса).
+const TELEMOST_URL = 'https://telemost.yandex.ru/'
 const LINK_PATTERN = /^https?:\/\/.+/
 
 function withSeconds(local: string): string {
@@ -169,33 +174,50 @@ export const CreateMeetingModal = NiceModal.create(
                     : undefined
                 }
               />
-              <Stack direction="row" alignItems="center" gap={1}>
+              <Stack direction="row">
                 <Button
                   variant="secondary"
+                  size="small"
                   onClick={() =>
-                    window.open(TELEMOST_CREATE_URL, '_blank', 'noopener,noreferrer')
+                    window.open(TELEMOST_URL, '_blank', 'noopener,noreferrer')
                   }
+                  // Длинная подпись: на узких экранах разрешаем перенос и рост
+                  // по высоте вместо обрезки (у общей Button высота фиксирована).
+                  style={{
+                    height: 'auto',
+                    minHeight: 28,
+                    paddingTop: 6,
+                    paddingBottom: 6,
+                    lineHeight: 1.2,
+                  }}
                 >
-                  <VideocamOutlinedIcon fontSize="small" style={{ marginRight: 6 }} />
+                  <VideocamOutlinedIcon fontSize="small" />
                   Создать встречу в Телемосте
+                  <OpenInNewIcon fontSize="small" />
                 </Button>
               </Stack>
               <Typography variant="caption" color="text.secondary">
-                Телемост откроется в новой вкладке — скопируйте оттуда ссылку
-                и вставьте её в поле выше.
+                Телемост откроется в новой вкладке — нажмите там «Создать
+                видеовстречу», скопируйте ссылку и вставьте её в поле выше.
               </Typography>
             </Stack>
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ p: 0, mt: '16px' }}>
-          <Button
-            style={{ width: '50%' }}
-            variant="primary"
-            disabled={!valid || createMeeting.isPending}
-            onClick={submit}
-          >
-            Создать
-          </Button>
+        {/* Раскладка действий как в остальных модалках (спринт/проект/задача):
+            первичная кнопка 50% слева + Spacer. Раньше кнопка прижималась
+            вправо (DialogActions=flex-end) — расходилось с приложением. */}
+        <DialogActions sx={{ p: 0, mt: '13px' }}>
+          <Stack gap="18px" direction="row" width="100%" height="42px">
+            <Button
+              style={{ width: '50%' }}
+              variant="primary"
+              disabled={!valid || createMeeting.isPending}
+              onClick={submit}
+            >
+              Создать
+            </Button>
+            <Spacer />
+          </Stack>
         </DialogActions>
       </Dialog>
     )
