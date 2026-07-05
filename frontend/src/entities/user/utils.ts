@@ -38,9 +38,21 @@ export function formatUserName(user: UserNameSource | null | undefined): string 
 
 /**
  * Инициалы для аватара (1–2 символа). Защищён от пустых имён.
+ *
+ * ТП-106: приоритет — СТРУКТУРНЫЕ имя+фамилия (они есть во ВСЕХ представлениях
+ * пользователя: self / creator / assignee), а `displayName` — только у себя.
+ * Раньше displayName был первым → тот же пользователь показывался «AD» в шапке
+ * (по displayName) и «CC» в карточке (по firstName/lastName). Теперь везде
+ * одинаково. displayName/email — запасной вариант, если имён нет.
  */
 export function getUserInitials(user: UserNameSource | null | undefined): string {
   if (!user) return '?'
+
+  const last = (user.lastName ?? '').trim()
+  const first = (user.firstName ?? '').trim()
+  if (last && first) return (last[0] + first[0]).toUpperCase()
+  if (last) return last.slice(0, 2).toUpperCase()
+  if (first) return first.slice(0, 2).toUpperCase()
 
   const display = (user.displayName ?? '').trim()
   if (display) {
@@ -48,12 +60,6 @@ export function getUserInitials(user: UserNameSource | null | undefined): string
     if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
   }
-
-  const last = (user.lastName ?? '').trim()
-  const first = (user.firstName ?? '').trim()
-  if (last && first) return (last[0] + first[0]).toUpperCase()
-  if (last) return last.slice(0, 2).toUpperCase()
-  if (first) return first.slice(0, 2).toUpperCase()
 
   const email = (user.email ?? '').trim()
   if (email) return email.slice(0, 2).toUpperCase()
