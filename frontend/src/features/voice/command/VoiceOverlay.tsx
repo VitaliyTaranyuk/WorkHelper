@@ -115,7 +115,7 @@ function ListeningView({
         color="text.secondary"
         sx={{ minHeight: 20, fontStyle: interim ? 'normal' : 'italic' }}
       >
-        {interim || 'Напр.: «Создай задачу подготовить отчёт» · «Открой доску»'}
+        {interim || 'Говорите свободно · скажите «Работаем», чтобы завершить'}
       </Typography>
     </>
   )
