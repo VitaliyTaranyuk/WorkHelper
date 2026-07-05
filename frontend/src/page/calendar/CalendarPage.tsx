@@ -168,31 +168,48 @@ export function CalendarPage({ projectId, focusMeetingId }: Props) {
 
   return (
     <Stack gap={1.5} sx={{ p: 2, minWidth: 0 }}>
-      {/* ТП-78: единая панель управления по паттерну Google Calendar/Outlook.
-          Слева — навигация (сгруппированы «Сегодня», стрелки и подпись периода,
-          которой они управляют); справа — переключатель вида и первичное
-          действие «Встреча», отделённые от навигации, чтобы не конкурировать. */}
-      <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
-        <Button size="small" variant="outlined" onClick={() => setAnchor(dayjs())}>
-          Сегодня
-        </Button>
-        <Stack direction="row" alignItems="center">
-          <IconButton size="small" aria-label="Назад" onClick={() => shift(-1)}>
-            <ChevronLeftIcon />
-          </IconButton>
-          <IconButton size="small" aria-label="Вперёд" onClick={() => shift(1)}>
-            <ChevronRightIcon />
-          </IconButton>
+      {/* Панель управления: три зоны (сетка 1fr auto 1fr). Слева — навигация по
+          периодам («Сегодня», стрелки, подпись периода). По центру — переключатель
+          вида и первичное действие «Встреча» (ТП-116: раньше были прижаты к правому
+          краю — неудобно; теперь по центру над сеткой). Пустая правая ячейка держит
+          центр по-настоящему по середине. На узких экранах — одна колонка, обе
+          группы центрируются и переносятся. */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr auto 1fr' },
+          alignItems: 'center',
+          columnGap: 1,
+          rowGap: 1,
+        }}
+      >
+        <Stack
+          direction="row"
+          alignItems="center"
+          gap={1}
+          flexWrap="wrap"
+          sx={{ justifyContent: { xs: 'center', md: 'flex-start' } }}
+        >
+          <Button size="small" variant="outlined" onClick={() => setAnchor(dayjs())}>
+            Сегодня
+          </Button>
+          <Stack direction="row" alignItems="center">
+            <IconButton size="small" aria-label="Назад" onClick={() => shift(-1)}>
+              <ChevronLeftIcon />
+            </IconButton>
+            <IconButton size="small" aria-label="Вперёд" onClick={() => shift(1)}>
+              <ChevronRightIcon />
+            </IconButton>
+          </Stack>
+          <Typography variant="h6">{periodLabel}</Typography>
         </Stack>
-        <Typography variant="h6" sx={{ minWidth: 140 }}>
-          {periodLabel}
-        </Typography>
 
         <Stack
           direction="row"
           alignItems="center"
           gap={1}
-          sx={{ ml: 'auto' }}
+          flexWrap="wrap"
+          sx={{ justifyContent: 'center' }}
         >
           <ToggleButtonGroup
             size="small"
@@ -212,7 +229,10 @@ export function CalendarPage({ projectId, focusMeetingId }: Props) {
             Встреча
           </Button>
         </Stack>
-      </Stack>
+
+        {/* Правая ячейка-балансир (только md+): держит центральную группу по центру. */}
+        <Box sx={{ display: { xs: 'none', md: 'block' } }} />
+      </Box>
 
       <Box
         sx={{
