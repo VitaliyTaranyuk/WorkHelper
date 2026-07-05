@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Fab from '@mui/material/Fab'
 import Tooltip from '@mui/material/Tooltip'
 import MicNoneOutlinedIcon from '@mui/icons-material/MicNoneOutlined'
@@ -8,27 +8,39 @@ import { useVoiceCommandSession } from './useVoiceCommandSession'
 import { useHotkeySetting, useVoiceHotkey, formatHotkey } from '../useVoiceHotkey'
 import { VoiceOverlay } from './VoiceOverlay'
 import { VoiceJournalButton } from './VoiceJournalButton'
-import { VoiceOnboarding } from './VoiceOnboarding'
 import { VoiceHelpDialog } from './VoiceHelpDialog'
-import { isOnboardingSeen, markOnboardingSeen } from './onboardingState'
+import { VoiceOnboardingFlow } from '../onboarding/VoiceOnboardingFlow'
+import { getProgress, shouldOffer } from '../onboarding/onboardingProgress'
+import { useOnboardingTrigger } from '../onboarding/onboardingTrigger'
+import { TOUR_ANCHORS } from '../onboarding/anchors'
 
 /**
  * Глобальная точка входа командного голоса (ТП-95 / X1). Кнопка микрофона +
  * горячая клавиша (Ctrl+Shift+M, раскладко-независимо — ТП-57). Монтируется в
  * DashboardLayout ВНУТРИ RouterProvider (TD-015). В неподдерживающих браузерах
- * скрыта. ТП-107: при первом использовании — обучение; кнопка «?» — справка.
+ * скрыта. ТП-118: при первом использовании предлагается интерактивное обучение
+ * (проверка микрофона + практика); кнопка «?» — справочник; обучение можно
+ * запустить из справочника/настроек (глобальный триггер).
  */
 export function VoiceLauncher() {
   const session = useVoiceCommandSession()
   const [hotkey] = useHotkeySetting()
   const [helpOpen, setHelpOpen] = useState(false)
-  const [onboardingOpen, setOnboardingOpen] = useState(false)
+  const [flowOpen, setFlowOpen] = useState(false)
+  // Предлагаем обучение не чаще одного раза за сессию (не на каждый клик).
+  const offeredRef = useRef(false)
 
-  // Первое использование → обучение вместо записи (ТП-107); дальше — обычный старт.
+  // Запуск обучения из справочника/настроек (ТП-118).
+  const triggerNonce = useOnboardingTrigger((s) => s.nonce)
+  useEffect(() => {
+    if (triggerNonce > 0) setFlowOpen(true)
+  }, [triggerNonce])
+
+  // Первое использование → предложить обучение вместо записи (ТП-118).
   const handleMic = useCallback(() => {
-    if (!session.listening && !isOnboardingSeen()) {
-      markOnboardingSeen()
-      setOnboardingOpen(true)
+    if (!session.listening && !offeredRef.current && shouldOffer(getProgress())) {
+      offeredRef.current = true
+      setFlowOpen(true)
       return
     }
     session.toggle()
@@ -45,11 +57,11 @@ export function VoiceLauncher() {
 
   return (
     <>
-      <Tooltip title="Возможности голосового помощника" placement="left">
+      <Tooltip title="Справочник голосового помощника" placement="left">
         <Fab
           size="small"
           color="default"
-          aria-label="Справка голосового помощника"
+          aria-label="Справочник голосового помощника"
           onClick={() => setHelpOpen(true)}
           sx={{
             position: 'fixed',
@@ -66,6 +78,7 @@ export function VoiceLauncher() {
         <Fab
           color={listening ? 'error' : 'primary'}
           aria-label={micLabel}
+          data-tour={TOUR_ANCHORS.voiceMic}
           onClick={handleMic}
           disabled={!session.ready && !listening}
           sx={{
@@ -82,17 +95,14 @@ export function VoiceLauncher() {
       <VoiceJournalButton />
       <VoiceOverlay session={session} />
 
-      <VoiceOnboarding
-        open={onboardingOpen}
-        onClose={() => setOnboardingOpen(false)}
-      />
+      <VoiceOnboardingFlow open={flowOpen} onExit={() => setFlowOpen(false)} />
       <VoiceHelpDialog
         open={helpOpen}
         hotkey={hotkey}
         onClose={() => setHelpOpen(false)}
         onStartOnboarding={() => {
           setHelpOpen(false)
-          setOnboardingOpen(true)
+          setFlowOpen(true)
         }}
       />
     </>

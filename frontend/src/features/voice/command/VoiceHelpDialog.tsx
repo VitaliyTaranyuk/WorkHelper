@@ -23,12 +23,12 @@ export function VoiceHelpDialog({
 }) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Голосовой помощник — возможности</DialogTitle>
+      <DialogTitle>Справочник голосового помощника</DialogTitle>
       <DialogContent dividers>
         <VoiceHelpContent hotkey={hotkey} />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onStartOnboarding} color="inherit">
+        <Button onClick={onStartOnboarding} variant="outlined">
           Пройти обучение
         </Button>
         <Button variant="contained" onClick={onClose}>
