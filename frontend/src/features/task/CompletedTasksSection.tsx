@@ -56,7 +56,9 @@ export function CompletedTasksSection({ projectId, taskFilter }: Props) {
         alignItems="center"
         gap={1}
         onClick={() => setIsExpanded((prev) => !prev)}
-        sx={{ cursor: 'pointer', userSelect: 'none', minHeight: 36 }}
+        // ТП-105: тот же левый отступ заголовка, что у секций спринтов
+        // (SprintBlock padding-left: 4px) — иначе «Завершённые» уезжает левее.
+        sx={{ cursor: 'pointer', userSelect: 'none', minHeight: 36, pl: '4px' }}
       >
         <IconButton
           size="small"
@@ -86,7 +88,13 @@ export function CompletedTasksSection({ projectId, taskFilter }: Props) {
       )}
 
       {isExpanded && visibleTasks.length > 0 && (
-        <Stack gap={0.5} component="ul" sx={{ m: 0, p: 0, listStyle: 'none' }}>
+        <Stack
+          gap={0.5}
+          component="ul"
+          // ТП-105: тот же отступ строк, что у задач спринта (TaskBlock
+          // padding-left: 20px) — выравниваем список с секциями спринтов.
+          sx={{ m: 0, p: 0, pl: '20px', listStyle: 'none' }}
+        >
           {visibleTasks.map((task) => (
             <Stack
               key={task.id}
