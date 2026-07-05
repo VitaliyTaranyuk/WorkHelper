@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSpeechRecognition } from '../useSpeechRecognition'
+import { useSpeechRecognition, DEFAULT_STOP_PHRASE } from '../useSpeechRecognition'
 import { useVoiceContext } from '../core/context/useVoiceContext'
 import { commandRegistry } from '../core/command/commands'
 import { createRuleBasedResolver } from '../core/resolve/intentResolver'
@@ -138,7 +138,9 @@ export function useVoiceCommandSession(): VoiceSession {
     await execute(prepared)
   }
 
-  const speech = useSpeechRecognition({ onFinish })
+  // ТП-111: командный помощник — непрерывная диктовка + стоп-фраза «Работаем».
+  // Весь текст накапливается, анализ (onFinish) — один раз после завершения.
+  const speech = useSpeechRecognition({ onFinish, stopPhrase: DEFAULT_STOP_PHRASE })
 
   const reset = useCallback(() => {
     preparedRef.current = null
