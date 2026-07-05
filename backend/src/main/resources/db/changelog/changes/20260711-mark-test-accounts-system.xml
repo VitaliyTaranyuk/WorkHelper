@@ -1,0 +1,23 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- ТП-114 (доработка): разовая чистка данных. Автотесты (E2E/QA) создавали
+         на этой БД учётки с доменом @test.com (qa_*, col-*, audit-*, other-*,
+         card-* и т.п.) — они техническими не были помечены и засоряли выбор
+         участников проекта. Помечаем их is_system=true, чтобы picker их скрыл.
+         Это правка данных, а не логики: рантайм-фильтр по-прежнему смотрит только
+         на признак is_system (никаких паттернов в коде). Обратимо: сброс флага
+         вернёт аккаунт в выдачу. Реальные учётки (@mail.ru) не затрагиваются. -->
+    <changeSet id="20260711-mark-test-accounts-system" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <columnExists tableName="users" columnName="is_system"/>
+        </preConditions>
+        <update tableName="users">
+            <column name="is_system" valueBoolean="true"/>
+            <where>email LIKE '%@test.com' AND is_system = false</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>
