@@ -27,7 +27,7 @@ import { TaskHistory } from './TaskHistory'
 import { TaskAttachments } from './TaskAttachments'
 import { TaskLinks } from './TaskLinks'
 import { TaskDevPanel } from './TaskDevPanel'
-import { DictationButton } from '@/features/voice/DictationButton'
+import { TaskDescriptionField } from './TaskDescriptionField'
 import { TaskFormFields } from './TaskFormFields'
 import { formatUserName } from '@/entities/user/utils'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
@@ -263,55 +263,9 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
           />
         </Stack>
 
-        <Stack gap={0.5}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between">
-            <FormCaption>Описание</FormCaption>
-            {/* ТП-58: диктовка описания голосом — текст добавляется в поле */}
-            <DictationButton
-              targetLabel="описание"
-              onText={(text) => {
-                const current = form.getValues('description') ?? ''
-                form.setValue(
-                  'description',
-                  current ? `${current}\n${text}` : text,
-                  { shouldDirty: true },
-                )
-              }}
-            />
-          </Stack>
-          {/* Большие тексты (тех. задания, спецификации, 500+ строк) должны
-              быть полностью читаемы/редактируемы. Решение по образцу Jira/Linear:
-              минимум 8 строк, рост до 24 строк, дальше — внутренний скролл
-              textarea (overflow: auto в самом input). Карточку не распирает. */}
-          <TextField
-            fullWidth
-            multiline
-            minRows={8}
-            maxRows={24}
-            slotProps={{
-              htmlInput: {
-                style: { overflowY: 'auto', resize: 'vertical' },
-                maxLength: 4096,
-              },
-            }}
-            sx={{
-              '& .MuiInputBase-root': { padding: '12px 11px' },
-              '& textarea': {
-                lineHeight: 1.5,
-                fontFamily:
-                  'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-                fontSize: 13,
-              },
-            }}
-            error={Boolean(errors.description)}
-            helperText={
-              errors.description?.message ??
-              `${(form.watch('description') ?? '').length}/4096`
-            }
-            {...form.register('description')}
-            placeholder="Опишите задачу — поддерживаются длинные тексты, переносы строк, markdown"
-          />
-        </Stack>
+        {/* Описание + панель инструментов (диктовка/счётчик) — единый компонент,
+            одинаковый с карточкой создания (ТП-119). */}
+        <TaskDescriptionField form={form} />
 
         <Stack gap={1.5} direction="row">
           <MUIPrimaryButton

@@ -5,7 +5,7 @@ import { orderBy } from 'lodash'
 import { MenuItem, Select } from '@/shared/ui/mui/Select'
 import { TextField } from '@/shared/ui/mui/TextFileld'
 import { FormCaption } from '@/shared/ui/components/FormCaption'
-import { DictationButton } from '@/features/voice/DictationButton'
+import { TaskDescriptionField } from './TaskDescriptionField'
 import { Loader } from '@/shared/ui/components/Loader'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
@@ -117,53 +117,9 @@ export function CreateTaskContent({
           />
         </Stack>
 
-        <Stack gap={0.5}>
-          {/* Диктовка — только у «Описание» (содержательный текст); одинаково
-              с карточкой редактирования. Компактная иконка у поля, не отдельная
-              функция (практика Google Docs / MS Word Dictate). */}
-          <Stack direction="row" alignItems="center" justifyContent="space-between">
-            <FormCaption>Описание</FormCaption>
-            <DictationButton
-              targetLabel="описание"
-              onText={(text) => {
-                const current = form.getValues('description') ?? ''
-                form.setValue(
-                  'description',
-                  current ? `${current}\n${text}` : text,
-                  { shouldDirty: true },
-                )
-              }}
-            />
-          </Stack>
-          <TextField
-            fullWidth
-            multiline
-            minRows={8}
-            maxRows={24}
-            slotProps={{
-              htmlInput: {
-                style: { overflowY: 'auto', resize: 'vertical' },
-                maxLength: 4096,
-              },
-            }}
-            sx={{
-              '& .MuiInputBase-root': { padding: '12px 11px' },
-              '& textarea': {
-                lineHeight: 1.5,
-                fontFamily:
-                  'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-                fontSize: 13,
-              },
-            }}
-            error={Boolean(errors.description)}
-            helperText={
-              errors.description?.message ??
-              `${(form.watch('description') ?? '').length}/4096`
-            }
-            {...form.register('description')}
-            placeholder="Опишите задачу — поддерживаются длинные тексты, переносы строк"
-          />
-        </Stack>
+        {/* Описание + панель инструментов (диктовка/счётчик) — единый компонент,
+            одинаковый с карточкой редактирования (ТП-119). */}
+        <TaskDescriptionField form={form} />
 
         <Divider />
 
