@@ -45,11 +45,23 @@ export function SpotlightCard({
         </Typography>
 
         {step.waitForEvent && (
-          <Stack direction="row" alignItems="center" gap={0.75} sx={{ mt: 0.5 }}>
-            <GraphicEqIcon fontSize="small" color="primary" />
-            <Typography variant="caption" color="primary">
-              Выполните действие голосом — шаг перейдёт сам
-            </Typography>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            gap={0.75}
+            sx={{ mt: 0.5 }}
+          >
+            <Stack direction="row" alignItems="center" gap={0.75}>
+              <GraphicEqIcon fontSize="small" color="primary" />
+              <Typography variant="caption" color="primary">
+                Выполните действие голосом — шаг перейдёт сам
+              </Typography>
+            </Stack>
+            {/* Страховка от застревания, если команда не распозналась. */}
+            <Button size="small" color="inherit" onClick={onNext} sx={{ flexShrink: 0 }}>
+              Пропустить шаг
+            </Button>
           </Stack>
         )}
 
