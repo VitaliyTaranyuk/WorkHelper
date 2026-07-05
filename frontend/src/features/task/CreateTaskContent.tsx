@@ -10,7 +10,6 @@ import { useProjectData } from '@/features/project/query/useProjectData'
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
 import { type FormValues } from './TaskForm/useTaskForm'
 import { PendingAttachments } from './PendingAttachments'
-import { TaskDictationButton } from '@/features/voice/TaskDictationButton'
 import { TaskFormFields } from './TaskFormFields'
 import { isBoardSprintId } from '@/entities/sprint/board'
 import type { User } from '@/entities/user/types'
@@ -103,31 +102,10 @@ export function CreateTaskContent({
       {/* ЛЕВАЯ КОЛОНКА — рабочая область */}
       <Stack flex={1} minWidth={0} gap={2}>
         <Stack gap={0.5}>
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-          >
-            <FormCaption>Название</FormCaption>
-            {/* ТП-88: надиктовать задачу целиком — первая мысль → название,
-                остальное → описание (без AI, локально). */}
-            <TaskDictationButton
-              onDraft={(draft) => {
-                form.setValue('taskTitle', draft.title, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-                if (draft.description) {
-                  const current = form.getValues('description') ?? ''
-                  form.setValue(
-                    'description',
-                    current ? `${current}\n${draft.description}` : draft.description,
-                    { shouldDirty: true },
-                  )
-                }
-              }}
-            />
-          </Stack>
+          {/* ТП-112: кнопка «Надиктовать задачу» убрана — создание задачи
+              голосом покрывает основной голосовой помощник (плавающий микрофон:
+              «Создай задачу …»). Единая точка входа, без дублирования. */}
+          <FormCaption>Название</FormCaption>
           <TextField
             fullWidth
             size="small"
@@ -139,9 +117,6 @@ export function CreateTaskContent({
         </Stack>
 
         <Stack gap={0.5}>
-          {/* ТП-88: в создании один голосовой ввод — «Надиктовать задачу»
-              (делит на название и описание); отдельный микрофон описания убран,
-              чтобы не дублировать точки диктовки. */}
           <FormCaption>Описание</FormCaption>
           <TextField
             fullWidth
