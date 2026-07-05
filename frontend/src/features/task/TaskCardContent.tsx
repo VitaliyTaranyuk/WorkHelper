@@ -249,26 +249,10 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
       {/* ЛЕВАЯ КОЛОНКА — рабочая область */}
       <Stack flex={1} minWidth={0} gap={2}>
         <Stack gap={0.5}>
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-          >
-            <FormCaption>Название</FormCaption>
-            {/* ТП-88: диктовка названия голосом — текст добавляется в поле. */}
-            <DictationButton
-              field="title"
-              targetLabel="название"
-              onText={(text) => {
-                const current = form.getValues('taskTitle') ?? ''
-                form.setValue(
-                  'taskTitle',
-                  current ? `${current} ${text}` : text,
-                  { shouldDirty: true, shouldValidate: true },
-                )
-              }}
-            />
-          </Stack>
+          {/* Диктовка «Название» убрана: голосом вводится содержательный текст
+              (описание/комментарии), а не короткий заголовок — единый сценарий с
+              карточкой создания (практика Google Docs / MS Word Dictate). */}
+          <FormCaption>Название</FormCaption>
           <TextField
             fullWidth
             size="small"
