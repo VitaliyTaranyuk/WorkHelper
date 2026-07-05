@@ -9,14 +9,17 @@ import MenuItem from '@mui/material/MenuItem'
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Stack from '@mui/material/Stack'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined'
+import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined'
 import {
   useMarkAllRead,
   useMarkRead,
   useNotifications,
   useUnreadCount,
 } from '@/features/notification/useNotifications'
+import { NotificationSettingsForm } from '@/features/notification/NotificationSettingsForm'
 import {
   getNotificationMeta,
   getNotificationIcon,
@@ -35,6 +38,9 @@ import type { NotificationDto } from '@/shared/api/endpoint/notificationsApi'
  */
 export function NotificationBell() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  // ТП-120: настройки уведомлений живут в самой панели — скрыты по умолчанию,
+  // раскрываются кнопкой-«тумблером» и сворачиваются обратно при закрытии.
+  const [showSettings, setShowSettings] = useState(false)
   const open = Boolean(anchorEl)
   const navigate = useNavigate()
   const bellRef = useRef<HTMLButtonElement>(null)
@@ -62,6 +68,7 @@ export function NotificationBell() {
   }
   const closeMenu = () => {
     markedRef.current.clear()
+    setShowSettings(false)
     setAnchorEl(null)
   }
 
@@ -125,16 +132,37 @@ export function NotificationBell() {
           justifyContent="space-between"
           sx={{ px: 2, py: 1 }}
         >
-          <Typography variant="subtitle2">Уведомления</Typography>
-          {unread > 0 && (
-            <Button size="small" onClick={() => markAllRead.mutate()}>
-              Прочитать все
-            </Button>
-          )}
+          <Typography variant="subtitle2">
+            {showSettings ? 'Настройки уведомлений' : 'Уведомления'}
+          </Typography>
+          <Stack direction="row" alignItems="center" gap={0.5}>
+            {!showSettings && unread > 0 && (
+              <Button size="small" onClick={() => markAllRead.mutate()}>
+                Прочитать все
+              </Button>
+            )}
+            <Tooltip
+              title={
+                showSettings ? 'Скрыть настройки' : 'Настройки уведомлений'
+              }
+            >
+              <IconButton
+                size="small"
+                aria-label="Настройки уведомлений"
+                aria-pressed={showSettings}
+                onClick={() => setShowSettings((s) => !s)}
+                color={showSettings ? 'primary' : 'default'}
+              >
+                <TuneOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
         </Stack>
         <Divider />
 
-        {notifications.length === 0 && (
+        {showSettings && <NotificationSettingsForm />}
+
+        {!showSettings && notifications.length === 0 && (
           <Stack alignItems="center" sx={{ py: 4, px: 2 }}>
             <NotificationsNoneOutlinedIcon
               sx={{ color: 'text.disabled', fontSize: 32, mb: 1 }}
@@ -145,88 +173,91 @@ export function NotificationBell() {
           </Stack>
         )}
 
-        {notifications.map((n) => {
-          const meta = getNotificationMeta(n.type)
-          const clickable = Boolean(n.taskCode || n.link || n.meetingId)
-          return (
-            <MenuItem
-              key={n.id}
-              onMouseEnter={() => markReadOnce(n)}
-              onClick={() => {
-                markReadOnce(n)
-                if (!clickable) return
-                closeMenu()
-                openTarget(n)
-              }}
-              sx={{
-                alignItems: 'flex-start',
-                whiteSpace: 'normal',
-                gap: 1.25,
-                py: 1,
-                cursor: clickable ? 'pointer' : 'default',
-                backgroundColor: n.read ? 'transparent' : 'rgba(99,102,241,0.06)',
-              }}
-            >
-              {/* Иконка типа события. ТП-87: кружок окрашен по состоянию
-                  задачи — завершённые зелёным, отменённые серым. */}
-              <Stack
-                alignItems="center"
-                justifyContent="center"
+        {!showSettings &&
+          notifications.map((n) => {
+            const meta = getNotificationMeta(n.type)
+            const clickable = Boolean(n.taskCode || n.link || n.meetingId)
+            return (
+              <MenuItem
+                key={n.id}
+                onMouseEnter={() => markReadOnce(n)}
+                onClick={() => {
+                  markReadOnce(n)
+                  if (!clickable) return
+                  closeMenu()
+                  openTarget(n)
+                }}
                 sx={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  flexShrink: 0,
-                  mt: 0.25,
-                  ...getNotificationIconStyle(n.type, n.taskState),
+                  alignItems: 'flex-start',
+                  whiteSpace: 'normal',
+                  gap: 1.25,
+                  py: 1,
+                  cursor: clickable ? 'pointer' : 'default',
+                  backgroundColor: n.read
+                    ? 'transparent'
+                    : 'rgba(99,102,241,0.06)',
                 }}
               >
-                {getNotificationIcon(n.type, n.taskState)}
-              </Stack>
-
-              <Stack sx={{ minWidth: 0, flex: 1 }}>
-                <Stack direction="row" alignItems="center" gap={1}>
-                  <Typography variant="subtitle2" noWrap sx={{ flex: 1 }}>
-                    {meta.title}
-                    {n.taskCode ? ` · ${n.taskCode}` : ''}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ flexShrink: 0 }}
-                  >
-                    {formatRelativeTime(n.createdAt)}
-                  </Typography>
-                  {/* Точка непрочитанного (паттерн GitHub/Linear) */}
-                  {!n.read && (
-                    <span
-                      aria-label="Непрочитано"
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        flexShrink: 0,
-                        backgroundColor: '#6366f1',
-                      }}
-                    />
-                  )}
-                </Stack>
-                <Typography
-                  variant="body2"
-                  color={n.read ? 'text.secondary' : 'text.primary'}
+                {/* Иконка типа события. ТП-87: кружок окрашен по состоянию
+                  задачи — завершённые зелёным, отменённые серым. */}
+                <Stack
+                  alignItems="center"
+                  justifyContent="center"
                   sx={{
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    flexShrink: 0,
+                    mt: 0.25,
+                    ...getNotificationIconStyle(n.type, n.taskState),
                   }}
                 >
-                  {n.message}
-                </Typography>
-              </Stack>
-            </MenuItem>
-          )
-        })}
+                  {getNotificationIcon(n.type, n.taskState)}
+                </Stack>
+
+                <Stack sx={{ minWidth: 0, flex: 1 }}>
+                  <Stack direction="row" alignItems="center" gap={1}>
+                    <Typography variant="subtitle2" noWrap sx={{ flex: 1 }}>
+                      {meta.title}
+                      {n.taskCode ? ` · ${n.taskCode}` : ''}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ flexShrink: 0 }}
+                    >
+                      {formatRelativeTime(n.createdAt)}
+                    </Typography>
+                    {/* Точка непрочитанного (паттерн GitHub/Linear) */}
+                    {!n.read && (
+                      <span
+                        aria-label="Непрочитано"
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          flexShrink: 0,
+                          backgroundColor: '#6366f1',
+                        }}
+                      />
+                    )}
+                  </Stack>
+                  <Typography
+                    variant="body2"
+                    color={n.read ? 'text.secondary' : 'text.primary'}
+                    sx={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {n.message}
+                  </Typography>
+                </Stack>
+              </MenuItem>
+            )
+          })}
       </Menu>
     </>
   )
