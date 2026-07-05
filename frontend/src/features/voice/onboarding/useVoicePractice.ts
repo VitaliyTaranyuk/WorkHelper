@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { router } from '@/application/router'
 import { useVoiceJournal } from '../command/voiceJournal'
 import type { UseTourResult } from './tour/useTour'
 import type { PracticeStep } from './practiceSteps'
@@ -39,9 +40,14 @@ export function useVoicePractice(tour: UseTourResult) {
       if (!t.active) return
       const step = t.step as PracticeStep | null
       if (!step?.waitForEvent) return
-      if (!step.expect || step.expect(newest)) {
-        t.next()
+      if (step.expect && !step.expect(newest)) return
+
+      // Открываем созданную задачу, чтобы дальше «эту задачу»-команды работали
+      // по открытой карточке (код голосом называть не нужно).
+      if (step.opensCreatedTask && newest.taskCode) {
+        router.navigate({ to: '/task/$code', params: { code: newest.taskCode } })
       }
+      t.next()
     })
     return unsub
   }, [])
