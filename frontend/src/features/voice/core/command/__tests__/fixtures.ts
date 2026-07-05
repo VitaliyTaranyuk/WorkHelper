@@ -57,6 +57,10 @@ export function stubServices() {
     activateSprint: vi.fn(async () => {}),
     finishSprint: vi.fn(async () => {}),
     markNotificationsRead: vi.fn(async () => {}),
+    createMeeting:
+      vi.fn<
+        (input: { title: string; startAt: string; endAt?: string }) => Promise<void>
+      >(async () => {}),
   }
 }
 
