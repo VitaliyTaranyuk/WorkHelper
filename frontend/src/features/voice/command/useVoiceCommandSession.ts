@@ -14,6 +14,7 @@ import {
 import type { RiskLevel } from '../core/command/types'
 import { useVoiceServices } from './useVoiceServices'
 import { useVoiceJournal } from './voiceJournal'
+import { voiceErrorMessage } from './voiceErrorMessage'
 
 /**
  * Оркестрация командного режима (ТП-95 / X1) — единый конвейер:
@@ -93,12 +94,10 @@ export function useVoiceCommandSession(): VoiceSession {
         text: result.message,
         taskCode: result.taskCode,
       })
-    } catch {
-      setPhase({
-        t: 'message',
-        kind: 'error',
-        text: 'Не удалось выполнить команду',
-      })
+    } catch (err) {
+      // ТП-123: показываем реальную причину (валидация/права/сервер), а не
+      // немой общий текст — так пользователь понимает, что произошло.
+      setPhase({ t: 'message', kind: 'error', text: voiceErrorMessage(err) })
     }
   }, [])
 
