@@ -87,6 +87,7 @@ public class AdminUsersBootstrap implements ApplicationRunner {
                     passwordEncoder.encode(DEFAULT_PASSWORD)
             );
             user.setActive(true);
+            user.setSystem(true); // ТП-114: bootstrap-админ — технический аккаунт
             user.setConfirmedAt(LocalDateTime.now());
             userRepository.saveAndFlush(user);
             log.info("Bootstrap: создан admin-пользователь {}", seed.email());
@@ -105,6 +106,10 @@ public class AdminUsersBootstrap implements ApplicationRunner {
         }
         if (!existing.isActive()) {
             existing.setActive(true);
+            changed = true;
+        }
+        if (!existing.isSystem()) {
+            existing.setSystem(true); // ТП-114: bootstrap-админ — технический
             changed = true;
         }
         if (existing.getConfirmedAt() == null) {

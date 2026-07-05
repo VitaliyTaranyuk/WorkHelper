@@ -1,0 +1,25 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- ТП-114: явный признак технического/служебного аккаунта. Такие учётки
+         (bootstrap-админы, сервисные) исключаются из выбора участников проекта.
+         Флаг архитектурный: новые сервисные аккаунты помечаются is_system=true. -->
+    <changeSet id="20260710-add-user-is-system" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="users" columnName="is_system"/></not>
+        </preConditions>
+        <addColumn tableName="users">
+            <column name="is_system" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <!-- Существующие технические/служебные (dev/admin bootstrap) аккаунты. -->
+        <update tableName="users">
+            <column name="is_system" valueBoolean="true"/>
+            <where>email IN ('vt@mail.ru','mk@mail.ru','ek@mail.ru')</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>

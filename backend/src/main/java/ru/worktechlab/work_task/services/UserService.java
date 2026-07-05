@@ -162,6 +162,11 @@ public class UserService {
         int cap = Math.max(1, Math.min(limit, 50));
         return userRepository.getUsers().stream()
                 .filter(User::isActive)
+                // ТП-114: только реальные пользовательские аккаунты — исключаем
+                // технические/служебные (is_system) и незавершённые/«неизвестные»
+                // (без username; реальный пользователь получает его при регистрации).
+                .filter(u -> !u.isSystem())
+                .filter(u -> u.getUsername() != null && !u.getUsername().isBlank())
                 .filter(u -> matchesQuery(u, needle))
                 .sorted(Comparator.comparing(
                                 (User u) -> safeLower(u.getLastName()))
