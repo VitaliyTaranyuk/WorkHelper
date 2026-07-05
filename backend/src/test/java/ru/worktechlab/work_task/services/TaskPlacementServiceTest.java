@@ -160,6 +160,30 @@ class TaskPlacementServiceTest {
     }
 
     @Test
+    void applyStatusChange_setsCompletedDateOnEnteringDone_clearsOnLeaving_updatesOnRecomplete() throws Exception {
+        // ТП-109: завершающая колонка = max priority среди видимых non-default.
+        TaskStatus doneStatus = new TaskStatus(4, "Done", "Done", true, false, true, project);
+        ReflectionTestUtils.setField(doneStatus, "id", 4L);
+        project.getStatuses().add(doneStatus);
+
+        TaskModel task = TestFixtures.task("task-1", owner, project, sprint, todoStatus);
+        assertThat(task.getCompletedDate()).isNull();
+
+        // вход в Done → completedDate проставляется
+        placement.applyStatusChange(task, doneStatus, project);
+        java.time.LocalDateTime first = task.getCompletedDate();
+        assertThat(first).isNotNull();
+
+        // выход из Done → completedDate очищается
+        placement.applyStatusChange(task, inProgressStatus, project);
+        assertThat(task.getCompletedDate()).isNull();
+
+        // повторное завершение → completedDate снова проставляется (обновляется)
+        placement.applyStatusChange(task, doneStatus, project);
+        assertThat(task.getCompletedDate()).isNotNull();
+    }
+
+    @Test
     void moveToBacklog_shouldChangeOnlySprint() throws Exception {
         TaskModel task = TestFixtures.task("task-1", owner, project, sprint, inProgressStatus);
         when(sprintsRepository.findDefaultSprintByProject(project)).thenReturn(Optional.of(backlog));

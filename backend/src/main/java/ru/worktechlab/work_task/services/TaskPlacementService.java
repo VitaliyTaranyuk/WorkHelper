@@ -11,7 +11,9 @@ import ru.worktechlab.work_task.models.tables.TaskModel;
 import ru.worktechlab.work_task.models.tables.TaskStatus;
 import ru.worktechlab.work_task.repositories.SprintsRepository;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -126,9 +128,30 @@ public class TaskPlacementService {
     /** Смена статуса задачи: спринт не меняется — оси независимы (ТП-49). */
     @TransactionMandatory
     public void applyStatusChange(TaskModel task, TaskStatus newStatus, Project project) throws NotFoundException {
-        if (task.getStatus() == null || task.getStatus().getId() != newStatus.getId())
+        boolean statusChanged = task.getStatus() == null
+                || !Objects.equals(task.getStatus().getId(), newStatus.getId());
+        boolean wasCompleted = task.getStatus() != null && isCompletedStatus(project, task.getStatus());
+        if (statusChanged)
             task.setStatus(newStatus);
+
+        // ТП-109: момент завершения фиксируется при ВХОДЕ в завершающую колонку.
+        // Повторное завершение обновляет completedDate (задача поднимается вверх
+        // списка «Завершённые», сортируемого по completedDate desc), а выход из
+        // завершающей колонки очищает его — чтобы дата отражала именно завершение.
+        if (statusChanged) {
+            if (isCompletedStatus(project, newStatus))
+                task.setCompletedDate(LocalDateTime.now());
+            else if (wasCompleted)
+                task.setCompletedDate(null);
+        }
         task.touch();
+    }
+
+    /** Является ли статус завершающей колонкой доски проекта. */
+    private boolean isCompletedStatus(Project project, TaskStatus status) {
+        return completedBoardStatus(project)
+                .map(completed -> Objects.equals(completed.getId(), status.getId()))
+                .orElse(false);
     }
 
     /** Возврат задачи в бэклог = перенос в Backlog-спринт (статус сохраняется). */
