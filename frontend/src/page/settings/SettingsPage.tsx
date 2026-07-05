@@ -13,6 +13,7 @@ import {
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined'
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined'
 import RestartAltIcon from '@mui/icons-material/RestartAlt'
+import KeyboardVoiceOutlinedIcon from '@mui/icons-material/KeyboardVoiceOutlined'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import { useSettingsStore } from '@/features/settings/settingsStore'
@@ -21,18 +22,17 @@ import {
   useNotificationSettings,
   useUpdateNotificationSettings,
 } from '@/features/settings/useNotificationSettings'
+import { VoiceHelpContent } from '@/features/voice/command/VoiceHelpContent'
+import { useHotkeySetting } from '@/features/voice/useVoiceHotkey'
 
 /**
  * Настройки приложения (ТП-56).
  *
- * Аудит показал: прежние вкладки (Уведомления, Календарь, Доска, Тема,
- * Интерфейс) были муляжами — значения сохранялись, но ни один компонент их
- * не читал. Мёртвый UI удалён (практика зрелых TMS: не показывать настройки,
- * которые ни на что не влияют); функциональность вынесена в отдельные задачи
- * (тёмная тема, серверные настройки уведомлений, локализация). Настройки
- * календаря переехали в сам календарь (выбранный вид запоминается).
- *
- * Здесь остаются только реально работающие параметры приложения.
+ * Аудит показал: прежние вкладки-муляжи удалены (практика зрелых TMS: не
+ * показывать настройки, которые ни на что не влияют). Здесь — реально
+ * работающие параметры (тема, серверные уведомления) и справочный центр по
+ * голосовому помощнику (ТП-110; заменил формальный блок «Календарь» — настройки
+ * календаря живут в самом календаре).
  */
 export const SettingsPage = memo(function SettingsPageInner() {
   const resetSettings = useSettingsStore((s) => s.reset)
@@ -57,15 +57,7 @@ export const SettingsPage = memo(function SettingsPageInner() {
 
         <Divider />
 
-        <section>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-            Календарь
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Настройки календаря находятся в самом календаре: выбранный вид
-            (неделя или месяц) запоминается автоматически.
-          </Typography>
-        </section>
+        <VoiceAssistantSection />
 
         <Divider />
 
@@ -93,6 +85,27 @@ export const SettingsPage = memo(function SettingsPageInner() {
     </Box>
   )
 })
+
+/**
+ * Справочный раздел о голосовом помощнике (ТП-110): не технические настройки, а
+ * справочный центр — как запустить, что умеет, примеры фраз, советы, ограничения.
+ * Содержимое — общий `VoiceHelpContent` (тот же, что в модалке-справке, ТП-107),
+ * без дублирования логики. Заменил бывший блок «Календарь».
+ */
+function VoiceAssistantSection() {
+  const [hotkey] = useHotkeySetting()
+  return (
+    <section>
+      <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
+        <KeyboardVoiceOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+          Голосовой помощник
+        </Typography>
+      </Stack>
+      <VoiceHelpContent hotkey={hotkey} />
+    </section>
+  )
+}
 
 const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
   { value: 'light', label: 'Светлая' },
