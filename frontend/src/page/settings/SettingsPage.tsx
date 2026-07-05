@@ -14,6 +14,7 @@ import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNone
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined'
 import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import KeyboardVoiceOutlinedIcon from '@mui/icons-material/KeyboardVoiceOutlined'
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import { useSettingsStore } from '@/features/settings/settingsStore'
@@ -24,6 +25,7 @@ import {
 } from '@/features/settings/useNotificationSettings'
 import { VoiceHelpContent } from '@/features/voice/command/VoiceHelpContent'
 import { useHotkeySetting } from '@/features/voice/useVoiceHotkey'
+import { useOnboardingTrigger } from '@/features/voice/onboarding/onboardingTrigger'
 
 /**
  * Настройки приложения (ТП-56).
@@ -94,13 +96,30 @@ export const SettingsPage = memo(function SettingsPageInner() {
  */
 function VoiceAssistantSection() {
   const [hotkey] = useHotkeySetting()
+  const startOnboarding = useOnboardingTrigger((s) => s.start)
   return (
     <section>
-      <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        gap={1}
+        sx={{ mb: 1, flexWrap: 'wrap' }}
+      >
         <KeyboardVoiceOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
         <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
           Голосовой помощник
         </Typography>
+        <Box sx={{ flex: 1 }} />
+        {/* ТП-118: интерактивное обучение — основной способ знакомства; этот
+            раздел остаётся справочником. */}
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<PlayCircleOutlineIcon />}
+          onClick={startOnboarding}
+        >
+          Пройти обучение
+        </Button>
       </Stack>
       <VoiceHelpContent hotkey={hotkey} />
     </section>

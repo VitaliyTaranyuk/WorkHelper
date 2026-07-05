@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { voiceHelpCatalog, voiceHelpItems, VOICE_ONBOARDING_STEPS } from '../voiceHelp'
+import { voiceHelpCatalog, voiceHelpItems } from '../voiceHelp'
 import { commandRegistry } from '../../core/command/commands'
 
 describe('voiceHelpCatalog', () => {
@@ -32,13 +32,5 @@ describe('voiceHelpCatalog', () => {
     expect(voiceHelpItems().length).toBe(
       commandRegistry.all().filter((c) => c.examples.length > 0).length,
     )
-  })
-
-  it('шаги онбординга непустые', () => {
-    expect(VOICE_ONBOARDING_STEPS.length).toBeGreaterThanOrEqual(3)
-    for (const s of VOICE_ONBOARDING_STEPS) {
-      expect(s.title).toBeTruthy()
-      expect(s.text).toBeTruthy()
-    }
   })
 })
