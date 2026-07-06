@@ -1,14 +1,13 @@
-import { splitSentences } from '@/features/voice/textUtils'
+import { generateTaskTitle } from '@/shared/text/generateTaskTitle'
 
 /**
- * Единая подготовка карточки задачи перед созданием (ТП-147).
+ * Единая подготовка карточки задачи перед созданием (ТП-147, ТП-153).
  *
  * Правила:
  * 1. Название, введённое пользователем, — неприкосновенно (только trim).
- * 2. Название пустое, описание заполнено → название формируется из первой
- *    законченной мысли описания (первое предложение, обрезка по границе
- *    слова до лимита) — тот же принцип, что у голосового драфта задачи
- *    (transcriptToTaskDraft), поведение всех способов создания едино.
+ * 2. Название пустое, описание заполнено → название формирует ЕДИНЫЙ движок
+ *    generateTaskTitle (shared/text) — тот же, что у голосового драфта;
+ *    второго алгоритма формирования названий в системе нет (ТП-153).
  * 3. Описание не переписывается: смысл и формулировки пользователя
  *    сохраняются (допустим только trim).
  *
@@ -16,28 +15,9 @@ import { splitSentences } from '@/features/voice/textUtils'
  * сюда новыми шагами, не трогая точки создания.
  */
 
-/** Мягкий предел названия — как краткие summary зрелых TMS (см. textUtils). */
-const TITLE_MAX_CHARS = 80
-
 export type TaskCardDraft = {
   title: string
   description: string
-}
-
-/** Первая мысль текста, обрезанная по границе слова, без финальной точки. */
-export function deriveTitleFromDescription(description: string): string {
-  const first = splitSentences(description.trim())[0] ?? ''
-  const sentence = first.replace(/[.!?…]+$/, '').trim()
-  if (sentence.length <= TITLE_MAX_CHARS) return sentence
-
-  const words = sentence.split(/\s+/)
-  let title = words[0] ?? ''
-  for (const word of words.slice(1)) {
-    if (`${title} ${word}`.length > TITLE_MAX_CHARS) break
-    title = `${title} ${word}`
-  }
-  // Одно слово длиннее лимита — жёсткая обрезка, чтобы не упереться в 255 бэкенда.
-  return title.length > TITLE_MAX_CHARS ? title.slice(0, TITLE_MAX_CHARS) : title
 }
 
 export function prepareTaskCard(input: {
@@ -49,7 +29,7 @@ export function prepareTaskCard(input: {
 
   if (title.length > 0) return { title, description }
   if (description.length > 0)
-    return { title: deriveTitleFromDescription(description), description }
+    return { title: generateTaskTitle(description), description }
   return { title: '', description: '' }
 }
 
