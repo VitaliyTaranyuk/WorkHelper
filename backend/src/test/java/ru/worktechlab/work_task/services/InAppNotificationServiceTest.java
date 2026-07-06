@@ -157,4 +157,44 @@ class InAppNotificationServiceTest {
         NotificationDto dto = firstDtoForTaskWithStatus(todo, Optional.of(done));
         assertThat(dto.getTaskState()).isEqualTo(InAppNotificationService.TASK_STATE_ACTIVE);
     }
+
+    /**
+     * ТП-152: задача удалена (taskId есть, строки в БД нет) → состояние DELETED,
+     * само уведомление сохраняется — истории ничего не грозит.
+     */
+    @Test
+    void getMyNotifications_shouldMarkDeleted_whenTaskNoLongerExists() {
+        Notification n = new Notification(actor, actor, InAppNotificationService.TYPE_TASK_CREATED,
+                "Задача", "task-gone", "TP-9", null);
+
+        UserContext.UserContextData ucd = mock(UserContext.UserContextData.class);
+        when(ucd.getUserId()).thenReturn("actor-1");
+        when(userContext.getUserData()).thenReturn(ucd);
+        when(notificationRepository.findByRecipientIdOrderByCreatedAtDesc("actor-1")).thenReturn(List.of(n));
+        when(taskRepository.findAllById(anySet())).thenReturn(List.of()); // задачи больше нет
+
+        List<NotificationDto> dtos = service.getMyNotifications();
+
+        assertThat(dtos).hasSize(1);
+        assertThat(dtos.get(0).getTaskState())
+                .isEqualTo(InAppNotificationService.TASK_STATE_DELETED);
+        assertThat(dtos.get(0).getTaskCode()).isEqualTo("TP-9");
+    }
+
+    /** Уведомления без задачи (встречи) состояние не получают — ничего не «удалено». */
+    @Test
+    void getMyNotifications_meetingReminder_shouldKeepNullState() {
+        Notification n = Notification.meetingReminder(actor, actor, "MEETING_REMINDER",
+                "Встреча", "meeting-1", "project-1", null);
+
+        UserContext.UserContextData ucd = mock(UserContext.UserContextData.class);
+        when(ucd.getUserId()).thenReturn("actor-1");
+        when(userContext.getUserData()).thenReturn(ucd);
+        when(notificationRepository.findByRecipientIdOrderByCreatedAtDesc("actor-1")).thenReturn(List.of(n));
+
+        List<NotificationDto> dtos = service.getMyNotifications();
+
+        assertThat(dtos).hasSize(1);
+        assertThat(dtos.get(0).getTaskState()).isNull();
+    }
 }

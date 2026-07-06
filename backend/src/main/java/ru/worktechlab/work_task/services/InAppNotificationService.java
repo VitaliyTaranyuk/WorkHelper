@@ -43,6 +43,9 @@ public class InAppNotificationService {
     public static final String TASK_STATE_ACTIVE = "ACTIVE";
     public static final String TASK_STATE_DONE = "DONE";
     public static final String TASK_STATE_CANCELED = "CANCELED";
+    // ТП-152: задача удалена — существующее уведомление меняет вид, история
+    // сохраняется, отдельное уведомление «задача удалена» не создаётся.
+    public static final String TASK_STATE_DELETED = "DELETED";
     // Username допускает Unicode-буквы/цифры + . _ - длиной 2..32 (нижняя
     // граница 2 — как в политике username: префиксы email вроде "vt"), чтобы
     // распознавать упоминания вроде @виталий или @maria.k наряду с @ivanov.
@@ -111,7 +114,11 @@ public class InAppNotificationService {
             for (TaskModel task : taskRepository.findAllById(taskIds))
                 stateByTaskId.put(task.getId(), taskStateOf(task));
         return notifications.stream()
-                .map(n -> toDto(n, n.getTaskId() != null ? stateByTaskId.get(n.getTaskId()) : null))
+                // ТП-152: у уведомления есть taskId, но задачи больше нет →
+                // DELETED (иконка/поведение меняются на фронте централизованно).
+                .map(n -> toDto(n, n.getTaskId() != null
+                        ? stateByTaskId.getOrDefault(n.getTaskId(), TASK_STATE_DELETED)
+                        : null))
                 .toList();
     }
 
