@@ -1,8 +1,10 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { renderHook, act } from '@testing-library/react'
 import {
   endsWithStopPhrase,
   stripStopPhrase,
   DEFAULT_STOP_PHRASE,
+  useSpeechRecognition,
 } from '../useSpeechRecognition'
 
 describe('endsWithStopPhrase (ТП-111)', () => {
@@ -30,6 +32,106 @@ describe('endsWithStopPhrase (ТП-111)', () => {
 
   it('дефолтная стоп-фраза — «работаем»', () => {
     expect(DEFAULT_STOP_PHRASE).toBe('работаем')
+  })
+})
+
+// ===== ТП-141: сохранение накопленной диктовки при ошибке распознавания =====
+
+type Handler<T> = ((e: T) => void) | null
+
+class FakeRecognition {
+  static instances: FakeRecognition[] = []
+  lang = ''
+  continuous = false
+  interimResults = false
+  onresult: Handler<{
+    resultIndex: number
+    results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
+  }> = null
+  onerror: Handler<{ error: string }> = null
+  onend: (() => void) | null = null
+  start() {
+    FakeRecognition.instances.push(this)
+  }
+  stop() {
+    this.onend?.()
+  }
+  abort() {}
+
+  emitFinal(text: string) {
+    this.onresult?.({
+      resultIndex: 0,
+      results: [{ isFinal: true, 0: { transcript: text } }],
+    })
+  }
+}
+
+function installFakeRecognition() {
+  FakeRecognition.instances = []
+  ;(window as unknown as { SpeechRecognition?: unknown }).SpeechRecognition =
+    FakeRecognition
+}
+
+afterEach(() => {
+  delete (window as unknown as { SpeechRecognition?: unknown }).SpeechRecognition
+})
+
+describe('useSpeechRecognition — ошибка после частичной диктовки (ТП-141)', () => {
+  it('диктовка: network-ошибка отдаёт накопленный текст в onFinish', () => {
+    installFakeRecognition()
+    const onFinish = vi.fn()
+    const { result } = renderHook(() => useSpeechRecognition({ onFinish }))
+
+    act(() => result.current.start())
+    const rec = FakeRecognition.instances.at(-1)!
+    act(() => rec.emitFinal('купить хлеб и молоко'))
+    act(() => rec.onerror?.({ error: 'network' }))
+
+    expect(onFinish).toHaveBeenCalledExactlyOnceWith('купить хлеб и молоко')
+    expect(result.current.status).toBe('error')
+    expect(result.current.error).toMatch(/сервис распознавания/i)
+  })
+
+  it('диктовка: ошибка без накопленного текста onFinish не вызывает', () => {
+    installFakeRecognition()
+    const onFinish = vi.fn()
+    const { result } = renderHook(() => useSpeechRecognition({ onFinish }))
+
+    act(() => result.current.start())
+    const rec = FakeRecognition.instances.at(-1)!
+    act(() => rec.onerror?.({ error: 'network' }))
+
+    expect(onFinish).not.toHaveBeenCalled()
+  })
+
+  it('командный режим (стоп-фраза): частичная фраза при ошибке НЕ исполняется', () => {
+    installFakeRecognition()
+    const onFinish = vi.fn()
+    const { result } = renderHook(() =>
+      useSpeechRecognition({ onFinish, stopPhrase: 'работаем' }),
+    )
+
+    act(() => result.current.start())
+    const rec = FakeRecognition.instances.at(-1)!
+    act(() => rec.emitFinal('создай задачу купить'))
+    act(() => rec.onerror?.({ error: 'network' }))
+
+    expect(onFinish).not.toHaveBeenCalled()
+    expect(result.current.status).toBe('error')
+  })
+
+  it('cancel по-прежнему отбрасывает текст', () => {
+    installFakeRecognition()
+    const onFinish = vi.fn()
+    const { result } = renderHook(() => useSpeechRecognition({ onFinish }))
+
+    act(() => result.current.start())
+    const rec = FakeRecognition.instances.at(-1)!
+    act(() => rec.emitFinal('черновик'))
+    act(() => result.current.cancel())
+
+    expect(onFinish).not.toHaveBeenCalled()
+    expect(result.current.transcript).toBe('')
   })
 })
 
