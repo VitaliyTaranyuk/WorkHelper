@@ -1,6 +1,8 @@
 package ru.worktechlab.work_task.services;
 
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.LockModeType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -65,6 +67,7 @@ public class TaskService {
     private final TaskAttachmentRepository taskAttachmentRepository;
     private final AttachmentStorage attachmentStorage;
     private final GitHubDevPanelService gitHubDevPanelService;
+    private final EntityManager entityManager;
 
     @TransactionRequired
     public TaskDataDto updateTask(String projectId,
@@ -163,6 +166,13 @@ public class TaskService {
     }
 
     private String getTaskCode(Project project) {
+        // ТП-148: конкурентные создания читали счётчик одновременно и получали
+        // одинаковые коды (реальный дубль ТП-139 на проде 06.07: две задачи с
+        // разницей в 0.5 сек; findByCodeAndProject после этого падал с
+        // NonUniqueResult на всех операциях по коду). refresh с PESSIMISTIC_WRITE
+        // берёт строку проекта под замок и перечитывает актуальное значение —
+        // параллельная транзакция ждёт коммита и получает следующий номер.
+        entityManager.refresh(project, LockModeType.PESSIMISTIC_WRITE);
         project.incrementCounter();
         return project.getCode() + "-" + project.getTaskCounter();
     }

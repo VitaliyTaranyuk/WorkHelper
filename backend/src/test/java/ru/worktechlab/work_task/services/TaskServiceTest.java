@@ -60,6 +60,7 @@ class TaskServiceTest {
     @Mock private ru.worktechlab.work_task.repositories.TaskAttachmentRepository taskAttachmentRepository;
     @Mock private AttachmentStorage attachmentStorage;
     @Mock private GitHubDevPanelService gitHubDevPanelService;
+    @Mock private jakarta.persistence.EntityManager entityManager;
 
     @InjectMocks
     private TaskService taskService;
@@ -136,6 +137,37 @@ class TaskServiceTest {
 
         assertThat(result).isEqualTo(expectedDto);
         verify(taskRepository).saveAndFlush(any(TaskModel.class));
+    }
+
+    @Test
+    void createTask_shouldLockProjectRowAndUseRefreshedCounter() throws Exception {
+        // ТП-148: код выдаётся из счётчика, перечитанного ПОД БЛОКИРОВКОЙ
+        // (PESSIMISTIC_WRITE). Симулируем параллельный коммит: refresh
+        // «подгружает» из БД значение больше, чем было в памяти.
+        TaskModelDTO dto = buildCreateTaskDto();
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsService.resolveSprintForTask("sprint-1", project)).thenReturn(sprint);
+        when(taskPlacementService.initialStatusFor(sprint, project, null)).thenReturn(defaultStatus);
+        when(taskRepository.saveAndFlush(any(TaskModel.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(taskMapper.toDo(any(TaskModel.class))).thenReturn(mock(TaskDataDto.class));
+
+        org.springframework.test.util.ReflectionTestUtils.setField(project, "taskCounter", 138);
+        doAnswer(inv -> {
+            // конкурентная транзакция уже успела закоммитить 139
+            org.springframework.test.util.ReflectionTestUtils.setField(project, "taskCounter", 139);
+            return null;
+        }).when(entityManager).refresh(project, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+
+        taskService.createTask(dto);
+
+        org.mockito.ArgumentCaptor<TaskModel> saved =
+                org.mockito.ArgumentCaptor.forClass(TaskModel.class);
+        verify(taskRepository).saveAndFlush(saved.capture());
+        // 139 (из refresh) + 1 — а не 138 + 1 из памяти
+        assertThat(saved.getValue().getCode()).endsWith("-140");
+        verify(entityManager).refresh(project, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
     }
 
     @Test
