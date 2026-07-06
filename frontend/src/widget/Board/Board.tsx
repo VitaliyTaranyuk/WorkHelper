@@ -43,6 +43,7 @@ import { TextPromptDialog } from '@/shared/ui/components/TextPromptDialog'
 import { ProjectHistoryModal } from '@/widget/modal/project/ProjectHistoryModal'
 import HistoryIcon from '@mui/icons-material/History'
 import { notify as toast } from '@/shared/ui/notify'
+import { confirmDialog } from '@/shared/ui/components/ConfirmDialog'
 
 export type BoardProps = {
   editTaskModal: NiceModalHandler<{ task: ITaskCard }>
@@ -210,15 +211,15 @@ function BoardInner(props: BoardProps) {
     })
   }
 
-  const handleDeleteColumn = (statusId: number, code: string) => {
+  const handleDeleteColumn = async (statusId: number, code: string) => {
     if (!activeProject) return
-    if (
-      window.confirm(
-        `Удалить колонку «${code}»? Её задачи перейдут в первую колонку доски.`,
-      )
-    ) {
-      deleteStatus.mutate({ projectId: activeProject.id, statusId })
-    }
+    const ok = await confirmDialog({
+      title: 'Удалить колонку',
+      message: `Удалить колонку «${code}»? Её задачи перейдут в первую колонку доски.`,
+      confirmLabel: 'Удалить',
+      destructive: true,
+    })
+    if (ok) deleteStatus.mutate({ projectId: activeProject.id, statusId })
   }
 
   const handleRenameColumn = async (statusId: number, currentCode: string) => {
@@ -306,15 +307,15 @@ function BoardInner(props: BoardProps) {
     }
   }
 
-  const handleCancelDraft = () => {
+  const handleCancelDraft = async () => {
     if (!isDirty) return
-    if (
-      !window.confirm(
-        'Отменить несохранённые изменения порядка и видимости колонок?',
-      )
-    ) {
-      return
-    }
+    const ok = await confirmDialog({
+      title: 'Отменить изменения',
+      message: 'Отменить несохранённые изменения порядка и видимости колонок?',
+      confirmLabel: 'Отменить изменения',
+      cancelLabel: 'Продолжить',
+    })
+    if (!ok) return
     setDraftOrderIds(null)
     setDraftVisibility(new Map())
   }
@@ -419,14 +420,17 @@ function BoardInner(props: BoardProps) {
               size="small"
               variant="text"
               color="inherit"
-              onClick={() => {
+              onClick={async () => {
                 if (isDirty) {
-                  if (
-                    !window.confirm(
+                  const ok = await confirmDialog({
+                    title: 'Закрыть режим редактирования',
+                    message:
                       'Несохранённые изменения колонок будут потеряны. Закрыть режим редактирования?',
-                    )
-                  )
-                    return
+                    confirmLabel: 'Закрыть',
+                    cancelLabel: 'Остаться',
+                    destructive: true,
+                  })
+                  if (!ok) return
                 }
                 setEditMode(false)
               }}

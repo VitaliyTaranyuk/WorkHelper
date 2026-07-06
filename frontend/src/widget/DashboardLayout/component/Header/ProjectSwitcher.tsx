@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { confirmDialog } from '@/shared/ui/components/ConfirmDialog'
 import {
   Button,
   Divider,
@@ -57,16 +58,16 @@ export function ProjectSwitcher() {
     }
   }
 
-  const removeProject = () => {
+  const removeProject = async () => {
     if (!activeProject) return
     close()
-    if (
-      window.confirm(
-        `Удалить проект «${activeProject.name}»? Проект будет помечен удалённым.`,
-      )
-    ) {
-      deleteProject.mutate(activeProject.id)
-    }
+    const ok = await confirmDialog({
+      title: 'Удалить проект',
+      message: `Удалить проект «${activeProject.name}»? Проект будет помечен удалённым.`,
+      confirmLabel: 'Удалить',
+      destructive: true,
+    })
+    if (ok) deleteProject.mutate(activeProject.id)
   }
 
   const otherProjects = userProjects ?? []
