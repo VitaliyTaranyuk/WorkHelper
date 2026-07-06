@@ -66,8 +66,10 @@ export function CreateTaskDetails({
         onPendingFilesChange={setPendingFiles}
       />
       <Stack gap={'18px'} direction={'row'} width={'100%'} height={'42px'} mt={2}>
+        {/* ТП-136 (F-008): не блокируем по !isValid — клик по пустой форме
+            должен показывать ошибку у поля, а не молча игнорироваться. */}
         <MUIPrimaryButton
-          disabled={!form.formState.isValid || form.formState.isSubmitting}
+          disabled={form.formState.isSubmitting}
           variant="contained"
           onClick={onSubmit}
           fullWidth

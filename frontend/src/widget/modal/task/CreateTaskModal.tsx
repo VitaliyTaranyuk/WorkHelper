@@ -133,8 +133,11 @@ function CreateTaskModalInner() {
       </DialogContent>
       <DialogActions sx={{ p: 0, mt: '13px' }}>
         <Stack gap={'18px'} direction={'row'} width={'100%'} height={'42px'}>
+          {/* ТП-136 (F-008): кнопку не блокируем по !isValid — иначе клик по
+              пустой форме молча игнорировался (мёртвая кнопка). handleSubmit
+              сам покажет ошибку у поля «Название». */}
           <MUIPrimaryButton
-            disabled={!form.formState.isValid || form.formState.isSubmitting}
+            disabled={form.formState.isSubmitting}
             variant="contained"
             onClick={onSubmit}
             fullWidth
