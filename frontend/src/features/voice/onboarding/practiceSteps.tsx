@@ -24,20 +24,39 @@ export type PracticeStep = TourStep & {
   opensCreatedTask?: boolean
 }
 
-/** Реплика, которую нужно произнести, — оформлена заметно. */
-function Say({ children }: { children: string }) {
+/**
+ * Реплика в шаге практики. ТП-144: пользователю было «неявно — просто
+ * прочитать или выполнить», поэтому плашка сама говорит, что с ней делать:
+ * обязательная фраза («Скажите в микрофон») отличима от справочного примера.
+ */
+function Say({
+  children,
+  example = false,
+}: {
+  children: string
+  example?: boolean
+}) {
   return (
-    <Box
-      sx={{
-        mt: 1,
-        px: 1.5,
-        py: 1,
-        bgcolor: 'action.hover',
-        borderRadius: 1,
-        fontStyle: 'italic',
-      }}
-    >
-      «{children}»
+    <Box sx={{ mt: 1 }}>
+      <Typography
+        variant="caption"
+        sx={{ fontWeight: 600 }}
+        color={example ? 'text.secondary' : 'primary'}
+      >
+        {example ? 'Пример — выполнять не обязательно:' : 'Скажите в микрофон:'}
+      </Typography>
+      <Box
+        sx={{
+          mt: 0.5,
+          px: 1.5,
+          py: 1,
+          bgcolor: 'action.hover',
+          borderRadius: 1,
+          fontStyle: 'italic',
+        }}
+      >
+        «{children}»
+      </Box>
     </Box>
   )
 }
@@ -52,6 +71,10 @@ export const PRACTICE_STEPS: PracticeStep[] = [
       <>
         Дальше вы сами выполните команды голосом. Нажимайте кнопку микрофона и
         говорите обычной речью — как только команда выполнится, шаг перейдёт сам.
+        <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 1 }}>
+          Шаги с пометкой «Скажите в микрофон» ждут вашего действия — у них нет
+          кнопки «Далее». Информационные шаги листаются кнопкой.
+        </Typography>
       </>
     ),
   },
@@ -111,10 +134,11 @@ export const PRACTICE_STEPS: PracticeStep[] = [
     body: (
       <>
         Синтаксис запоминать не нужно — помощник понимает обычную речь. Вместо
-        «Создай задачу…» можно сказать естественно, например:
-        <Say>Нужно не забыть проверить календарь</Say>
+        «Создай задачу…» можно сказать естественно:
+        <Say example>Нужно не забыть проверить календарь</Say>
         <Typography variant="caption" color="text.secondary">
-          Это тоже создаст задачу. Пробуйте формулировать своими словами.
+          Такая фраза тоже создаст задачу. Запомните на будущее и нажмите
+          «Далее».
         </Typography>
       </>
     ),
