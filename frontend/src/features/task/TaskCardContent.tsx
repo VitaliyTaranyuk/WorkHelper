@@ -296,39 +296,10 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
         </Stack>
 
         {/* Описание + панель инструментов (диктовка/счётчик) — единый компонент,
-            одинаковый с карточкой создания (ТП-119). */}
+            одинаковый с карточкой создания (ТП-119). Действия карточки —
+            в правой панели (ТП-167): левая колонка остаётся чистой рабочей
+            областью. */}
         <TaskDescriptionField form={form} />
-
-        <Stack gap={1.5} direction="row">
-          <MUIPrimaryButton
-            disabled={
-              !form.formState.isValid ||
-              !isDirty ||
-              editTask.isPending ||
-              updateStatus.isPending
-            }
-            variant="contained"
-            onClick={onSubmit}
-          >
-            Сохранить
-          </MUIPrimaryButton>
-          <Button
-            variant="outlined"
-            startIcon={<VideocamOutlinedIcon />}
-            onClick={() => void discussInMeet()}
-            disabled={createMeetRoom.isPending}
-          >
-            Обсудить во встрече
-          </Button>
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={onDelete}
-            disabled={deleteTask.isPending}
-          >
-            Удалить задачу
-          </Button>
-        </Stack>
 
         <Divider />
 
@@ -439,6 +410,46 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
             label="Обновлена"
             value={formatDateDDMMYYYY(task.updatedAt)}
           />
+        </Stack>
+
+        <Divider />
+
+        {/* ТП-167: действия карточки — под информационным блоком (паттерн
+            Jira/YouTrack/Azure DevOps: команды сущности живут при правой
+            панели свойств). Полная ширина панели, первичное действие сверху,
+            деструктивное — последним. Поведение и логика не менялись. */}
+        <Stack gap={1}>
+          <MUIPrimaryButton
+            disabled={
+              !form.formState.isValid ||
+              !isDirty ||
+              editTask.isPending ||
+              updateStatus.isPending
+            }
+            variant="contained"
+            fullWidth
+            onClick={onSubmit}
+          >
+            Сохранить
+          </MUIPrimaryButton>
+          <Button
+            variant="outlined"
+            fullWidth
+            startIcon={<VideocamOutlinedIcon />}
+            onClick={() => void discussInMeet()}
+            disabled={createMeetRoom.isPending}
+          >
+            Обсудить во встрече
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            fullWidth
+            onClick={onDelete}
+            disabled={deleteTask.isPending}
+          >
+            Удалить задачу
+          </Button>
         </Stack>
       </Stack>
     </Stack>
