@@ -199,6 +199,20 @@ class TaskStatusServiceTest {
     }
 
     @Test
+    void findStatusByIdAndProjectForUpdate_shouldThrow_withStatusOrientedMessage() {
+        // F-009 аудита: сообщение должно говорить о СТАТУСЕ, а не о задаче.
+        when(taskStatusRepository.findStatusByProjectAndIdForUpdate("project-1", 99999L))
+                .thenReturn(Optional.empty());
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> service.findStatusByIdAndProjectForUpdate(99999L, project))
+                .isInstanceOf(ru.worktechlab.work_task.exceptions.NotFoundException.class)
+                .hasMessageContaining("Не найден статус")
+                .hasMessageContaining("99999")
+                .hasMessageNotContaining("задача");
+    }
+
+    @Test
     void deleteStatus_shouldAllow_customColumn() throws Exception {
         Project p = systemProject();
         TaskStatus custom = p.getStatuses().stream()

@@ -210,7 +210,7 @@ public class TaskStatusService {
     public TaskStatus findStatusByIdAndProjectForUpdate(long statusId,
                                                         Project project) throws NotFoundException {
         return taskStatusRepository.findStatusByProjectAndIdForUpdate(project.getId(), statusId).orElseThrow(
-                () -> new NotFoundException(String.format("Не найдена задача для проекта %s с ИД - %s", project.getName(), statusId))
+                () -> new NotFoundException(String.format("Не найден статус с ИД - %s в проекте %s", statusId, project.getName()))
         );
     }
 
@@ -218,7 +218,7 @@ public class TaskStatusService {
     public TaskStatus findStatusByIdAndProject(long statusId,
                                                Project project) throws NotFoundException {
         return taskStatusRepository.findStatusByProjectAndId(project, statusId).orElseThrow(
-                () -> new NotFoundException(String.format("Не найдена задача для проекта %s с ИД - %s", project.getName(), statusId))
+                () -> new NotFoundException(String.format("Не найден статус с ИД - %s в проекте %s", statusId, project.getName()))
         );
     }
 }
