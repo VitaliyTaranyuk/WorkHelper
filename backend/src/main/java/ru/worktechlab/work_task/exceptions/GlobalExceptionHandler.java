@@ -74,7 +74,29 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<String> handleMessageNotReadable(HttpMessageNotReadableException ex) {
         log.warn("Malformed request body: {}", ex.getMessage());
-        return new ResponseEntity<>("Некорректный формат запроса", HttpStatus.BAD_REQUEST);
+        // ТП-145: голое «Некорректный формат запроса» не давало понять, какое
+        // поле не разобралось (жалоба с прода без шансов на диагностику).
+        // Наружу отдаём ТОЛЬКО имя поля из пути Jackson — без классов,
+        // значений и прочих внутренностей (error hygiene).
+        String field = extractFieldPath(ex);
+        String message = field != null
+                ? String.format("Некорректный формат запроса: проверьте поле «%s»", field)
+                : "Некорректный формат запроса";
+        return new ResponseEntity<>(message, HttpStatus.BAD_REQUEST);
+    }
+
+    private String extractFieldPath(HttpMessageNotReadableException ex) {
+        if (!(ex.getCause() instanceof com.fasterxml.jackson.databind.JsonMappingException jme)
+                || jme.getPath().isEmpty()) {
+            return null;
+        }
+        StringBuilder path = new StringBuilder();
+        for (com.fasterxml.jackson.databind.JsonMappingException.Reference ref : jme.getPath()) {
+            if (ref.getFieldName() == null) continue;
+            if (path.length() > 0) path.append('.');
+            path.append(ref.getFieldName());
+        }
+        return path.length() > 0 ? path.toString() : null;
     }
 
     @ExceptionHandler(AuthenticationException.class)
