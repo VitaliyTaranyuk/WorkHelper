@@ -90,7 +90,14 @@ export function ProjectSwitcher() {
         <LogoMark />
         <Typography
           noWrap
-          sx={{ fontSize: 17, fontWeight: 600, ml: 1 }}
+          // ТП-134 (F-011): на телефоне боковой блок сжат до логотипа —
+          // название проекта скрыто, чтобы не выталкивать шапку.
+          sx={{
+            fontSize: 17,
+            fontWeight: 600,
+            ml: 1,
+            '@media (max-width: 640px)': { display: 'none' },
+          }}
           title={activeProject?.name}
         >
           {activeProject?.name ?? 'WorkTask'}
