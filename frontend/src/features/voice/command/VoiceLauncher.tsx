@@ -13,6 +13,12 @@ import { VoiceOnboardingFlow } from '../onboarding/VoiceOnboardingFlow'
 import { getProgress, shouldOffer } from '../onboarding/onboardingProgress'
 import { useOnboardingTrigger } from '../onboarding/onboardingTrigger'
 import { TOUR_ANCHORS } from '../onboarding/anchors'
+import {
+  VOICE_UNSUPPORTED_HINT,
+  markUnsupportedHintShown,
+  shouldShowUnsupportedHint,
+} from '../unsupportedHint'
+import { notify } from '@/shared/ui/notify'
 
 /**
  * Глобальная точка входа командного голоса (ТП-95 / X1). Кнопка микрофона +
@@ -48,7 +54,17 @@ export function VoiceLauncher() {
 
   useVoiceHotkey(hotkey, handleMic)
 
-  if (!session.supported) return null
+  // ТП-139 (F-014): в браузерах без Web Speech кнопка скрыта — сообщаем о
+  // существовании голосового управления одноразовым тостом (persist), чтобы
+  // фича не оставалась невидимой для пользователей Firefox.
+  const supported = session.supported
+  useEffect(() => {
+    if (supported || !shouldShowUnsupportedHint()) return
+    markUnsupportedHintShown()
+    notify.info(VOICE_UNSUPPORTED_HINT, { duration: 10000 })
+  }, [supported])
+
+  if (!supported) return null
 
   const listening = session.listening
   const micLabel = listening
