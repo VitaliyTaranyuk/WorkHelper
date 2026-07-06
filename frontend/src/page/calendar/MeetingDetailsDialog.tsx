@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import {
   Button,
   Dialog,
@@ -13,11 +14,15 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
 import type { MeetingDto } from '@/shared/api/endpoint/meetingsApi'
+import { useCreateMeetRoom } from '@/features/meet/useCreateMeetRoom'
+import { buildMeetUrl, parseMeetToken } from '@/features/meet/meetLink'
+import { notify } from '@/shared/ui/notify'
 
 const LINK_PATTERN = /^https?:\/\/.+/
 
 type Props = {
   meeting: MeetingDto | null
+  projectId: string
   onClose: () => void
   onDelete: (meetingId: string) => void
   onSaveLink: (meeting: MeetingDto, link: string) => void
@@ -45,12 +50,15 @@ function formatRange(meeting: MeetingDto): string {
 
 export function MeetingDetailsDialog({
   meeting,
+  projectId,
   onClose,
   onDelete,
   onSaveLink,
   saving,
 }: Props) {
   const [link, setLink] = useState('')
+  const navigate = useNavigate()
+  const createMeetRoom = useCreateMeetRoom(projectId)
 
   useEffect(() => {
     setLink(meeting?.link ?? '')
@@ -61,6 +69,28 @@ export function MeetingDetailsDialog({
   const trimmed = link.trim()
   const linkChanged = trimmed !== (meeting.link ?? '')
   const linkValid = trimmed.length === 0 || LINK_PATTERN.test(trimmed)
+  const meetToken = parseMeetToken(meeting.link)
+
+  // M5 (ТП-165): видеоссылку WorkTask можно добавить и к существующей записи —
+  // комната привязывается к встрече (идемпотентно), ссылка в то же поле link.
+  const generateMeetLink = async () => {
+    try {
+      const room = await createMeetRoom.mutateAsync({ meetingId: meeting.id })
+      onSaveLink(meeting, buildMeetUrl(room.token))
+    } catch {
+      notify.error('Не удалось создать видеовстречу — попробуйте ещё раз')
+    }
+  }
+
+  // Своя встреча открывается внутри приложения; внешняя — новой вкладкой.
+  const join = () => {
+    if (meetToken) {
+      onClose()
+      navigate({ to: '/meet/$token', params: { token: meetToken } })
+      return
+    }
+    window.open(meeting.link!, '_blank', 'noopener,noreferrer')
+  }
 
   return (
     <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
@@ -92,6 +122,18 @@ export function MeetingDetailsDialog({
               Участники: {meeting.participants.map((p) => p.displayName).join(', ')}
             </Typography>
           )}
+          {!meeting.link && (
+            <Stack direction="row">
+              <Button
+                variant="outlined"
+                startIcon={<VideocamOutlinedIcon />}
+                disabled={createMeetRoom.isPending || saving}
+                onClick={() => void generateMeetLink()}
+              >
+                Создать видеовстречу WorkTask
+              </Button>
+            </Stack>
+          )}
           <Stack direction="row" gap={1} alignItems="flex-start">
             <TextField
               label="Ссылка на встречу"
@@ -103,7 +145,9 @@ export function MeetingDetailsDialog({
               helperText={
                 !linkValid
                   ? 'Ссылка должна начинаться с http:// или https://'
-                  : undefined
+                  : meetToken
+                    ? 'Видеовстреча WorkTask — откроется внутри приложения'
+                    : undefined
               }
             />
             {linkChanged && (
@@ -123,9 +167,7 @@ export function MeetingDetailsDialog({
           <Button
             variant="contained"
             startIcon={<VideocamOutlinedIcon />}
-            onClick={() =>
-              window.open(meeting.link!, '_blank', 'noopener,noreferrer')
-            }
+            onClick={join}
           >
             Подключиться
           </Button>

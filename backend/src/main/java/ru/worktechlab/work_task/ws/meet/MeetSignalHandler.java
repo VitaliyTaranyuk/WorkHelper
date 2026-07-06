@@ -12,6 +12,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import ru.worktechlab.work_task.services.MeetNotificationService;
 
 import java.io.IOException;
 import java.util.List;
@@ -41,6 +42,7 @@ public class MeetSignalHandler extends TextWebSocketHandler {
 
     private final MeetRoomRegistry registry;
     private final ObjectMapper objectMapper;
+    private final MeetNotificationService meetNotificationService;
 
     /** Слайдинг-окно rate-limit'а: sessionId → счётчик текущей секунды. */
     private final Map<String, RateWindow> rateWindows = new ConcurrentHashMap<>();
@@ -78,6 +80,9 @@ public class MeetSignalHandler extends TextWebSocketHandler {
                 peerEnvelope("peer-joined", peerOf(auth.roomToken(), rawSession.getId())));
         log.info("Meet WS: {} вошёл в комнату {} ({} участников)",
                 auth.userId(), auth.roomToken(), registry.roomSize(auth.roomToken()));
+        // Первый участник «открыл» встречу — оповещаем остальных приглашённых (M5)
+        if (result.others().isEmpty())
+            meetNotificationService.notifyMeetingStarted(auth.roomToken(), auth.userId());
     }
 
     @Override

@@ -2,7 +2,53 @@
 
 > Текущее состояние проекта WorkHelper.
 > Обновлять после каждой завершённой задачи.
-> **Последнее обновление:** 2026-07-05
+> **Последнее обновление:** 2026-07-06
+
+---
+
+## В Review 2026-07-06: ТП-161..165 «WorkTask Meet» — встроенные видеовстречи (эпик, PR #139–143)
+
+Подсистема онлайн-встреч как органичная часть продукта. Полный ADR:
+`.ai/MEET_ARCHITECTURE.md`; заголовочные решения — ARCHITECTURE.md (ADR-011..015).
+
+- **M1 ТП-161 (PR #139):** таблица `meet_room` (неугадываемый токен /meet/{token},
+  контекст meeting/task с ON DELETE SET NULL), MeetRoomService (создание adhoc/из
+  встречи/из задачи — идемпотентно; резолв = членство в проекте через CheckerUtil),
+  GET /meet/ice-servers (STUN default, TURN через env), метрики соединений в логи.
+- **M2 ТП-162 (PR #140):** общий WS-слой (`ws/`, снял вопрос «WebSocket/SSE» из
+  ARCHITECTURE.md): /work-task/ws/meet, JWT на handshake (query), in-memory
+  MeetRoomRegistry (präсенс/host/баны), протокол hello/peer-joined/left/offer/
+  answer/ice(адресный relay)/state/chat/host-mute/host-remove/ping; ROOM_FULL=8,
+  rate-limit 60/с, sweep мёртвых сессий, кадр 64KB (SDP). nginx: location
+  /work-task/ws/ с Upgrade (применить на сервере при деплое!).
+- **M3 ТП-163 (PR #141):** страница /meet/{token} (гость → login с возвратом):
+  лобби (превью, выбор устройств, деградации denied/no-devices/partial/unsupported,
+  вход recvonly), mesh RTCPeerConnection (perfect negotiation MDN, вежливость по
+  sessionId), сетка 1–8 плиток, говорящий (Web Audio RMS), mute/cam, аудио-режим,
+  реконнект (backoff; restartIce; пересоздание пары одной стороной), метрики.
+  Сцена тёмная в обеих темах (канон видеосервисов), панели — на токенах --wt-*.
+- **M4 ТП-164 (PR #142):** демонстрация экрана (replaceTrack; вход без камеры —
+  подъём направления recvonly-трансивера; contentHint=detail; плитка-сцена
+  gridColumn 1/-1; objectFit contain), чат (эфемерный, бейдж непрочитанных),
+  host-контролы (mute-request; remove с ConfirmDialog + бан), смена устройств
+  в звонке (DeviceMenu).
+- **M5 ТП-165 (PR #143):** календарь — тумблер «Видеовстреча WorkTask» (default on,
+  паттерн GCal+Meet; внешняя ссылка приоритетнее), генерация из карточки записи,
+  «Подключиться» внутрь SPA; задача — «Обсудить во встрече» (+ссылка комментарием);
+  уведомление MEETING_STARTED (анти-спам 10 мин, notifyMeetings); голос — «подключись
+  к встрече [название]» (pickMeeting) и «пригласи Х на встречу» (resolveMember →
+  updateMeeting); DRY dateTimeFormat.
+
+Тесты: backend 155, frontend 354, lint 0. E2E: два реальных Chromium-участника с
+fake-камерами — mesh установлен, видео live в обе стороны, чат доставлен
+(playwright-core+msedge). Скриншоты приложены к ТП-163/165.
+
+**Мержить по порядку #139→#143** (ветки цепочкой, каждый PR несёт надмножество —
+любой порядок безопасен для main, но ревью по порядку). После мержа: применить
+nginx-локацию /work-task/ws/ на сервере (infra/nginx-vds.conf) + деплой.
+
+Границы владельца (работа не велась, ADR §9): SFU/масштаб >8, TURN-креденшелы,
+запись/транскрипция, E2EE сверх DTLS-SRTP, гостевой доступ без аккаунта.
 
 ---
 

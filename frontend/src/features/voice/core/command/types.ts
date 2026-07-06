@@ -118,6 +118,16 @@ export type VoiceServices = {
     startAt: string
     endAt?: string
   }): Promise<void>
+  /**
+   * Открыть/подключиться к встрече (M5): идущая или ближайшая, опционально
+   * по названию. Meet-ссылка открывается внутри SPA, внешняя — новой вкладкой.
+   */
+  openMeeting(query?: string): Promise<{ ok: boolean; message: string }>
+  /** Пригласить участника проекта во встречу — через updateMeeting. */
+  inviteToMeeting(
+    member: { id: string; name: string },
+    meetingQuery?: string,
+  ): Promise<{ ok: boolean; message: string }>
 }
 
 /** Контекст исполнения = данные + сервисы. */

@@ -8,7 +8,10 @@ import { useEditTask } from '@/features/task/mutation/useEditTask'
 import { useCreateSprint } from '@/features/sprint/mutation/useCreateSprint'
 import { useActivateSprint } from '@/features/sprint/mutation/useActivateSprint'
 import { useFinishSprint } from '@/features/sprint/mutation/useFinishSprint'
-import { useCreateMeeting } from '@/features/meeting/useMeetings'
+import { useCreateMeeting, useUpdateMeeting } from '@/features/meeting/useMeetings'
+import { toBackendDateTime } from '@/features/meeting/dateTimeFormat'
+import { parseMeetToken } from '@/features/meet/meetLink'
+import { pickMeeting } from '../core/resolve/meetingPick'
 import { workTechApi } from '@/shared/api/endpoint'
 import { mapTaskMinDTOToTaskCard } from '@/entities/task/mapDTO'
 import type { TaskModelDTO } from '@/data-contracts'
@@ -65,6 +68,7 @@ export function useVoiceServices(
   // Мутация встреч требует projectId на этапе вызова хука; для null-контекста
   // передаём пустую строку — сервис всё равно недоступен (return null ниже).
   const createMeetingMut = useCreateMeeting(ctx?.projectId ?? '')
+  const updateMeetingMut = useUpdateMeeting(ctx?.projectId ?? '')
 
   return useMemo(() => {
     if (!ctx) return null
@@ -160,6 +164,66 @@ export function useVoiceServices(
           ...(input.endAt ? { endAt: input.endAt } : {}),
         })
       },
+      // M5 (ТП-165): открыть идущую/ближайшую встречу со ссылкой; своя
+      // видеовстреча — внутри SPA, внешняя (Телемост) — новой вкладкой.
+      openMeeting: async (query) => {
+        const meetings = (
+          await workTechApi.meeting.getMeetings({ projectId })
+        ).data
+        const picked = pickMeeting(meetings, query, Date.now(), {
+          requireLink: true,
+        })
+        if (!picked)
+          return {
+            ok: false,
+            message: query
+              ? `Не нашёл встречу «${query}» со ссылкой на подключение`
+              : 'Не нашёл идущей или предстоящей встречи со ссылкой',
+          }
+        const token = parseMeetToken(picked.link)
+        if (token)
+          router.navigate({ to: '/meet/$token', params: { token } })
+        else window.open(picked.link!, '_blank', 'noopener,noreferrer')
+        return { ok: true, message: `Открываю встречу «${picked.title}»` }
+      },
+      // M5: приглашение = добавление участника в запись встречи — существующая
+      // мутация updateMeeting; напоминания/оповещения дальше штатные.
+      inviteToMeeting: async (member, meetingQuery) => {
+        const meetings = (
+          await workTechApi.meeting.getMeetings({ projectId })
+        ).data
+        const picked = pickMeeting(meetings, meetingQuery, Date.now())
+        if (!picked)
+          return {
+            ok: false,
+            message: meetingQuery
+              ? `Не нашёл встречу «${meetingQuery}»`
+              : 'Не нашёл идущей или предстоящей встречи',
+          }
+        if (picked.participants.some((p) => p.id === member.id))
+          return {
+            ok: true,
+            message: `${member.name} уже участник встречи «${picked.title}»`,
+          }
+        await updateMeetingMut.mutateAsync({
+          meetingId: picked.id,
+          data: {
+            title: picked.title,
+            description: picked.description ?? undefined,
+            startAt: toBackendDateTime(picked.startAt),
+            endAt: picked.endAt ? toBackendDateTime(picked.endAt) : undefined,
+            link: picked.link ?? undefined,
+            participantIds: [
+              ...picked.participants.map((p) => p.id),
+              member.id,
+            ],
+          },
+        })
+        return {
+          ok: true,
+          message: `${member.name} приглашён(а) на встречу «${picked.title}»`,
+        }
+      },
     }
   }, [
     ctx,
@@ -172,5 +236,6 @@ export function useVoiceServices(
     activateSprintMut,
     finishSprintMut,
     createMeetingMut,
+    updateMeetingMut,
   ])
 }
