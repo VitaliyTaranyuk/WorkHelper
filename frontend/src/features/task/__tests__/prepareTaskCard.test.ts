@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  prepareTaskCard,
-  deriveTitleFromDescription,
-  buildCreateTaskPayload,
-} from '../prepareTaskCard'
+import { prepareTaskCard, buildCreateTaskPayload } from '../prepareTaskCard'
 
 describe('prepareTaskCard (ТП-147)', () => {
   it('название пользователя неприкосновенно (только trim)', () => {
@@ -34,21 +30,21 @@ describe('prepareTaskCard (ТП-147)', () => {
     })
   })
 
-  it('длинная первая мысль режется по границе слова (≤80)', () => {
+  it('длинная первая мысль режется по границе слова (≤80), «Нужно» срезано (ТП-153)', () => {
     const long =
       'Нужно очень тщательно проверить как ведёт себя система когда пользователь вводит чрезвычайно длинные описания без знаков препинания вообще'
-    const title = deriveTitleFromDescription(long)
+    const { title } = prepareTaskCard({ title: '', description: long })
     expect(title.length).toBeLessThanOrEqual(80)
-    expect(long.startsWith(title)).toBe(true)
+    // вводное «Нужно» не попадает в название (единый движок generateTaskTitle)
+    expect(title.startsWith('Очень тщательно проверить')).toBe(true)
     expect(title.endsWith(' ')).toBe(false)
-    // не обрывается посреди слова
-    expect(long.charAt(title.length)).toBe(' ')
   })
 
   it('вопрос/восклицание — знак не тащится в название', () => {
-    expect(deriveTitleFromDescription('Почему падает сборка? Разобраться.')).toBe(
-      'Почему падает сборка',
-    )
+    expect(
+      prepareTaskCard({ title: '', description: 'Почему падает сборка? Разобраться.' })
+        .title,
+    ).toBe('Почему падает сборка')
   })
 })
 

@@ -12,22 +12,11 @@ export function stripFillers(text: string): string {
   return text.replace(FILLERS, '$1').replace(/\s{2,}/g, ' ').trim()
 }
 
-export function capitalizeFirst(text: string): string {
-  const t = text.trim()
-  return t.length === 0 ? t : t.charAt(0).toUpperCase() + t.slice(1)
-}
-
-/**
- * Разбивает текст на предложения по финальной пунктуации. Web Speech API
- * в ru-RU расставляет точки не всегда — текст без пунктуации остаётся
- * одним предложением (ничего не придумываем).
- */
-export function splitSentences(text: string): string[] {
-  return text
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
-}
+// ТП-153: примитивы предложений переехали в shared/text (нужны единому движку
+// названий вне голосового модуля); реэкспорт сохраняет существующие импорты.
+export { capitalizeFirst, splitSentences } from '@/shared/text/sentences'
+import { capitalizeFirst, splitSentences } from '@/shared/text/sentences'
+import { generateTaskTitle } from '@/shared/text/generateTaskTitle'
 
 /** Гарантирует финальную точку у предложения (исправление пунктуации). */
 function ensurePeriod(sentence: string): string {
@@ -40,43 +29,24 @@ export type TaskDraft = {
 }
 
 /**
- * Web Speech API в ru-RU обычно НЕ расставляет пунктуацию — тогда вся диктовка
- * оказывается одним «предложением», название раздувается и упирается в лимит
- * 255 символов на бэкенде (ТП-57: создание задачи падало с 400). Мягкий предел
- * названия — как у кратких summary в зрелых TMS.
- */
-const TITLE_MAX_CHARS = 80
-
-/** Делит длинное «предложение» по границе слова: начало → название, хвост → описание. */
-function splitLongSentence(sentence: string): { title: string; rest?: string } {
-  if (sentence.length <= TITLE_MAX_CHARS) return { title: sentence }
-  const words = sentence.split(/\s+/)
-  let title = words[0] ?? ''
-  for (const word of words.slice(1)) {
-    if (`${title} ${word}`.length > TITLE_MAX_CHARS) break
-    title = `${title} ${word}`
-  }
-  const rest = sentence.slice(title.length).trim()
-  return { title, rest: rest.length > 0 ? rest : undefined }
-}
-
-/**
- * Правило преобразования из требования: первая мысль (первое предложение) →
- * название, весь остальной контекст → описание (по предложению на строку —
- * «разбиение на абзацы» без изменения содержания).
+ * Черновик задачи из диктовки. ТП-153: название формирует ЕДИНЫЙ движок
+ * generateTaskTitle (тот же, что у формы создания) — второго алгоритма нет.
+ * Описание — полный текст постановки (по предложению на строку, содержание
+ * не меняется); если весь текст уместился в название — описание не нужно.
  */
 export function transcriptToTaskDraft(text: string): TaskDraft {
   const cleaned = capitalizeFirst(stripFillers(text))
   const sentences = splitSentences(cleaned)
   if (sentences.length === 0) return { title: '' }
 
-  const first = splitLongSentence(sentences[0].replace(/[.!?…]+$/, '').trim())
-  const rest = [...(first.rest ? [first.rest] : []), ...sentences.slice(1)].map(
-    (s) => capitalizeFirst(ensurePeriod(s)),
-  )
-
-  return {
-    title: capitalizeFirst(first.title),
-    description: rest.length > 0 ? rest.join('\n') : undefined,
+  const title = generateTaskTitle(cleaned)
+  const bare = (s: string) => s.replace(/[.!?…]+$/, '').trim().toLowerCase()
+  // Однопредложная постановка, полностью ушедшая в название, — без описания.
+  if (sentences.length === 1 && bare(sentences[0]) === bare(title)) {
+    return { title }
   }
+  const description = sentences
+    .map((s) => capitalizeFirst(ensurePeriod(s)))
+    .join('\n')
+  return { title, description }
 }
