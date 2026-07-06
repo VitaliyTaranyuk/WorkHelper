@@ -4,6 +4,7 @@ import { CreateTaskContent } from '@/features/task/CreateTaskContent'
 import { useCreateTaskForm } from '@/features/task/TaskForm/useTaskForm'
 import { MUIPrimaryButton } from '@/shared/ui/Button'
 import { useCreateTask } from '@/features/task/mutation/useCreateTask'
+import { buildCreateTaskPayload } from '@/features/task/prepareTaskCard'
 import { uploadPendingAttachments } from '@/features/task/uploadPendingAttachments'
 
 type CreateTaskDetailsProps = {
@@ -30,23 +31,11 @@ export function CreateTaskDetails({
 
   const onSubmit = form.handleSubmit(async (formValues) => {
     try {
-      const created = await createTask.mutateAsync({
-        priority: formValues.priority,
-        projectId,
-        taskType: formValues.type,
-        title: formValues.taskTitle,
-        sprintId: formValues.sprint,
-
-        ...(formValues.assignee === '-1'
-          ? {}
-          : { assignee: formValues.assignee }),
-
-        ...(formValues.description
-          ? { description: formValues.description }
-          : {}),
-        // Выбранная колонка доски (ТП-36); для Backlog-спринта поле обнулено
-        ...(formValues.status != null ? { statusId: formValues.status } : {}),
-      })
+      // ТП-147: единая подготовка карточки (авто-название из описания) и
+      // сборка payload — общий сервис всех точек создания.
+      const created = await createTask.mutateAsync(
+        buildCreateTaskPayload(formValues, projectId),
+      )
 
       // Вложения (ТП-30): задача уже создана, ошибки загрузки не отменяют её.
       await uploadPendingAttachments(projectId, created.data.id, pendingFiles)

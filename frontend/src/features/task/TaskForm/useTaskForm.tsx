@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { compactTaskFormSchema } from './taskFormSchema'
+import { compactTaskFormSchema, createTaskFormSchema } from './taskFormSchema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ITaskCard } from '@/entities/task/types'
 
@@ -22,7 +22,9 @@ export function useCreateTaskForm({
   defaultSprintId: string
 }) {
   const form = useForm<FormValues>({
-    resolver: zodResolver(compactTaskFormSchema),
+    // ТП-147: при создании название можно не указывать — оно сформируется
+    // из описания (prepareTaskCard); редактирование живёт на строгой схеме.
+    resolver: zodResolver(createTaskFormSchema),
     mode: 'onTouched',
     reValidateMode: 'onChange',
     defaultValues: {
