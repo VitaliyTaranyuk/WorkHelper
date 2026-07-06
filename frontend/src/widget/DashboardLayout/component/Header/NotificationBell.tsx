@@ -29,6 +29,7 @@ import {
 } from '@/features/notification/notificationMeta'
 import { notify } from '@/shared/ui/notify'
 import { formatRelativeTime } from '@/shared/utils/date'
+import { parseMeetToken } from '@/features/meet/meetLink'
 import type { NotificationDto } from '@/shared/api/endpoint/notificationsApi'
 
 /**
@@ -101,6 +102,13 @@ export function NotificationBell() {
       return
     }
     if (n.link) {
+      // M5 (ТП-165): ссылка на видеовстречу WorkTask открывается внутри
+      // приложения (страница /meet), внешние сервисы — новой вкладкой.
+      const meetToken = parseMeetToken(n.link)
+      if (meetToken) {
+        navigate({ to: '/meet/$token', params: { token: meetToken } })
+        return
+      }
       window.open(n.link, '_blank', 'noopener,noreferrer')
       return
     }

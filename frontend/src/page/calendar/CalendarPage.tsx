@@ -22,6 +22,7 @@ import {
   useUpdateMeeting,
 } from '@/features/meeting/useMeetings'
 import type { MeetingDto } from '@/shared/api/endpoint/meetingsApi'
+import { toBackendDateTime } from '@/features/meeting/dateTimeFormat'
 import { MeetingDetailsDialog } from './MeetingDetailsDialog'
 import { CreateMeetingModal } from '@/widget/modal/meeting/CreateMeetingModal'
 
@@ -31,19 +32,9 @@ type CalendarView = 'week' | 'month'
 
 const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
-function withSeconds(local: string): string {
-  // datetime-local -> "yyyy-MM-ddTHH:mm" ; backend expects seconds
-  return local.length === 16 ? `${local}:00` : local
-}
-
 /** Понедельник недели, в которую входит дата (dayjs .day(): 0 = воскресенье). */
 function startOfWeek(date: Dayjs): Dayjs {
   return date.startOf('day').subtract((date.day() + 6) % 7, 'day')
-}
-
-/** Бэкенд принимает строго "yyyy-MM-ddTHH:mm:ss" — обрезаем возможные доли секунд. */
-function toBackendDateTime(iso: string): string {
-  return withSeconds(iso).slice(0, 19)
 }
 
 function formatTime(iso: string): string {
@@ -303,6 +294,7 @@ export function CalendarPage({ projectId, focusMeetingId }: Props) {
 
       <MeetingDetailsDialog
         meeting={selectedMeeting}
+        projectId={projectId}
         onClose={() => setSelectedMeeting(null)}
         onDelete={removeMeeting}
         onSaveLink={saveLink}

@@ -61,6 +61,11 @@ export function stubServices() {
       vi.fn<
         (input: { title: string; startAt: string; endAt?: string }) => Promise<void>
       >(async () => {}),
+    openMeeting: vi.fn(async () => ({ ok: true, message: 'Открываю встречу «Планёрка»' })),
+    inviteToMeeting: vi.fn(async () => ({
+      ok: true,
+      message: 'Пётр Петров приглашён(а) на встречу «Планёрка»',
+    })),
   }
 }
 

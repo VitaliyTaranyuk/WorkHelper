@@ -17,6 +17,8 @@ import {
 } from './sprintCommands'
 import { notificationsReadCommand } from './notificationsCommand'
 import { meetingCommand } from './meetingCommand'
+import { meetingJoinCommand } from './meetingJoinCommand'
+import { meetingInviteCommand } from './meetingInviteCommand'
 import { navigateCommand } from './navigateCommand'
 
 /**
@@ -32,6 +34,8 @@ export const voiceCommands: VoiceCommand[] = [
   createBugCommand, // «создай баг …»
   openTaskCommand, // «открой ТП-90»
   commentCommand, // «прокомментируй … <текст>»
+  meetingJoinCommand, // «подключись к встрече [планёрка]» (M5)
+  meetingInviteCommand, // «пригласи Петрова на встречу [название]» (M5)
   meetingCommand, // «создай встречу … завтра в 15» (раньше assignee: «назначь»)
   statusCommand, // «переведи … в готово»
   sprintCommand, // «перенеси … в спринт/бэклог»

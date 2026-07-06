@@ -8,6 +8,7 @@ import org.mockito.Mockito;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
+import ru.worktechlab.work_task.services.MeetNotificationService;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ class MeetSignalHandlerTest {
     private final ObjectMapper mapper = new ObjectMapper();
     private MeetRoomRegistry registry;
     private MeetSignalHandler handler;
+    private MeetNotificationService notificationService;
 
     /** Отправленные сессии сообщения, разобранные в JsonNode. */
     private final Map<String, List<JsonNode>> outbox = new ConcurrentHashMap<>();
@@ -35,7 +37,8 @@ class MeetSignalHandlerTest {
     @BeforeEach
     void setUp() {
         registry = new MeetRoomRegistry();
-        handler = new MeetSignalHandler(registry, mapper);
+        notificationService = Mockito.mock(MeetNotificationService.class);
+        handler = new MeetSignalHandler(registry, mapper, notificationService);
         outbox.clear();
     }
 
@@ -231,6 +234,18 @@ class MeetSignalHandlerTest {
         List<JsonNode> hostChanged = sent("s-carol", "host-changed");
         assertThat(hostChanged).hasSize(1);
         assertThat(hostChanged.get(0).get("host").asText()).isEqualTo("user-bob");
+    }
+
+    @Test
+    void meetingStarted_firesOnlyForFirstJoiner() throws Exception {
+        WebSocketSession alice = sessionMock("s-alice", auth("creator-1", "Алиса", 8));
+        WebSocketSession bob = sessionMock("s-bob", auth("user-bob", "Боб", 8));
+
+        handler.afterConnectionEstablished(alice);
+        handler.afterConnectionEstablished(bob);
+
+        verify(notificationService, times(1)).notifyMeetingStarted("room-1", "creator-1");
+        verify(notificationService, never()).notifyMeetingStarted("room-1", "user-bob");
     }
 
     @Test

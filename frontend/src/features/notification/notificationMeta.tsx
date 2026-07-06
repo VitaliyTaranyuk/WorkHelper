@@ -32,6 +32,12 @@ const NOTIFICATION_META: Record<string, NotificationMeta> = {
     title: 'Напоминание о встрече',
     icon: <VideocamOutlinedIcon sx={iconSx} />,
   },
+  // M5 (ТП-165): первый вошедший «открыл» видеовстречу — опоздавшие получают
+  // живую ссылку прямо в колокольчик.
+  MEETING_STARTED: {
+    title: 'Встреча началась',
+    icon: <VideocamOutlinedIcon sx={iconSx} />,
+  },
 }
 
 const FALLBACK_META: NotificationMeta = {

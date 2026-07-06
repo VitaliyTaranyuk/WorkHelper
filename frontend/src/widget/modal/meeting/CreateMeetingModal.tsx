@@ -5,10 +5,12 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  FormControlLabel,
   IconButton,
   MenuItem,
   Select,
   Stack,
+  Switch,
   TextField,
   Typography,
 } from '@mui/material'
@@ -20,8 +22,11 @@ import { Button } from '@/shared/ui/Button'
 import { Spacer } from '@/shared/ui/Spacer'
 import { FormCaption } from '@/shared/ui/components/FormCaption'
 import { modalStyle } from '@/shared/ui/modalStyles'
+import { notify } from '@/shared/ui/notify'
 import { useProjectData } from '@/features/project/query/useProjectData'
-import { useCreateMeeting } from '@/features/meeting/useMeetings'
+import { useCreateMeeting, useUpdateMeeting } from '@/features/meeting/useMeetings'
+import { useCreateMeetRoom } from '@/features/meet/useCreateMeetRoom'
+import { buildMeetUrl } from '@/features/meet/meetLink'
 
 // ТП-113: путь /create отдаёт 404 — кнопка вела на несуществующую страницу и
 // «не позволяла создать встречу». Рабочая точка входа — главная Телемоста, где
@@ -44,6 +49,8 @@ export const CreateMeetingModal = NiceModal.create(
   ({ projectId, initialDate }: { projectId: string; initialDate?: string }) => {
     const modal = useModal()
     const createMeeting = useCreateMeeting(projectId)
+    const updateMeeting = useUpdateMeeting(projectId)
+    const createMeetRoom = useCreateMeetRoom(projectId)
     const { activeProject } = useProjectData()
     const users = activeProject?.users ?? []
 
@@ -53,10 +60,18 @@ export const CreateMeetingModal = NiceModal.create(
     const [endAt, setEndAt] = useState('')
     const [link, setLink] = useState('')
     const [participantIds, setParticipantIds] = useState<string[]>([])
+    // M5 (ТП-165): видеовстреча WorkTask включена по умолчанию — ссылка
+    // генерируется сама (паттерн Google Calendar + Meet). Введённая внешняя
+    // ссылка имеет приоритет и отключает генерацию.
+    const [withMeetRoom, setWithMeetRoom] = useState(true)
 
     const linkTrimmed = link.trim()
-    const linkValid = linkTrimmed.length === 0 || LINK_PATTERN.test(linkTrimmed)
+    const externalLink = linkTrimmed.length > 0
+    const meetRoomEnabled = withMeetRoom && !externalLink
+    const linkValid = !externalLink || LINK_PATTERN.test(linkTrimmed)
     const valid = title.trim().length > 0 && startAt.length > 0 && linkValid
+    const pending =
+      createMeeting.isPending || createMeetRoom.isPending || updateMeeting.isPending
 
     const close = () => {
       modal.reject()
@@ -64,14 +79,35 @@ export const CreateMeetingModal = NiceModal.create(
     }
 
     const submit = async () => {
-      if (!valid || createMeeting.isPending) return
-      await createMeeting.mutateAsync({
+      if (!valid || pending) return
+      const base = {
         title: title.trim(),
         startAt: withSeconds(startAt),
         endAt: endAt ? withSeconds(endAt) : undefined,
-        link: linkTrimmed.length > 0 ? linkTrimmed : undefined,
         participantIds,
+      }
+      const created = await createMeeting.mutateAsync({
+        ...base,
+        link: externalLink ? linkTrimmed : undefined,
       })
+      // Своя видеовстреча: комната привязывается к записи календаря, ссылка —
+      // в то же поле link (совместимость с внешними сервисами). Сбой генерации
+      // не блокирует встречу — ссылку можно добавить позже из карточки.
+      if (meetRoomEnabled) {
+        try {
+          const room = await createMeetRoom.mutateAsync({
+            meetingId: created.data.id,
+          })
+          await updateMeeting.mutateAsync({
+            meetingId: created.data.id,
+            data: { ...base, link: buildMeetUrl(room.token) },
+          })
+        } catch {
+          notify.error(
+            'Встреча создана, но видеоссылку сгенерировать не удалось — добавьте её из карточки встречи',
+          )
+        }
+      }
       modal.resolve()
       modal.hide()
     }
@@ -160,7 +196,35 @@ export const CreateMeetingModal = NiceModal.create(
             </Stack>
 
             <Stack gap={0.5}>
-              <FormCaption>Ссылка на встречу (необязательно)</FormCaption>
+              {/* M5: своя видеовстреча — первичный путь; внешняя ссылка ниже
+                  остаётся для Телемоста и т.п. и имеет приоритет при вводе. */}
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={meetRoomEnabled}
+                    disabled={externalLink}
+                    onChange={(e) => setWithMeetRoom(e.target.checked)}
+                  />
+                }
+                label={
+                  <Stack direction="row" alignItems="center" gap={0.75}>
+                    <VideocamOutlinedIcon fontSize="small" />
+                    <Typography variant="body2">
+                      Видеовстреча WorkTask — ссылка создастся автоматически
+                    </Typography>
+                  </Stack>
+                }
+              />
+              {externalLink && (
+                <Typography variant="caption" color="text.secondary">
+                  Указана внешняя ссылка — она будет использована вместо
+                  видеовстречи WorkTask.
+                </Typography>
+              )}
+            </Stack>
+
+            <Stack gap={0.5}>
+              <FormCaption>Внешняя ссылка (необязательно)</FormCaption>
               <TextField
                 size="small"
                 fullWidth
@@ -211,7 +275,7 @@ export const CreateMeetingModal = NiceModal.create(
             <Button
               style={{ width: '50%' }}
               variant="primary"
-              disabled={!valid || createMeeting.isPending}
+              disabled={!valid || pending}
               onClick={submit}
             >
               Создать

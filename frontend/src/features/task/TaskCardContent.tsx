@@ -35,6 +35,11 @@ import { formatDateDDMMYYYY } from '@/shared/utils/date'
 import type { ITaskCard } from '@/entities/task/types'
 import type { User } from '@/entities/user/types'
 import { notify as toast } from '@/shared/ui/notify'
+import { useNavigate } from '@tanstack/react-router'
+import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
+import { useCreateMeetRoom } from '@/features/meet/useCreateMeetRoom'
+import { buildMeetUrl } from '@/features/meet/meetLink'
+import { useCreateComment } from '@/features/task/useTaskComments'
 import {
   extractFieldErrors,
   extractGeneralError,
@@ -96,7 +101,27 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
   const editTask = useEditTask()
   const deleteTask = useDeleteTask()
   const updateStatus = useUpdateTaskStatus()
+  const createMeetRoom = useCreateMeetRoom(activeProject?.id ?? '')
+  const createComment = useCreateComment(activeProject?.id ?? '', task.id)
+  const navigate = useNavigate()
   const { errors } = form.formState
+
+  // M5 (ТП-165): «Обсудить во встрече» — мгновенная комната с контекстом
+  // задачи (одна на задачу, идемпотентно); ссылка остаётся в комментарии,
+  // чтобы команда могла присоединиться из карточки.
+  const discussInMeet = async () => {
+    if (!activeProject) return
+    try {
+      const room = await createMeetRoom.mutateAsync({ taskId: task.id })
+      const url = buildMeetUrl(room.token)
+      await createComment
+        .mutateAsync(`Обсуждение в видеовстрече: ${url}`)
+        .catch(() => undefined) // комментарий не критичен для входа
+      navigate({ to: '/meet/$token', params: { token: room.token } })
+    } catch {
+      toast.error('Не удалось создать видеовстречу по задаче')
+    }
+  }
 
   const [activityTab, setActivityTab] = useState(0)
   // Статус — часть явного сохранения (ТП-34): выбор в дропдауне меняет только
@@ -287,6 +312,14 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
           >
             Сохранить
           </MUIPrimaryButton>
+          <Button
+            variant="outlined"
+            startIcon={<VideocamOutlinedIcon />}
+            onClick={() => void discussInMeet()}
+            disabled={createMeetRoom.isPending}
+          >
+            Обсудить во встрече
+          </Button>
           <Button
             variant="outlined"
             color="error"
