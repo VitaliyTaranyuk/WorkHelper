@@ -15,6 +15,7 @@ import type { RiskLevel } from '../core/command/types'
 import { useVoiceServices } from './useVoiceServices'
 import { useVoiceJournal } from './voiceJournal'
 import { voiceErrorMessage } from './voiceErrorMessage'
+import { useVoiceAnswer } from './useVoiceAnswer'
 
 /**
  * Оркестрация командного режима (ТП-95 / X1) — единый конвейер:
@@ -168,6 +169,16 @@ export function useVoiceCommandSession(): VoiceSession {
     speech.cancel()
     reset()
   }, [speech, reset])
+
+  // ТП-142: подтверждение голосом — пока открыт вопрос «Выполнить?», короткий
+  // слушатель ловит «да»/«отмена». Кнопки остаются равноправным способом.
+  useVoiceAnswer({
+    active: phase.t === 'confirm',
+    onAnswer: (answer) => {
+      if (answer === 'yes') confirm()
+      else reset()
+    },
+  })
 
   // Ошибка распознавания (нет доступа к микрофону и т.п.) → в phase.
   useEffect(() => {
