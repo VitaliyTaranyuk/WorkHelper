@@ -1,17 +1,24 @@
 import styled from '@emotion/styled'
-import { COLOR, TEXT_STYLES } from '@/shared/ui/theme/constants'
+import { TEXT_STYLES } from '@/shared/ui/theme/constants'
 import { ButtonWithoutStyles } from '@/shared/ui/Button'
 
 export const SprintTaskWrapper = styled.div`
   width: 100%;
   height: 32px;
-  background-color: ${COLOR.background[100]};
+  /* ТП-159: те же токены, что у строк «Завершённых» — в тёмной теме строки
+     активного спринта/бэклога были тусклее (светлотемный хардкод), секции
+     списка выглядели по-разному. Единый вид всех секций. */
+  background-color: var(--wt-surface-muted);
   border-radius: 8px;
   padding: 0 8px;
 
   display: flex;
   align-items: center;
   gap: 8px;
+
+  &:hover {
+    background-color: var(--wt-surface-hover);
+  }
 `
 
 export const LeftBlock = styled.div`
@@ -31,7 +38,7 @@ export const TaskEstimation = styled.p`
   align-items: center;
   flex-shrink: 0;
   ${TEXT_STYLES.storyPoint}
-  color: ${COLOR.text.secondary};
+  color: var(--wt-text-secondary);
 `
 
 export const IconButton = styled(ButtonWithoutStyles)`
@@ -46,7 +53,7 @@ export const TaskTitle = styled(ButtonWithoutStyles)`
   flex-grow: 1;
   text-align: left;
   ${TEXT_STYLES.body}
-  color: ${COLOR.text.primary};
+  color: var(--wt-text);
 
   overflow: hidden;
   text-overflow: ellipsis;
