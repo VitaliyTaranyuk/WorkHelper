@@ -210,4 +210,11 @@ export const API_ENDPOINT_PATH = {
     MARK_READ: ({ id }: { id: string }) => `/notifications/${id}/read`,
     MARK_ALL_READ: () => `/notifications/read-all`,
   },
+
+  MEET: {
+    CREATE_ROOM: ({ projectId }: ProjectId) => `/meet/rooms/project/${projectId}`,
+    GET_ROOM: ({ token }: { token: string }) => `/meet/rooms/${token}`,
+    ICE_SERVERS: () => `/meet/ice-servers`,
+    STATS: ({ token }: { token: string }) => `/meet/rooms/${token}/stats`,
+  },
 } as const

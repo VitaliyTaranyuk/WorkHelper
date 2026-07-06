@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MeetTokenRouteImport } from './routes/meet.$token'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedMainRouteImport } from './routes/_authenticated/main'
@@ -34,6 +35,11 @@ const AuthRoute = AuthRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeetTokenRoute = MeetTokenRouteImport.update({
+  id: '/meet/$token',
+  path: '/meet/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/main': typeof AuthenticatedMainRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/meet/$token': typeof MeetTokenRoute
   '/task/$code': typeof AuthenticatedTaskCodeRoute
   '/task/create': typeof AuthenticatedTaskCreateRoute
   '/project/$projectId/backlog': typeof AuthenticatedProjectProjectIdBacklogRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/main': typeof AuthenticatedMainRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/meet/$token': typeof MeetTokenRoute
   '/task/$code': typeof AuthenticatedTaskCodeRoute
   '/task/create': typeof AuthenticatedTaskCreateRoute
   '/project/$projectId/backlog': typeof AuthenticatedProjectProjectIdBacklogRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/_authenticated/main': typeof AuthenticatedMainRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/meet/$token': typeof MeetTokenRoute
   '/_authenticated/task/$code': typeof AuthenticatedTaskCodeRoute
   '/_authenticated/task/create': typeof AuthenticatedTaskCreateRoute
   '/_authenticated/project/$projectId/backlog': typeof AuthenticatedProjectProjectIdBacklogRoute
@@ -141,6 +150,7 @@ export interface FileRouteTypes {
     | '/main'
     | '/settings'
     | '/invite/$token'
+    | '/meet/$token'
     | '/task/$code'
     | '/task/create'
     | '/project/$projectId/backlog'
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/main'
     | '/settings'
     | '/invite/$token'
+    | '/meet/$token'
     | '/task/$code'
     | '/task/create'
     | '/project/$projectId/backlog'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
     | '/_authenticated/main'
     | '/_authenticated/settings'
     | '/invite/$token'
+    | '/meet/$token'
     | '/_authenticated/task/$code'
     | '/_authenticated/task/create'
     | '/_authenticated/project/$projectId/backlog'
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   InviteTokenRoute: typeof InviteTokenRoute
+  MeetTokenRoute: typeof MeetTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -204,6 +217,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meet/$token': {
+      id: '/meet/$token'
+      path: '/meet/$token'
+      fullPath: '/meet/$token'
+      preLoaderRoute: typeof MeetTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
@@ -323,6 +343,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   InviteTokenRoute: InviteTokenRoute,
+  MeetTokenRoute: MeetTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
