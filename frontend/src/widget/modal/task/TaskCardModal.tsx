@@ -19,6 +19,7 @@ import { TaskCardLoadError } from '@/features/task/TaskCardLoadError'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useTaskByCode } from '@/features/task/query/useTaskByCode'
 import { Loader } from '@/shared/ui/components/Loader'
+import { ErrorBoundary } from '@/shared/ui/components/ErrorBoundary'
 
 /**
  * ТП-89: карточку можно открыть либо по объекту задачи (доска/список), либо
@@ -125,7 +126,12 @@ export const TaskCardModal = NiceModal.create(
         </IconButton>
         <DialogContent sx={{ flex: 1, overflowY: 'auto', padding: '0 28px 28px' }}>
           {task ? (
-            <TaskCardContent task={task} onDeleted={forceClose} guardRef={guardRef} />
+            // ТП-172 (T1): модалка живёт вне роутов — defaultErrorComponent
+            // её не прикрывает; краш содержимого не должен ронять приложение
+            // в белый экран, а показывает fallback с возможностью закрыть.
+            <ErrorBoundary areaLabel="карточку задачи" onReset={forceClose}>
+              <TaskCardContent task={task} onDeleted={forceClose} guardRef={guardRef} />
+            </ErrorBoundary>
           ) : byCode.isError ? (
             // ТП-130 (F-002): раньше ошибка загрузки по коду оставляла вечный
             // спиннер поверх интерфейса (клик по уведомлению удалённой задачи).
