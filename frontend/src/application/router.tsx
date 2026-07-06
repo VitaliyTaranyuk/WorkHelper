@@ -2,6 +2,7 @@ import { createRouter } from '@tanstack/react-router'
 import NiceModal from '@ebay/nice-modal-react'
 import { routeTree } from '../routeTree.gen'
 import { RouteErrorFallback } from './RouteErrorFallback'
+import { Loader } from '@/shared/ui/components/Loader'
 
 /**
  * Единственный экземпляр роутера (ТП-59). Вынесен из main.tsx, чтобы код вне
@@ -20,6 +21,14 @@ export const router = createRouter({
     isAuthenticated: false,
   },
   defaultErrorComponent: RouteErrorFallback,
+  // ТП-140 (F-005): при переходе между разделами код-сплит чанк маршрута
+  // может грузиться заметное время — раньше 1–2 секунды висел контент
+  // предыдущей страницы без всякой индикации, затем экран менялся скачком.
+  // Порог 300мс отсекает мерцание на быстрых переходах; минимум 200мс —
+  // чтобы уже показанный индикатор не «мигал».
+  defaultPendingComponent: () => <Loader isLoading />,
+  defaultPendingMs: 300,
+  defaultPendingMinMs: 200,
   Wrap: ({ children }: { children: React.ReactNode }) => (
     <NiceModal.Provider>{children}</NiceModal.Provider>
   ),
