@@ -29,15 +29,15 @@ export function useTour(
   const [index, setIndex] = useState(0)
 
   const total = steps.length
-  const clamp = (i: number) => Math.max(0, Math.min(i, total - 1))
 
   const start = useCallback(
     (fromIndex = 0) => {
       if (total === 0) return
-      setIndex(clamp(fromIndex))
+      // ограничение индекса зависит только от total — считаем на месте,
+      // чтобы у useCallback был точный список зависимостей (ТП-129).
+      setIndex(Math.max(0, Math.min(fromIndex, total - 1)))
       setActive(true)
     },
-    // clamp зависит только от total
     [total],
   )
 
