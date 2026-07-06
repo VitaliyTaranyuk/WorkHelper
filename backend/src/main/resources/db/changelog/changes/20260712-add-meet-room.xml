@@ -1,0 +1,49 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- ТП-161 (WorkTask Meet): комната видеовстречи. Комната — долгоживущая
+         ссылка /meet/{token}; может быть привязана к календарной встрече или
+         задаче (контекст), но переживает их удаление (SET NULL) — у людей
+         остаётся рабочая ссылка. -->
+    <changeSet id="20260712-add-meet-room" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="meet_room"/></not>
+        </preConditions>
+        <createTable tableName="meet_room">
+            <column name="id" type="varchar(255)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="token" type="varchar(64)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_meet_room_token"/>
+            </column>
+            <column name="project_id" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="meeting_id" type="varchar(255)"/>
+            <column name="task_id" type="varchar(255)"/>
+            <column name="title" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="varchar(255)"/>
+            <column name="created_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ended_at" type="timestamp"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="meet_room" baseColumnNames="project_id"
+                                 constraintName="fk_meet_room_project"
+                                 referencedTableName="project" referencedColumnNames="id"/>
+        <addForeignKeyConstraint baseTableName="meet_room" baseColumnNames="meeting_id"
+                                 constraintName="fk_meet_room_meeting" onDelete="SET NULL"
+                                 referencedTableName="meeting" referencedColumnNames="id"/>
+        <addForeignKeyConstraint baseTableName="meet_room" baseColumnNames="task_id"
+                                 constraintName="fk_meet_room_task" onDelete="SET NULL"
+                                 referencedTableName="task_model" referencedColumnNames="id"/>
+        <addForeignKeyConstraint baseTableName="meet_room" baseColumnNames="created_by"
+                                 constraintName="fk_meet_room_creator" onDelete="SET NULL"
+                                 referencedTableName="users" referencedColumnNames="id"/>
+    </changeSet>
+
+</databaseChangeLog>
