@@ -22,6 +22,10 @@ export function useTaskByCode({
       return mapTaskMinDTOToTaskCard(response.data)
     },
     enabled: !!projectId && !!taskCode, // запрос только при наличии id и кода
+    // ТП-130 (F-002): для поиска задачи по коду 404 — нормальный терминальный
+    // исход (задача удалена, напр. клик по старому уведомлению). Ретраить
+    // бессмысленно — сразу показываем состояние «не найдена».
+    retry: false,
   })
 
   return query

@@ -15,6 +15,7 @@ import {
   TaskCardContent,
   type TaskCardGuard,
 } from '@/features/task/TaskCardContent'
+import { TaskCardLoadError } from '@/features/task/TaskCardLoadError'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useTaskByCode } from '@/features/task/query/useTaskByCode'
 import { Loader } from '@/shared/ui/components/Loader'
@@ -125,6 +126,15 @@ export const TaskCardModal = NiceModal.create(
         <DialogContent sx={{ flex: 1, overflowY: 'auto', padding: '0 28px 28px' }}>
           {task ? (
             <TaskCardContent task={task} onDeleted={forceClose} guardRef={guardRef} />
+          ) : byCode.isError ? (
+            // ТП-130 (F-002): раньше ошибка загрузки по коду оставляла вечный
+            // спиннер поверх интерфейса (клик по уведомлению удалённой задачи).
+            <TaskCardLoadError
+              code={code}
+              error={byCode.error}
+              onRetry={() => byCode.refetch()}
+              onClose={forceClose}
+            />
           ) : (
             <Loader isLoading />
           )}
