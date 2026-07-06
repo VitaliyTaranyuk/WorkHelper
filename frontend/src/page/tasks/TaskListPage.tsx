@@ -5,14 +5,11 @@ import { DragDropContext, type DropResult } from '@hello-pangea/dnd'
 import { Loader } from '@/shared/ui/components/Loader'
 import { TextField } from '@/shared/ui/mui/TextFileld'
 import { Sprint } from '@/widget/Sprint'
-import { TaskFilter } from '@/widget/TaskFilter'
-import { useTaskFilter } from '@/features/task/hook/useTaskFilter/useTaskFilter'
 import { MoveToSprintMenu } from '@/features/sprint/MoveToSprintMenu'
 import { useSprintsWithTasksQuery } from '@/features/sprint/query/useSprintsWithTasksQuery'
 import { useSortedSprints } from '@/page/sprint/useSortedSprints'
 import { CompletedTasksSection } from '@/features/task/CompletedTasksSection'
 import { useReorderSprint } from '@/features/task/mutation/useReorderSprint'
-import { TASK_FILTER } from '@/entities/task/constants'
 import type { ITaskCard } from '@/entities/task/types'
 
 type TaskListPageProps = {
@@ -31,34 +28,28 @@ export const TaskListPage = memo(function TaskListPageInner({
   projectId,
 }: TaskListPageProps) {
   const { data: sprints, isLoading } = useSprintsWithTasksQuery(projectId)
-  const { currentFilters, updateFilters, taskFilter } = useTaskFilter({
-    initialFilters: TASK_FILTER,
-  })
   const [search, setSearch] = useState('')
   const reorderSprint = useReorderSprint(projectId)
 
   // Порядок секций: активный → плановые (по дате старта) → Бэклог.
   const { sortedSprints } = useSortedSprints(sprints)
 
-  // Общий фильтр: кнопочные фильтры + поиск по коду/названию.
+  // Поиск по коду/названию (ТП-160: кнопочный фильтр «Мои задачи» удалён —
+  // единственным срезом остаётся поиск).
   const combinedFilter = useMemo(() => {
     const query = search.trim().toLowerCase()
     return (task: ITaskCard) => {
-      if (!taskFilter(task)) return false
       if (!query) return true
       return (
         task.code.toLowerCase().includes(query) ||
         task.title.toLowerCase().includes(query)
       )
     }
-  }, [taskFilter, search])
+  }, [search])
 
-  // DnD (ТП-24): активен только без поиска и фильтров — иначе видимые
-  // индексы не совпадают с реальным порядком списка и бросок ляжет не туда.
-  const anyButtonFilterActive = Object.values(currentFilters).some(
-    (f) => f.value === true,
-  )
-  const dndEnabled = !search.trim() && !anyButtonFilterActive
+  // DnD (ТП-24): активен только без поиска — иначе видимые индексы не
+  // совпадают с реальным порядком списка и бросок ляжет не туда.
+  const dndEnabled = !search.trim()
 
   const onDragEnd = useCallback(
     (result: DropResult) => {
@@ -115,10 +106,6 @@ export const TaskListPage = memo(function TaskListPageInner({
               ),
             },
           }}
-        />
-        <TaskFilter
-          currentFilters={currentFilters}
-          onFilterChange={updateFilters}
         />
       </Stack>
 

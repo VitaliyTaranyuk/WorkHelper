@@ -1,21 +1,15 @@
 import { useModal } from '@ebay/nice-modal-react'
 import { Board } from '@/widget/Board'
-import { useTaskFilter } from '@/features/task/hook/useTaskFilter/useTaskFilter'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { TaskFilter } from '@/widget/TaskFilter'
+import { useCallback, useEffect, useState } from 'react'
 import { TaskCardModal } from '@/widget/modal/task'
 import type { OnReorder } from '@/widget/Board/Board'
 import { useActiveSprintTasks } from '@/features/task/query/useActiveSprintTasks'
 import { useReorderColumn } from '@/features/task/mutation/useReorderColumn'
 import { useProjectData } from '@/features/project/query/useProjectData'
-import { TASK_FILTER } from '@/entities/task/constants'
 
 export function MainPage() {
   const { activeProject } = useProjectData()
   const modal = useModal(TaskCardModal)
-  const { currentFilters, updateFilters, taskFilter } = useTaskFilter({
-    initialFilters: TASK_FILTER,
-  })
 
   const { data: tasks } = useActiveSprintTasks({ projectId: activeProject?.id })
   const reorderMutation = useReorderColumn()
@@ -58,17 +52,14 @@ export function MainPage() {
     [activeProject, reorderMutation],
   )
 
-  const filteredTasks = useMemo(() => {
-    return activeSprintTasks.filter(taskFilter)
-  }, [taskFilter, activeSprintTasks])
-
+  // ТП-160: фильтр «Мои задачи» удалён — доска показывает все задачи спринта
+  // без полосы фильтров (меньше хрома, паттерн Linear); срезы — в «Списке
+  // задач» через поиск.
   return (
-    <>
-      <TaskFilter
-        currentFilters={currentFilters}
-        onFilterChange={updateFilters}
-      />
-      <Board editTaskModal={modal} tasks={filteredTasks} onReorder={onReorder} />
-    </>
+    <Board
+      editTaskModal={modal}
+      tasks={activeSprintTasks}
+      onReorder={onReorder}
+    />
   )
 }

@@ -13,7 +13,7 @@ import { LISTS_POLL_INTERVAL_MS } from '@/features/task/query/pollingConfig'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
 import { pluralTasks, truncateText } from '@/shared/utils/text'
 import type { ITaskCard } from '@/entities/task/types'
-import type { TaskFilter } from '@/features/task/hook/useTaskFilter/useTaskFilter.type'
+import type { TaskFilter } from '@/entities/task/types'
 
 type Props = {
   projectId: string

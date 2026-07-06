@@ -12,20 +12,3 @@ export const PRIORITY_COLORS_BORDERS: Record<TaskPriority, string> = {
   HIGH: '#F6D2CB',
 } as const
 
-export type TaskFilterId = 'my'
-
-export interface TaskFilterDef {
-  label: string
-  id: TaskFilterId
-  type: 'button'
-  value: boolean
-}
-
-export const TASK_FILTER: Record<TaskFilterId, TaskFilterDef> = {
-  my: {
-    label: 'Мои задачи',
-    id: 'my',
-    type: 'button',
-    value: false,
-  },
-}

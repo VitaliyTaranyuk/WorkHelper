@@ -45,7 +45,7 @@ import { useMoveToSprintMenuStore } from '@/features/sprint/MoveToSprintMenu/mov
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
 import type { SprintTaskProps } from '@/entities/task/ui/SprintTask/SprintTask'
 import { useUpdateTasksSprint } from '@/features/task/mutation/useUpdateTasksSprint'
-import type { TaskFilter } from '@/features/task/hook/useTaskFilter/useTaskFilter.type'
+import type { TaskFilter } from '@/entities/task/types'
 import { Droppable, Draggable } from '@hello-pangea/dnd'
 
 export type SprintProps = {
