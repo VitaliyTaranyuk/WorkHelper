@@ -81,8 +81,11 @@ export function SpotlightCard({
         </Box>
 
         <Stack direction="row" alignItems="center" gap={1} sx={{ mt: 0.5 }}>
+          {/* ТП-146: раньше называлась «Пропустить» и на say-шагах стояла
+              рядом с «Пропустить шаг» — две одинаковых кнопки с разным
+              эффектом. Явное имя убирает двусмысленность. */}
           <Button size="small" color="inherit" onClick={onSkip}>
-            Пропустить
+            Завершить обучение
           </Button>
           <Box sx={{ flex: 1 }} />
           {!isFirst && (
