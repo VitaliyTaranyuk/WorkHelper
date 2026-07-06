@@ -7,7 +7,7 @@ import { useMatchRoute, useNavigate } from '@tanstack/react-router'
 import { AuthSwitch } from './AuthPage.muiStyles'
 import { useLogin } from './form/LoginForm/useLogin'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { RegisterForm } from './form/RegisterForm/RegisterForm'
 import { SuccessRegisteredPage } from './SuccessRegisteredPage'
 import { LoginForm } from './form/LoginForm/LoginForm'
@@ -23,10 +23,15 @@ export function AuthPage({ redirect = '/main' }: { redirect?: string }) {
   const isRegisterRoute = matchRoute({ to: '/register' })
   const isLoginRoute = matchRoute({ to: '/login' })
 
-  if (isAuthenticated) {
-    navigate({ to: redirect })
-    return null
-  }
+  // ТП-132 (F-001): редирект — побочный эффект, не в теле рендера. Вызов
+  // navigate() при рендере провоцировал setState-in-render
+  // (Transitioner/AuthPage) и риск зависания. Основной редирект уже делает
+  // beforeLoad в _auth.tsx; это страховка на случай логина без перезагрузки.
+  useEffect(() => {
+    if (isAuthenticated) navigate({ to: redirect })
+  }, [isAuthenticated, navigate, redirect])
+
+  if (isAuthenticated) return null
 
   const onSwitchChange = () => {
     if (isRegisterRoute) {
