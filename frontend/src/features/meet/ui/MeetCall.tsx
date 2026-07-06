@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Box, Chip, Stack, Typography } from '@mui/material'
 import WifiOffIcon from '@mui/icons-material/WifiOff'
 import type { MeetRoomDto } from '@/shared/api/endpoint/meetApi'
@@ -7,6 +7,7 @@ import { useSpeakingDetection } from '../useSpeakingDetection'
 import { VideoTile } from './VideoTile'
 import { MeetControls } from './MeetControls'
 import { ParticipantsPanel } from './ParticipantsPanel'
+import { ChatPanel } from './ChatPanel'
 import { stage } from './stage'
 
 type Props = {
@@ -31,12 +32,28 @@ export function MeetCall({ room, selfName, localStream, session, onLeave }: Prop
     muted,
     cameraOn,
     audioMode,
+    screenSharing,
+    selfViewStream,
     selfIsHost,
     toggleMute,
     toggleCamera,
     setAudioMode,
+    startScreenShare,
+    stopScreenShare,
+    switchMicrophone,
+    switchCamera,
+    sendChat,
+    hostMute,
+    hostRemove,
   } = session
   const [participantsOpen, setParticipantsOpen] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
+  // Непрочитанные: сколько сообщений пришло при закрытой панели чата
+  const seenChatRef = useRef(0)
+  useEffect(() => {
+    if (chatOpen) seenChatRef.current = state.chat.length
+  }, [chatOpen, state.chat.length])
+  const chatUnread = chatOpen ? 0 : state.chat.length - seenChatRef.current
 
   const speaking = useSpeakingDetection(remoteStreams, localStream, muted)
 
@@ -45,12 +62,13 @@ export function MeetCall({ room, selfName, localStream, session, onLeave }: Prop
       {
         key: 'self',
         name: selfName,
-        stream: localStream,
+        stream: selfViewStream,
         isSelf: true,
         muted,
-        cameraOn,
+        cameraOn: cameraOn || screenSharing,
         speaking: speaking.has('self'),
         connecting: false,
+        screenSharing,
       },
       ...state.peers.map((peer) => ({
         key: peer.sessionId,
@@ -58,18 +76,20 @@ export function MeetCall({ room, selfName, localStream, session, onLeave }: Prop
         stream: remoteStreams.get(peer.sessionId) ?? null,
         isSelf: false,
         muted: peer.muted,
-        cameraOn: peer.cameraOn && !audioMode,
+        cameraOn: (peer.cameraOn || peer.screenSharing) && !audioMode,
         speaking: speaking.has(peer.sessionId),
         connecting: !['connected', 'closed'].includes(
           connectionStates.get(peer.sessionId) ?? 'new',
         ),
+        screenSharing: peer.screenSharing,
       })),
     ],
     [
       selfName,
-      localStream,
+      selfViewStream,
       muted,
       cameraOn,
+      screenSharing,
       audioMode,
       state.peers,
       remoteStreams,
@@ -142,16 +162,26 @@ export function MeetCall({ room, selfName, localStream, session, onLeave }: Prop
         }}
       >
         {tiles.map((tile) => (
-          <VideoTile
+          <Box
             key={tile.key}
-            stream={tile.stream}
-            name={tile.name}
-            isSelf={tile.isSelf}
-            muted={tile.muted}
-            cameraOn={tile.cameraOn}
-            speaking={tile.speaking}
-            connecting={tile.connecting}
-          />
+            sx={
+              // Демонстрация экрана — «сцена»: плитка на всю ширину сетки
+              tile.screenSharing
+                ? { gridColumn: '1 / -1', order: -1 }
+                : undefined
+            }
+          >
+            <VideoTile
+              stream={tile.stream}
+              name={tile.name}
+              isSelf={tile.isSelf}
+              muted={tile.muted}
+              cameraOn={tile.cameraOn}
+              speaking={tile.speaking}
+              connecting={tile.connecting}
+              screenSharing={tile.screenSharing}
+            />
+          </Box>
         ))}
       </Box>
 
@@ -159,12 +189,21 @@ export function MeetCall({ room, selfName, localStream, session, onLeave }: Prop
         muted={muted}
         cameraOn={cameraOn}
         audioMode={audioMode}
+        screenSharing={screenSharing}
+        chatOpen={chatOpen}
+        chatUnread={chatUnread}
         participantsOpen={participantsOpen}
         participantsCount={state.peers.length + 1}
         onToggleMute={toggleMute}
         onToggleCamera={toggleCamera}
         onToggleAudioMode={() => setAudioMode(!audioMode)}
+        onToggleScreenShare={() =>
+          void (screenSharing ? stopScreenShare() : startScreenShare())
+        }
+        onToggleChat={() => setChatOpen((prev) => !prev)}
         onToggleParticipants={() => setParticipantsOpen((prev) => !prev)}
+        onSelectMicrophone={(id) => void switchMicrophone(id)}
+        onSelectCamera={(id) => void switchCamera(id)}
         onLeave={onLeave}
       />
 
@@ -177,6 +216,16 @@ export function MeetCall({ room, selfName, localStream, session, onLeave }: Prop
         selfIsHost={selfIsHost}
         hostUserId={state.hostUserId}
         peers={state.peers}
+        onHostMute={hostMute}
+        onHostRemove={hostRemove}
+      />
+
+      <ChatPanel
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        chat={state.chat}
+        selfSessionId={state.selfSessionId}
+        onSend={sendChat}
       />
     </Stack>
   )

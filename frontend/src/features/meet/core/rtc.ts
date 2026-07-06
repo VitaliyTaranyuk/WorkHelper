@@ -135,14 +135,42 @@ export class RtcManager {
     for (const link of this.links.values()) this.applyAudioMode(link)
   }
 
-  /** Замена видеотрека на лету (смена камеры/шеринг) — без пересоздания пары. */
+  /**
+   * Замена видеотрека на лету (смена камеры / демонстрация экрана) — без
+   * пересоздания пары. Если участник входил без камеры (recvonly), направление
+   * поднимается до отправки — сработает штатная перенегоциация.
+   */
   async replaceVideoTrack(track: MediaStreamTrack | null): Promise<void> {
-    for (const link of this.links.values()) {
-      const sender = link.pc
-        .getSenders()
-        .find((s) => s.track?.kind === 'video')
-      if (sender) await sender.replaceTrack(track)
+    for (const link of this.links.values())
+      await this.replaceTrackOfKind(link, 'video', track)
+  }
+
+  /** Замена аудиотрека (смена микрофона) — mute-состояние переносит вызывающий. */
+  async replaceAudioTrack(track: MediaStreamTrack | null): Promise<void> {
+    for (const link of this.links.values())
+      await this.replaceTrackOfKind(link, 'audio', track)
+  }
+
+  private async replaceTrackOfKind(
+    link: PeerLink,
+    kind: 'audio' | 'video',
+    track: MediaStreamTrack | null,
+  ): Promise<void> {
+    const bySender = link.pc.getSenders().find((s) => s.track?.kind === kind)
+    if (bySender) {
+      await bySender.replaceTrack(track)
+      return
     }
+    // Отправки ещё не было (вход без устройства): шлём через существующий
+    // recvonly-трансивер и поднимаем направление
+    const transceiver = link.pc
+      .getTransceivers()
+      .find((t) => t.receiver.track?.kind === kind)
+    if (!transceiver || !track) return
+    await transceiver.sender.replaceTrack(track)
+    if (transceiver.direction === 'recvonly') transceiver.direction = 'sendrecv'
+    else if (transceiver.direction === 'inactive')
+      transceiver.direction = 'sendonly'
   }
 
   connectionsCount(): number {

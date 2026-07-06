@@ -12,6 +12,8 @@ type Props = {
   speaking?: boolean
   /** Транспорт пары ещё устанавливается/восстанавливается. */
   connecting?: boolean
+  /** Демонстрация экрана: contain вместо cover (текст не обрезается), без зеркала. */
+  screenSharing?: boolean
 }
 
 function initials(name: string): string {
@@ -36,6 +38,7 @@ export function VideoTile({
   cameraOn,
   speaking,
   connecting,
+  screenSharing,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
 
@@ -75,9 +78,10 @@ export function VideoTile({
         style={{
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
+          // Экран показываем целиком (текст важнее заполнения), камеру — кадрируем
+          objectFit: screenSharing ? 'contain' : 'cover',
           display: showVideo ? 'block' : 'none',
-          transform: isSelf ? 'scaleX(-1)' : undefined,
+          transform: isSelf && !screenSharing ? 'scaleX(-1)' : undefined,
         }}
       />
       {!showVideo && (
