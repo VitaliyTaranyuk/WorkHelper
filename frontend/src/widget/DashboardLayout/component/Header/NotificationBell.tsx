@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useModal } from '@ebay/nice-modal-react'
 import { TaskCardModal } from '@/widget/modal/task'
 import Badge from '@mui/material/Badge'
+import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
@@ -24,7 +25,9 @@ import {
   getNotificationMeta,
   getNotificationIcon,
   getNotificationIconStyle,
+  isTaskDeleted,
 } from '@/features/notification/notificationMeta'
+import { notify } from '@/shared/ui/notify'
 import { formatRelativeTime } from '@/shared/utils/date'
 import type { NotificationDto } from '@/shared/api/endpoint/notificationsApi'
 
@@ -88,6 +91,11 @@ export function NotificationBell() {
   // Куда ведёт уведомление: задача (по коду), внешняя ссылка (Телемост),
   // запись встречи в календаре. Общая логика для всех типов.
   const openTarget = (n: NotificationDto) => {
+    // ТП-152: задача удалена — карточку не открываем, компактное сообщение.
+    if (isTaskDeleted(n.taskState)) {
+      notify.info(`Задача ${n.taskCode ?? ''} была удалена`.trim())
+      return
+    }
     if (n.taskCode) {
       openTaskCard(n.taskCode)
       return
@@ -217,9 +225,35 @@ export function NotificationBell() {
 
                 <Stack sx={{ minWidth: 0, flex: 1 }}>
                   <Stack direction="row" alignItems="center" gap={1}>
+                    {/* ТП-152: удалённая задача — код зачёркнут, явная пометка;
+                        история уведомления сохраняется, понятно, о чём была речь. */}
                     <Typography variant="subtitle2" noWrap sx={{ flex: 1 }}>
                       {meta.title}
-                      {n.taskCode ? ` · ${n.taskCode}` : ''}
+                      {n.taskCode ? (
+                        <Box
+                          component="span"
+                          sx={
+                            isTaskDeleted(n.taskState)
+                              ? {
+                                  textDecoration: 'line-through',
+                                  color: 'text.disabled',
+                                }
+                              : undefined
+                          }
+                        >
+                          {` · ${n.taskCode}`}
+                        </Box>
+                      ) : (
+                        ''
+                      )}
+                      {isTaskDeleted(n.taskState) && (
+                        <Box
+                          component="span"
+                          sx={{ color: 'text.disabled', fontWeight: 400 }}
+                        >
+                          {' — задача удалена'}
+                        </Box>
+                      )}
                     </Typography>
                     <Typography
                       variant="caption"

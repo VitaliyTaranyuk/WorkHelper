@@ -16,7 +16,8 @@ export type NotificationDto = {
   read: boolean
   createdAt: string
   // ТП-83: текущее состояние связанной задачи для выбора иконки уведомления.
-  taskState?: 'ACTIVE' | 'DONE' | 'CANCELED' | null
+  // ТП-152: DELETED — задача удалена (вид меняется, карточка не открывается).
+  taskState?: 'ACTIVE' | 'DONE' | 'CANCELED' | 'DELETED' | null
 }
 
 export type UnreadCountDto = { count: number }
