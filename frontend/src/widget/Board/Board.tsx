@@ -338,48 +338,124 @@ function BoardInner(props: BoardProps) {
 
   return (
     <DragDropContext onDragEnd={onDragEndAll}>
-      {/* ТП-60: вход в настройку доски — на самой доске (паттерн Jira/Trello:
-          board settings живут на доске, а не в глобальной шапке). */}
+      {/* ТП-60/ТП-160: вход в настройки — на самой доске (паттерн Jira/Trello:
+          board settings живут на доске, а не в глобальной шапке). ТП-160:
+          компактная иконка вместо текстовой кнопки — как в Jira («⋯» доски)
+          и Linear (иконка настроек вью): не занимает строку и не шумит. */}
       {!editMode && (
         <Stack direction="row" justifyContent="flex-end" sx={{ mb: 0.5 }}>
-          <Button
-            size="small"
-            variant="text"
-            color="inherit"
-            startIcon={<TuneIcon fontSize="small" />}
-            onClick={() => setEditMode(true)}
-            sx={{ textTransform: 'none', color: 'text.secondary' }}
-          >
-            Настроить доску
-          </Button>
+          <Tooltip title="Настройки доски">
+            <IconButton
+              size="small"
+              aria-label="Настройки доски"
+              onClick={() => setEditMode(true)}
+              sx={{ color: 'text.secondary' }}
+            >
+              <TuneIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Stack>
       )}
       {editMode && (
-        // ТП-69: палитра дизайн-системы — акцент несохранённых изменений
-        // фирменным цветом (main), не «инородным» жёлтым.
+        // ТП-160: панель настройки — карточный стиль разделов приложения
+        // (паттерн SettingsSection из ТП-150): заголовок + подсказка слева,
+        // действия справа, скрытые колонки — отдельной строкой внутри той же
+        // карточки. Несохранённое состояние — компактный чип, не заливка всей
+        // панели (меньше визуального шума, ТП-69 остаётся в цвете рамки).
         <Stack
-          direction="row"
           gap={1}
-          alignItems="center"
-          flexWrap="wrap"
           sx={{
             mb: 1,
-            p: '8px 12px',
+            p: '10px 14px',
             borderRadius: '12px',
-            backgroundColor: isDirty ? 'var(--wt-accent-soft)' : 'var(--wt-surface-muted)',
-            border: isDirty ? '1px solid var(--wt-accent)' : '1px solid var(--wt-border)',
+            backgroundColor: 'var(--wt-surface)',
+            border: isDirty
+              ? '1px solid var(--wt-accent)'
+              : '1px solid var(--wt-border)',
+            boxShadow: 'var(--wt-shadow-popover)',
           }}
         >
-          <Typography sx={{ fontSize: 13, fontWeight: 500 }}>
-            {isDirty
-              ? 'Есть несохранённые изменения колонок'
-              : 'Режим редактирования доски'}
-          </Typography>
-          <div style={{ flex: 1 }} />
+          <Stack
+            direction="row"
+            gap={1}
+            alignItems="center"
+            flexWrap="wrap"
+          >
+            <Stack sx={{ minWidth: 0 }}>
+              <Stack direction="row" alignItems="center" gap={1}>
+                <Typography sx={{ fontSize: 14, fontWeight: 600 }}>
+                  Настройка доски
+                </Typography>
+                {isDirty && (
+                  <Chip
+                    size="small"
+                    label="Не сохранено"
+                    sx={{
+                      height: 20,
+                      fontSize: 11,
+                      backgroundColor: 'var(--wt-accent-soft)',
+                      color: 'var(--wt-accent)',
+                    }}
+                  />
+                )}
+              </Stack>
+              <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+                Перетаскивайте колонки, скрывайте и переименовывайте двойным
+                кликом — изменения применяются после сохранения
+              </Typography>
+            </Stack>
+            <div style={{ flex: 1 }} />
+            <Stack direction="row" gap={1}>
+              <Button
+                size="small"
+                variant="outlined"
+                color="inherit"
+                startIcon={<CloseIcon />}
+                onClick={handleCancelDraft}
+                disabled={!isDirty || updateStatuses.isPending}
+                sx={{ textTransform: 'none' }}
+              >
+                Отменить
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                color="primary"
+                startIcon={<SaveOutlinedIcon />}
+                onClick={handleSaveDraft}
+                disabled={!isDirty || updateStatuses.isPending}
+                sx={{ textTransform: 'none' }}
+              >
+                Сохранить
+              </Button>
+              <Button
+                size="small"
+                variant="text"
+                color="inherit"
+                onClick={async () => {
+                  if (isDirty) {
+                    const ok = await confirmDialog({
+                      title: 'Закрыть режим редактирования',
+                      message:
+                        'Несохранённые изменения колонок будут потеряны. Закрыть режим редактирования?',
+                      confirmLabel: 'Закрыть',
+                      cancelLabel: 'Остаться',
+                      destructive: true,
+                    })
+                    if (!ok) return
+                  }
+                  setEditMode(false)
+                }}
+                sx={{ textTransform: 'none' }}
+              >
+                Готово
+              </Button>
+            </Stack>
+          </Stack>
           {hiddenColumns.length > 0 && (
             <Stack direction="row" gap={0.5} alignItems="center" flexWrap="wrap">
               <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
-                Скрыты:
+                Скрытые колонки:
               </Typography>
               {hiddenColumns.map((s) => (
                 <Chip
@@ -393,52 +469,6 @@ function BoardInner(props: BoardProps) {
               ))}
             </Stack>
           )}
-          <Stack direction="row" gap={1}>
-            <Button
-              size="small"
-              variant="outlined"
-              color="inherit"
-              startIcon={<CloseIcon />}
-              onClick={handleCancelDraft}
-              disabled={!isDirty || updateStatuses.isPending}
-              sx={{ textTransform: 'none' }}
-            >
-              Отменить
-            </Button>
-            <Button
-              size="small"
-              variant="contained"
-              color="primary"
-              startIcon={<SaveOutlinedIcon />}
-              onClick={handleSaveDraft}
-              disabled={!isDirty || updateStatuses.isPending}
-              sx={{ textTransform: 'none' }}
-            >
-              Сохранить
-            </Button>
-            <Button
-              size="small"
-              variant="text"
-              color="inherit"
-              onClick={async () => {
-                if (isDirty) {
-                  const ok = await confirmDialog({
-                    title: 'Закрыть режим редактирования',
-                    message:
-                      'Несохранённые изменения колонок будут потеряны. Закрыть режим редактирования?',
-                    confirmLabel: 'Закрыть',
-                    cancelLabel: 'Остаться',
-                    destructive: true,
-                  })
-                  if (!ok) return
-                }
-                setEditMode(false)
-              }}
-              sx={{ textTransform: 'none' }}
-            >
-              Закрыть
-            </Button>
-          </Stack>
         </Stack>
       )}
 

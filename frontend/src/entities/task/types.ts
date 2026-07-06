@@ -1,6 +1,4 @@
 import type { UserWithAvatar, UserWithEmail } from '@/entities/user/types'
-import type { TASK_FILTER } from './constants'
-import type { PropertyType } from '@/shared/typeUtils'
 
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH'
 
@@ -70,6 +68,9 @@ export type TaskStatusShort = {
   description?: string
 }
 
-export type ITaskFilterObj = typeof TASK_FILTER
-export type IFilterKey = keyof ITaskFilterObj
-export type FilterType = PropertyType<ITaskFilterObj, IFilterKey>['type']
+/**
+ * Предикат фильтрации карточек (ТП-160): применяется поиском в «Списке задач»
+ * (Sprint/CompletedTasksSection). Жил в useTaskFilter, который удалён вместе
+ * с фильтром «Мои задачи» — тип общий, а не деталь удалённого хука.
+ */
+export type TaskFilter = (task: ITaskCard) => boolean
