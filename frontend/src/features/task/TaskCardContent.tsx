@@ -350,7 +350,7 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
         flexShrink={0}
         gap={2}
         sx={{
-          backgroundColor: 'rgba(246, 246, 246, .6)',
+          backgroundColor: 'var(--wt-surface-muted)',
           borderRadius: '12px',
           p: 2,
           alignSelf: 'flex-start',

@@ -12,14 +12,14 @@ export const FinishDateBlock = styled.div`
 export const StyledTextField = MUIStyled(TextField)({
   '& .MuiInputBase-root': {
     borderRadius: '12px',
-    backgroundColor: '#F7F7FA',
+    backgroundColor: 'var(--wt-field)',
 
     '& .MuiInputBase-input': {
       height: '40px',
       fontSize: '14px',
       boxSizing: 'border-box',
     },
-    '& fieldset': { borderColor: '#F7F7FA' },
+    '& fieldset': { borderColor: 'var(--wt-field)' },
     '&:hover fieldset': { borderColor: COLOR.main[500] },
     '&.Mui-focused fieldset': {
       borderColor: COLOR.main[500],

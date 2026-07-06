@@ -49,9 +49,9 @@ export function UserPopupMenu() {
             bottom: -2,
             fontSize: 16,
             color: 'text.secondary',
-            backgroundColor: '#fff',
+            backgroundColor: 'var(--wt-surface)',
             borderRadius: '50%',
-            boxShadow: '0 0 2px rgba(0,0,0,0.25)',
+            boxShadow: 'var(--wt-shadow-popover)',
           }}
         />
       </MenuButton>

@@ -366,8 +366,8 @@ function BoardInner(props: BoardProps) {
             mb: 1,
             p: '8px 12px',
             borderRadius: '12px',
-            backgroundColor: isDirty ? '#E9E9FD' : '#F6F6F6',
-            border: isDirty ? '1px solid #BCBBF8' : '1px solid #E0E4EA',
+            backgroundColor: isDirty ? 'var(--wt-accent-soft)' : 'var(--wt-surface-muted)',
+            border: isDirty ? '1px solid var(--wt-accent)' : '1px solid var(--wt-border)',
           }}
         >
           <Typography sx={{ fontSize: 13, fontWeight: 500 }}>

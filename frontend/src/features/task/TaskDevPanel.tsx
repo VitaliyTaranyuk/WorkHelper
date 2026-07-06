@@ -80,8 +80,8 @@ export function TaskDevPanel({ projectId, taskId, taskCode }: Props) {
             sx={{
               p: '4px 8px',
               borderRadius: 1,
-              backgroundColor: 'rgba(246, 246, 246, .6)',
-              '&:hover': { backgroundColor: 'rgba(246, 246, 246, .9)' },
+              backgroundColor: 'var(--wt-surface-muted)',
+              '&:hover': { backgroundColor: 'var(--wt-surface-hover)' },
             }}
           >
             <MergeTypeIcon
@@ -125,8 +125,8 @@ export function TaskDevPanel({ projectId, taskId, taskCode }: Props) {
             sx={{
               p: '4px 8px',
               borderRadius: 1,
-              backgroundColor: 'rgba(246, 246, 246, .6)',
-              '&:hover': { backgroundColor: 'rgba(246, 246, 246, .9)' },
+              backgroundColor: 'var(--wt-surface-muted)',
+              '&:hover': { backgroundColor: 'var(--wt-surface-hover)' },
             }}
           >
             <CallSplitIcon

@@ -72,7 +72,7 @@ export function TaskComments({ projectId, taskId }: Props) {
             direction="row"
             alignItems="flex-start"
             gap={1}
-            sx={{ p: 1.25, borderRadius: 2, backgroundColor: 'rgba(99,102,241,0.06)' }}
+            sx={{ p: 1.25, borderRadius: 2, backgroundColor: 'var(--wt-accent-soft)' }}
           >
             <Stack sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="caption" color="text.secondary">
@@ -129,9 +129,9 @@ function renderWithMentions(text: string) {
       <span
         key={i}
         style={{
-          color: '#684FE3',
+          color: 'var(--wt-accent)',
           fontWeight: 500,
-          backgroundColor: 'rgba(104,79,227,0.08)',
+          backgroundColor: 'var(--wt-accent-soft)',
           padding: '0 4px',
           borderRadius: 4,
         }}

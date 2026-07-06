@@ -81,7 +81,7 @@ export type NotificationIconStyle = { color: string; backgroundColor: string }
 
 const DEFAULT_ICON_STYLE: NotificationIconStyle = {
   color: 'primary.main',
-  backgroundColor: 'rgba(99,102,241,0.1)',
+  backgroundColor: 'var(--wt-accent-soft)',
 }
 
 const TASK_STATE_ICON_STYLE: Record<string, NotificationIconStyle> = {

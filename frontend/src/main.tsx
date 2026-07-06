@@ -35,7 +35,8 @@ createRoot(document.getElementById('root')!).render(
           {/* ТП-71: единая тема тостов в стиле WorkTask (паттерн Linear) —
               нейтральный фон и типографика приложения вместо стандартных
               цветов библиотеки (richColors убран); closeButton — ручное
-              закрытие (ТП-59). Все вызовы идут через shared/ui/notify. */}
+              закрытие (ТП-59). Все вызовы идут через shared/ui/notify.
+              ТП-158: цвета из токенов темы — тост корректен и в тёмной. */}
           <Toaster
             position="bottom-right"
             closeButton
@@ -44,10 +45,10 @@ createRoot(document.getElementById('root')!).render(
             toastOptions={{
               style: {
                 borderRadius: '12px',
-                border: '1px solid #E0E4EA',
-                boxShadow: '0 8px 24px rgba(17, 24, 39, 0.14)',
-                background: '#FFFFFF',
-                color: '#313131',
+                border: '1px solid var(--wt-border)',
+                boxShadow: 'var(--wt-shadow-modal)',
+                background: 'var(--wt-surface)',
+                color: 'var(--wt-text-secondary)',
                 fontSize: '13.5px',
                 lineHeight: '1.45',
               },

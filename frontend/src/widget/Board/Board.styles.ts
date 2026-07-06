@@ -1,5 +1,5 @@
 import styled from '@emotion/styled'
-import { COLOR } from '@/shared/ui/theme/constants'
+
 
 /**
  * Доска занимает всю доступную ширину и высоту рабочей области.
@@ -67,7 +67,7 @@ export const ColumnTitle = styled.h3`
   font-size: 18px;
   line-height: 1.25;
   letter-spacing: 0;
-  color: ${COLOR.text.secondary};
+  color: var(--wt-text-secondary);
   margin: 0;
   /* Длинные пользовательские названия (напр. "Ready For QA") переносятся,
      а не обрезаются. */
@@ -91,7 +91,7 @@ export const TaskList = styled.div`
     width: 6px;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.15);
+    background: var(--wt-border);
     border-radius: 6px;
   }
 `

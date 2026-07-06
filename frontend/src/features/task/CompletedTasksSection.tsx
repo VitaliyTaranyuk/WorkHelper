@@ -105,8 +105,8 @@ export function CompletedTasksSection({ projectId, taskFilter }: Props) {
               sx={{
                 p: '6px 10px',
                 borderRadius: 1,
-                backgroundColor: 'rgba(246, 246, 246, .6)',
-                '&:hover': { backgroundColor: 'rgba(246, 246, 246, .95)' },
+                backgroundColor: 'var(--wt-surface-muted)',
+                '&:hover': { backgroundColor: 'var(--wt-surface-hover)' },
               }}
             >
               <TaskType taskType={task.taskType} />

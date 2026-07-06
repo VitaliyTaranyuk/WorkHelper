@@ -1,4 +1,3 @@
-import { COLOR } from '@/shared/ui/theme/constants'
 import styled from '@emotion/styled'
 
 export const AuthPageStyled = styled.div`
@@ -8,7 +7,7 @@ export const AuthPageStyled = styled.div`
   align-items: center;
   justify-content: start;
   gap: 2rem;
-  background-color: ${COLOR.background[200]};
+  background-color: var(--wt-bg);
   font-size: 14px;
 `
 export const AuthFormContainerStyled = styled.section`
@@ -19,8 +18,8 @@ export const AuthFormContainerStyled = styled.section`
   margin-top: 10vh;
   width: 400px;
   padding: 2.5rem;
-  background-color: ${COLOR.background[50]};
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: var(--wt-surface);
+  border: 1px solid var(--wt-border);
   border-radius: 28px;
   box-shadow:
     0 10px 15px -3px rgba(0, 0, 0, 0.1),
@@ -33,6 +32,6 @@ export const AuthWelcomeStyled = styled.div`
   flex-direction: column;
   & p {
     margin: 0.875rem 0;
-    color: ${COLOR.text.secondary};
+    color: var(--wt-text-secondary);
   }
 `

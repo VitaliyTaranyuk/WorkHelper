@@ -160,8 +160,8 @@ export function CalendarPage({ projectId, focusMeetingId }: Props) {
       sx={{
         justifyContent: 'flex-start',
         maxWidth: '100%',
-        backgroundColor: 'rgba(99,102,241,0.1)',
-        '&:hover': { backgroundColor: 'rgba(99,102,241,0.2)' },
+        backgroundColor: 'var(--wt-accent-soft)',
+        '&:hover': { backgroundColor: 'var(--wt-accent-soft-hover)' },
       }}
     />
   )
@@ -273,7 +273,7 @@ export function CalendarPage({ projectId, focusMeetingId }: Props) {
                 backgroundColor: 'background.paper',
                 opacity: outsideMonth ? 0.45 : 1,
                 cursor: 'pointer',
-                '&:hover': { backgroundColor: 'rgba(99,102,241,0.04)' },
+                '&:hover': { backgroundColor: 'var(--wt-surface-hover)' },
               }}
             >
               <Typography
