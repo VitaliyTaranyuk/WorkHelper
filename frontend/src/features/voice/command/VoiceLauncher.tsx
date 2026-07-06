@@ -5,7 +5,12 @@ import MicNoneOutlinedIcon from '@mui/icons-material/MicNoneOutlined'
 import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import { useVoiceCommandSession } from './useVoiceCommandSession'
-import { useHotkeySetting, useVoiceHotkey, formatHotkey } from '../useVoiceHotkey'
+import {
+  useHotkeySetting,
+  useVoiceHotkey,
+  formatHotkey,
+  HOLD_THRESHOLD_MS,
+} from '../useVoiceHotkey'
 import { VoiceOverlay } from './VoiceOverlay'
 import { VoiceJournalButton } from './VoiceJournalButton'
 import { VoiceHelpDialog } from './VoiceHelpDialog'
@@ -52,7 +57,33 @@ export function VoiceLauncher() {
     session.toggle()
   }, [session])
 
-  useVoiceHotkey(hotkey, handleMic)
+  // ТП-155: три независимых способа запуска на ОДНОМ конвейере обработки:
+  // кнопка (handleMic), короткое нажатие хоткея (тумблер) и push-to-talk —
+  // запись идёт, пока комбинация удерживается; отпускание завершает запись
+  // и запускает анализ (паттерн Aqua Voice / Superwhisper / Wispr Flow).
+  const startedByPressRef = useRef(false)
+  const onHotkeyPress = useCallback(() => {
+    startedByPressRef.current = !session.listening
+    if (!session.listening) handleMic() // idle → начать запись (или онбординг)
+    // уже слушаем → решение на отпускании (короткое нажатие остановит)
+  }, [session.listening, handleMic])
+
+  const onHotkeyRelease = useCallback(
+    (heldMs: number) => {
+      if (!session.listening) return
+      if (startedByPressRef.current) {
+        // Запись начата этим нажатием: удержание = push-to-talk → стоп и
+        // анализ; короткое нажатие = тумблер → продолжаем слушать.
+        if (heldMs >= HOLD_THRESHOLD_MS) session.toggle()
+      } else {
+        // Нажали, когда уже слушали (после тумблера): любое отпускание — стоп.
+        session.toggle()
+      }
+    },
+    [session],
+  )
+
+  useVoiceHotkey(hotkey, onHotkeyPress, onHotkeyRelease)
 
   // ТП-139 (F-014): в браузерах без Web Speech кнопка скрыта — сообщаем о
   // существовании голосового управления одноразовым тостом (persist), чтобы
@@ -69,7 +100,7 @@ export function VoiceLauncher() {
   const listening = session.listening
   const micLabel = listening
     ? 'Идёт запись — нажмите, чтобы закончить'
-    : `Голосовая команда (${formatHotkey(hotkey)})`
+    : `Голосовая команда (${formatHotkey(hotkey)} — нажать или удерживать)`
 
   return (
     <>

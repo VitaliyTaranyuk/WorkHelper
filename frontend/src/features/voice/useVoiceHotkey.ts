@@ -54,19 +54,70 @@ function isTypingTarget(target: EventTarget | null): boolean {
   )
 }
 
-/** Глобальный слушатель хоткея; не срабатывает при вводе текста в поля. */
-export function useVoiceHotkey(hotkey: string, onTrigger: () => void) {
+/** Порог различения «нажал» и «удерживает» (ТП-155, push-to-talk). */
+export const HOLD_THRESHOLD_MS = 400
+
+/**
+ * Глобальный слушатель хоткея; не срабатывает при вводе текста в поля.
+ *
+ * ТП-155 (push-to-talk): жизненный цикл нажатия — `onPress` на keydown
+ * (автоповторы удержания игнорируются: раньше зажатый хоткей дребезжал
+ * тумблером), `onRelease(heldMs)` при отпускании комбинации (главной клавиши
+ * или модификатора). Решение «короткое нажатие vs удержание» принимает
+ * вызывающая сторона по heldMs — сам хук политики не знает.
+ */
+export function useVoiceHotkey(
+  hotkey: string,
+  onPress: () => void,
+  onRelease?: (heldMs: number) => void,
+) {
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    let downAt: number | null = null
+    const mainKey = hotkey.split('+').pop() ?? ''
+
+    const onKeyDown = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target)) return
-      if (hotkeyFromEvent(e) === hotkey) {
-        e.preventDefault()
-        onTrigger()
-      }
+      if (hotkeyFromEvent(e) !== hotkey) return
+      e.preventDefault()
+      if (e.repeat || downAt !== null) return // автоповтор удержания
+      downAt = performance.now()
+      onPress()
     }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [hotkey, onTrigger])
+
+    // Отпускание: комбинация перестала быть полностью зажатой — отпущена
+    // главная клавиша или любой модификатор из хоткея.
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (downAt === null) return
+      const released =
+        hotkeyFromEvent(e) === hotkey || // keyup главной клавиши
+        (hotkey.includes('ctrl') && !e.ctrlKey) ||
+        (hotkey.includes('shift') && !e.shiftKey) ||
+        (hotkey.includes('alt') && !e.altKey) ||
+        (hotkey.includes('meta') && !e.metaKey) ||
+        e.code.toLowerCase().endsWith(mainKey)
+      if (!released) return
+      const heldMs = performance.now() - downAt
+      downAt = null
+      onRelease?.(heldMs)
+    }
+
+    // Страховка: ушли с вкладки с зажатой комбинацией — считаем отпущенной.
+    const onBlur = () => {
+      if (downAt === null) return
+      const heldMs = performance.now() - downAt
+      downAt = null
+      onRelease?.(heldMs)
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', onBlur)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', onBlur)
+    }
+  }, [hotkey, onPress, onRelease])
 }
 
 /** Хоткей как состояние + сохранение в localStorage. */
