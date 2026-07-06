@@ -46,6 +46,9 @@ public class SecurityConfig {
 
     private static final String[] AUTH_URLS = {"/work-task/api/v1/auth/login", "/work-task/api/v1/registration/registry", "/work-task/api/v1/auth/refresh", "/work-task/api/v1/auth/confirm-email"};
     private static final String[] SWAGGER_URLS = {"/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**"};
+    // WebSocket-handshake не несёт Authorization-заголовка: JWT проверяется в
+    // MeetHandshakeInterceptor (query-параметр) — HTTP-цепочка пропускает путь.
+    private static final String[] WS_URLS = {"/work-task/ws/**"};
 
     @Value("${spring.cors.allowed.origins}")
     private String allowedOrigins;
@@ -78,6 +81,7 @@ public class SecurityConfig {
                 authorizeRequests
                         .requestMatchers(AUTH_URLS).permitAll()
                         .requestMatchers(SWAGGER_URLS).permitAll()
+                        .requestMatchers(WS_URLS).permitAll()
                         .anyRequest().authenticated());
         http.sessionManagement(
                 session ->
