@@ -10,12 +10,16 @@ html[data-theme='light'] {
   --wt-surface: #ffffff; /* карточки/поповеры/модалки */
   --wt-surface-muted: #f6f6f6; /* мягкие блоки (вложения, строки) */
   --wt-surface-hover: rgba(0, 0, 0, 0.05);
+  --wt-field: #f7f7fa; /* фон полей ввода (ТП-158) */
   --wt-border: #e0e4ea;
   --wt-text: #0f0f0f;
   --wt-text-secondary: #313131;
   --wt-text-tertiary: #7b7b7b;
+  --wt-accent: #6366f1; /* фирменный индиго (ТП-158) */
   --wt-accent-soft: rgba(99, 102, 241, 0.1);
   --wt-accent-soft-hover: rgba(99, 102, 241, 0.2);
+  --wt-shadow-modal: 0 12px 40px rgba(17, 24, 39, 0.18);
+  --wt-shadow-popover: 0 0 2px rgba(0, 0, 0, 0.25);
 }
 
 html[data-theme='dark'] {
@@ -23,12 +27,16 @@ html[data-theme='dark'] {
   --wt-surface: #1e2029;
   --wt-surface-muted: #262933;
   --wt-surface-hover: rgba(255, 255, 255, 0.06);
+  --wt-field: #262933; /* поле чуть светлее поверхности — считывается как поле */
   --wt-border: #333743;
   --wt-text: #f2f3f5;
   --wt-text-secondary: #c9ccd3;
   --wt-text-tertiary: #9298a3;
+  --wt-accent: #818cf8; /* приподнятый индиго — контраст на тёмном */
   --wt-accent-soft: rgba(129, 140, 248, 0.22);
   --wt-accent-soft-hover: rgba(129, 140, 248, 0.34);
+  --wt-shadow-modal: 0 12px 40px rgba(0, 0, 0, 0.55);
+  --wt-shadow-popover: 0 0 2px rgba(0, 0, 0, 0.7);
 }
 
 html[data-theme='dark'] body {

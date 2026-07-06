@@ -113,6 +113,10 @@ export function TaskFormFields({ form, projectUsers, sprints }: Props) {
                     ...segmentSx,
                     '&.Mui-selected, &.Mui-selected:hover': {
                       backgroundColor: PRIORITY_COLOR[opt.value],
+                      // ТП-158: пастельный фон всегда светлый — текст фиксируем
+                      // тёмным, иначе в тёмной теме он наследовал светлый цвет
+                      // и терял контраст.
+                      color: '#313131',
                     },
                   }}
                 >

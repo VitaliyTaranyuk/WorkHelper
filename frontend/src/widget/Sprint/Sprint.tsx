@@ -256,8 +256,8 @@ export function Sprint({ sprint, projectId, taskFilter, droppableId }: SprintPro
                   borderRadius: 2,
                   transition: 'background-color 120ms ease, box-shadow 120ms ease',
                   ...(snapshot.isDraggingOver && {
-                    backgroundColor: 'rgba(99,102,241,0.08)',
-                    boxShadow: 'inset 0 0 0 2px rgba(99,102,241,0.35)',
+                    backgroundColor: 'var(--wt-accent-soft)',
+                    boxShadow: 'inset 0 0 0 2px var(--wt-accent)',
                   }),
                 }}
               >

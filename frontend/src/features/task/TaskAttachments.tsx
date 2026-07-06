@@ -176,8 +176,8 @@ export function TaskAttachments({ projectId, taskId }: Props) {
             sx={{
               p: '6px 8px',
               borderRadius: 1,
-              backgroundColor: 'rgba(246, 246, 246, .6)',
-              '&:hover': { backgroundColor: 'rgba(246, 246, 246, .9)' },
+              backgroundColor: 'var(--wt-surface-muted)',
+              '&:hover': { backgroundColor: 'var(--wt-surface-hover)' },
             }}
           >
             {isImage(att) ? (

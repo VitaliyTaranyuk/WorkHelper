@@ -203,7 +203,7 @@ export function NotificationBell() {
                   cursor: clickable ? 'pointer' : 'default',
                   backgroundColor: n.read
                     ? 'transparent'
-                    : 'rgba(99,102,241,0.06)',
+                    : 'var(--wt-accent-soft)',
                 }}
               >
                 {/* Иконка типа события. ТП-87: кружок окрашен по состоянию
@@ -271,7 +271,7 @@ export function NotificationBell() {
                           height: 8,
                           borderRadius: '50%',
                           flexShrink: 0,
-                          backgroundColor: '#6366f1',
+                          backgroundColor: 'var(--wt-accent)',
                         }}
                       />
                     )}

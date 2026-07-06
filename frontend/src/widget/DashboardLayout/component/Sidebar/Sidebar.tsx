@@ -1,4 +1,5 @@
 import styled from '@emotion/styled'
+import { TEXT_STYLES } from '@/shared/ui/theme/constants'
 import { css } from '@emotion/react'
 import {
   BLOCK_BORDER_WIDTH_PX,
@@ -11,7 +12,6 @@ import { useProjectData } from '@/features/project/query/useProjectData'
 import { useActiveSprintQuery } from '@/features/sprint/query/useActiveSprintQuery'
 import { getFormattedDateRange } from '@/shared/utils/date'
 import { SPRINT_STATUS_COLOR } from '@/entities/sprint/status'
-import { COLOR, TEXT_STYLES } from '@/shared/ui/theme/constants'
 import ViewKanbanOutlinedIcon from '@mui/icons-material/ViewKanbanOutlined'
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted'
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined'
@@ -149,20 +149,20 @@ const NavItem = styled(Link)`
   font-size: 15px;
   font-weight: 500;
   line-height: 20px;
-  color: ${COLOR.text.secondary};
+  color: var(--wt-text-secondary);
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--wt-surface-hover);
   }
 
   &[data-status='active'],
   &[aria-current='page'] {
-    background-color: ${COLOR.background[150]};
-    color: ${COLOR.text.active};
+    background-color: var(--wt-accent-soft);
+    color: var(--wt-text);
   }
 
   svg {
-    color: rgba(120, 116, 134, 1);
+    color: var(--wt-text-tertiary);
     flex-shrink: 0;
   }
 
@@ -192,7 +192,7 @@ const SprintCaption = styled(Link)`
      переносился на вторую строку. Уменьшаем до 13px (меньше пунктов меню,
      15px — как и подобает метаданным) и держим в одну строку. */
   font-size: 13px;
-  color: ${COLOR.text.tertiary};
+  color: var(--wt-text-tertiary);
 
   &:hover {
     opacity: 0.8;

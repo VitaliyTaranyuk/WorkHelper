@@ -97,21 +97,23 @@ export const createWorkTechTheme = (mode: Mode = 'light') =>
       MuiTextField: {
         styleOverrides: {
           root: {
+            // ТП-158: disabled-состояния из токенов темы — раньше светлотемные
+            // хардкоды делали отключённые поля нечитаемыми в тёмной.
             '& .MuiOutlinedInput-root': {
               '& .Mui-disabled': {
-                color: COLOR.text.secondary,
-                ['WebkitTextFillColor']: COLOR.text.secondary,
+                color: 'var(--wt-text-secondary)',
+                ['WebkitTextFillColor']: 'var(--wt-text-secondary)',
                 '& fieldset': {
-                  borderColor: '#B0B0B0',
+                  borderColor: 'var(--wt-border)',
                 },
               },
 
               '&.Mui-disabled:hover fieldset': {
-                borderColor: '#B0B0B0',
+                borderColor: 'var(--wt-border)',
               },
             },
             '& .MuiInputLabel-root.Mui-disabled': {
-              color: COLOR.text.secondary,
+              color: 'var(--wt-text-secondary)',
             },
           },
         },
@@ -128,8 +130,8 @@ export const createWorkTechTheme = (mode: Mode = 'light') =>
         styleOverrides: {
           root: {
             '& .MuiPickersInputBase-root.MuiPickersOutlinedInput-root': {
-              // TODO: привести все цвета в соответствии с UI KIT
-              backgroundColor: '#F7F7FA',
+              // ТП-158: фон поля из токена темы (корректно в тёмной)
+              backgroundColor: 'var(--wt-field)',
             },
             '&.Mui-disabled': {
               '& .MuiPickersInputBase-root.MuiPickersOutlinedInput-root .MuiPickersSectionList-section *':
@@ -138,21 +140,21 @@ export const createWorkTechTheme = (mode: Mode = 'light') =>
                 },
               '&:hover': {
                 '.MuiPickersOutlinedInput-root': {
-                  borderColor: '#B0B0B0',
+                  borderColor: 'var(--wt-border)',
                 },
                 '.MuiPickersOutlinedInput-root fieldset': {
-                  borderColor: '#B0B0B0',
+                  borderColor: 'var(--wt-border)',
                   cursor: 'default',
                 },
               },
             },
             // '&.MuiPickersOutlinedInput-root': {
             //   '&:hover .MuiPickersOutlinedInput-root.Mui-disabled': {
-            //     borderColor: '#B0B0B0',
+            //     borderColor: 'var(--wt-border)',
             //   },
 
             //   '&.Mui-disabled:hover fieldset': {
-            //     borderColor: '#B0B0B0',
+            //     borderColor: 'var(--wt-border)',
             //   },
             // },
           },
@@ -163,7 +165,9 @@ export const createWorkTechTheme = (mode: Mode = 'light') =>
         styleOverrides: {
           root: {
             '&.Mui-disabled': {
-              color: '#313131 !important',
+              // ТП-158: токен вместо светлотемного хардкода (#313131 в тёмной
+              // теме делал disabled-поля нечитаемыми)
+              color: 'var(--wt-text-secondary) !important',
             },
           },
         },

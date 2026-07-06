@@ -19,7 +19,7 @@ export const Select = styled(MUISelect)({
     borderWidth: 1.5,
   },
   borderRadius: '12px',
-  backgroundColor: '#F7F7FA',
+  backgroundColor: 'var(--wt-field)',
 })
 
 export const MenuItem = styled(MUIMenuItem)({
