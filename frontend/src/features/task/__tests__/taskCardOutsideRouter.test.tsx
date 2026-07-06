@@ -39,6 +39,5 @@ describe('TaskCardContent вне контекста роутера (модалк
     ).not.toThrow()
     // Данные проекта грузятся — карточка показывает загрузку, не белый экран
     expect(document.body.textContent).toBeDefined()
-    screen.unmount?.()
   })
 })
