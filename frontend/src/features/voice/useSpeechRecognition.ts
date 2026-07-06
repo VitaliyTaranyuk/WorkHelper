@@ -169,6 +169,14 @@ export function useSpeechRecognition({
       cancelledRef.current = true
       setError(message)
       setStatus('error')
+      // ТП-141: диктовка (без стоп-фразы) — уже распознанный текст не теряем:
+      // ошибка показана, но накопленное отдаётся в поле. В командном режиме
+      // частичную фразу НЕ отдаём — исполнять оборванную команду после сбоя
+      // опаснее, чем повторить её целиком.
+      const accumulated = finalRef.current.trim()
+      if (!stopPhraseRef.current && accumulated) {
+        onFinishRef.current(accumulated)
+      }
     }
 
     recognition.onend = () => {
