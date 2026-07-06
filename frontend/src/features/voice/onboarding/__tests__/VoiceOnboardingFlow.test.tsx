@@ -15,12 +15,15 @@ describe('VoiceOnboardingFlow', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('приветствие показывает три варианта', () => {
+  it('приветствие: два действия — CTA и один мягкий выход (ТП-146)', () => {
     render(<VoiceOnboardingFlow open onExit={vi.fn()} />)
     expect(screen.getByText('Голосовое управление WorkTask')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Начать обучение' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Позже' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Пропустить' })).toBeInTheDocument()
+    // «Пропустить» удалена: дублировала «Позже» (три выхода в одном диалоге)
+    expect(
+      screen.queryByRole('button', { name: 'Пропустить' }),
+    ).not.toBeInTheDocument()
   })
 
   it('«Позже» помечает later и закрывает', () => {
@@ -28,14 +31,6 @@ describe('VoiceOnboardingFlow', () => {
     render(<VoiceOnboardingFlow open onExit={onExit} />)
     fireEvent.click(screen.getByRole('button', { name: 'Позже' }))
     expect(getProgress().status).toBe('later')
-    expect(onExit).toHaveBeenCalled()
-  })
-
-  it('«Пропустить» помечает skipped и закрывает', () => {
-    const onExit = vi.fn()
-    render(<VoiceOnboardingFlow open onExit={onExit} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Пропустить' }))
-    expect(getProgress().status).toBe('skipped')
     expect(onExit).toHaveBeenCalled()
   })
 

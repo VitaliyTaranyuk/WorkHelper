@@ -28,12 +28,19 @@ describe('SpotlightCard', () => {
     expect(screen.getByText('Тело шага')).toBeInTheDocument()
   })
 
-  it('«Далее» и «Пропустить» вызывают колбэки', () => {
+  it('«Далее» и «Завершить обучение» вызывают колбэки (ТП-146)', () => {
     const p = renderCard()
     fireEvent.click(screen.getByRole('button', { name: 'Далее' }))
     expect(p.onNext).toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Пропустить' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Завершить обучение' }))
     expect(p.onSkip).toHaveBeenCalled()
+  })
+
+  it('на say-шаге ровно одна кнопка со словом «пропустить» (ТП-146)', () => {
+    renderCard({ step: { ...step, waitForEvent: true } })
+    const skips = screen.getAllByRole('button', { name: /пропустить/i })
+    expect(skips).toHaveLength(1)
+    expect(skips[0]).toHaveTextContent('Пропустить шаг')
   })
 
   it('на первом шаге нет «Назад»', () => {

@@ -60,10 +60,6 @@ export function VoiceOnboardingFlow({
     setProgress({ status: 'later' })
     onExit()
   }
-  const skipAll = () => {
-    setProgress({ status: 'skipped' })
-    onExit()
-  }
   const goPractice = () => {
     setProgress({ status: 'in_progress', stage: 'practice' })
     setStage('practice')
@@ -91,10 +87,11 @@ export function VoiceOnboardingFlow({
             ))}
           </Stack>
         </DialogContent>
+        {/* ТП-146: было три выхода («Пропустить» + «Позже» + CTA) — две серых
+            кнопки читались как дубли. Оставлен один мягкий выход «Позже»
+            (предложим снова в следующей сессии); обучение всегда доступно из
+            справочника «?» и настроек. */}
         <DialogActions>
-          <Button color="inherit" onClick={skipAll}>
-            Пропустить
-          </Button>
           <Button color="inherit" onClick={later}>
             Позже
           </Button>
