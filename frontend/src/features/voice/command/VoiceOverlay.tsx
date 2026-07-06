@@ -140,6 +140,13 @@ function ConfirmView({
       <Typography variant="body2" color="text.secondary">
         {summary}
       </Typography>
+      {/* ТП-142: ответить можно голосом — слушатель активен, пока открыт вопрос */}
+      <Row>
+        <GraphicEqIcon color="action" fontSize="small" />
+        <Typography variant="caption" color="text.secondary">
+          Скажите «да» — выполнить, «отмена» — отменить. Или нажмите кнопку.
+        </Typography>
+      </Row>
       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 0.5 }}>
         <Button size="small" onClick={onCancel}>
           Отмена
