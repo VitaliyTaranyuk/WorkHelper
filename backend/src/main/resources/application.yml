@@ -34,6 +34,15 @@ app:
     # Репозиторий публичный — GitHub REST API используется без токена
     # (лимит 60 запросов/час на IP покрывается кэшем в 5 минут).
     github-repo: ${DEV_PANEL_GITHUB_REPO:VitaliyTaranyuk/WorkHelper}
+  meet:
+    # WorkTask Meet (.ai/MEET_ARCHITECTURE.md): mesh-топология, жёсткий предел
+    # комнаты. TURN подключается env-переменными без изменения кода; креденшелы
+    # только через окружение (секреты в репозитории запрещены).
+    max-participants: ${MEET_MAX_PARTICIPANTS:8}
+    stun-urls: ${MEET_STUN_URLS:stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302}
+    turn-urls: ${MEET_TURN_URLS:}
+    turn-username: ${MEET_TURN_USERNAME:}
+    turn-credential: ${MEET_TURN_CREDENTIAL:}
   mail:
     enable: ${ENABLE_EMAIL_SENDING:false}
     login: ${EMAIL_LOGIN:email@mail.ru}
