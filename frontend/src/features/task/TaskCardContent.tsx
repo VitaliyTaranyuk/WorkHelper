@@ -11,6 +11,7 @@ import {
 } from '@mui/material'
 import { orderBy } from 'lodash'
 import { MUIPrimaryButton } from '@/shared/ui/Button'
+import { confirmDialog } from '@/shared/ui/components/ConfirmDialog'
 import { MenuItem, Select } from '@/shared/ui/mui/Select'
 import { TextField } from '@/shared/ui/mui/TextFileld'
 import { FormCaption } from '@/shared/ui/components/FormCaption'
@@ -230,7 +231,13 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
 
   const onDelete = async () => {
     if (!activeProject) return
-    if (!window.confirm(`Удалить задачу ${task.code}?`)) return
+    const ok = await confirmDialog({
+      title: 'Удалить задачу',
+      message: `Удалить задачу ${task.code}? Действие необратимо.`,
+      confirmLabel: 'Удалить',
+      destructive: true,
+    })
+    if (!ok) return
     await deleteTask.mutateAsync({ projectId: activeProject.id, taskId: task.id })
     onDeleted?.()
   }

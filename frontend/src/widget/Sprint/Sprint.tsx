@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
+import { confirmDialog } from '@/shared/ui/components/ConfirmDialog'
 import type { ITaskCard } from '@/entities/task/types'
 import type { SprintMinWithTasks } from '@/entities/sprint/type'
 import { getFormattedDateRange } from '@/shared/utils/date'
@@ -213,12 +214,14 @@ export function Sprint({ sprint, projectId, taskFilter, droppableId }: SprintPro
                 <IconButton
                   size="small"
                   aria-label="Удалить спринт"
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Удалить спринт «${sprintDisplayLabel(sprint)}»? Его задачи перейдут в Бэклог.`,
-                      )
-                    ) {
+                  onClick={async () => {
+                    const ok = await confirmDialog({
+                      title: 'Удалить спринт',
+                      message: `Удалить спринт «${sprintDisplayLabel(sprint)}»? Его задачи перейдут в Бэклог.`,
+                      confirmLabel: 'Удалить',
+                      destructive: true,
+                    })
+                    if (ok) {
                       deleteSprint.mutate({ projectId, sprintId: sprint.id })
                     }
                   }}

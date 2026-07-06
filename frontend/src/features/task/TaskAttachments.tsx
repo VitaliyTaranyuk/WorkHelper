@@ -12,6 +12,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined'
 import { notify as toast } from '@/shared/ui/notify'
+import { confirmDialog } from '@/shared/ui/components/ConfirmDialog'
 import {
   downloadAttachment,
   isBrowserViewable,
@@ -98,7 +99,13 @@ export function TaskAttachments({ projectId, taskId }: Props) {
   }, [handleFiles])
 
   const remove = async (att: AttachmentDto) => {
-    if (!window.confirm(`Удалить «${att.fileName}»?`)) return
+    const ok = await confirmDialog({
+      title: 'Удалить вложение',
+      message: `Удалить «${att.fileName}»?`,
+      confirmLabel: 'Удалить',
+      destructive: true,
+    })
+    if (!ok) return
     await del.mutateAsync(att.id)
   }
 
