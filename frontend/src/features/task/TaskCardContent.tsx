@@ -35,7 +35,7 @@ import { formatDateDDMMYYYY } from '@/shared/utils/date'
 import type { ITaskCard } from '@/entities/task/types'
 import type { User } from '@/entities/user/types'
 import { notify as toast } from '@/shared/ui/notify'
-import { useNavigate } from '@tanstack/react-router'
+import { router } from '@/application/router'
 import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
 import { useCreateMeetRoom } from '@/features/meet/useCreateMeetRoom'
 import { buildMeetUrl } from '@/features/meet/meetLink'
@@ -103,12 +103,14 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
   const updateStatus = useUpdateTaskStatus()
   const createMeetRoom = useCreateMeetRoom(activeProject?.id ?? '')
   const createComment = useCreateComment(activeProject?.id ?? '', task.id)
-  const navigate = useNavigate()
   const { errors } = form.formState
 
   // M5 (ТП-165): «Обсудить во встрече» — мгновенная комната с контекстом
   // задачи (одна на задачу, идемпотентно); ссылка остаётся в комментарии,
   // чтобы команда могла присоединиться из карточки.
+  // ТП-172: НЕ useNavigate — компонент живёт и в NiceModal-модалке ВНЕ
+  // контекста роутера (класс TD-015): хук там падал и ронял экран в белый.
+  // Прямой router.navigate — established-паттерн (voice/useVoiceServices).
   const discussInMeet = async () => {
     if (!activeProject) return
     try {
@@ -117,7 +119,7 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
       await createComment
         .mutateAsync(`Обсуждение в видеовстрече: ${url}`)
         .catch(() => undefined) // комментарий не критичен для входа
-      navigate({ to: '/meet/$token', params: { token: room.token } })
+      void router.navigate({ to: '/meet/$token', params: { token: room.token } })
     } catch {
       toast.error('Не удалось создать видеовстречу по задаче')
     }
