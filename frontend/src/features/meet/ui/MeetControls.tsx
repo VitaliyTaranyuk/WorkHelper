@@ -1,23 +1,34 @@
-import { IconButton, Stack, Tooltip } from '@mui/material'
+import { Badge, IconButton, Stack, Tooltip } from '@mui/material'
 import MicIcon from '@mui/icons-material/Mic'
 import MicOffIcon from '@mui/icons-material/MicOff'
 import VideocamIcon from '@mui/icons-material/Videocam'
 import VideocamOffIcon from '@mui/icons-material/VideocamOff'
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline'
 import VideocamOffOutlinedIcon from '@mui/icons-material/HideImageOutlined'
+import ScreenShareOutlinedIcon from '@mui/icons-material/ScreenShareOutlined'
+import StopScreenShareOutlinedIcon from '@mui/icons-material/StopScreenShareOutlined'
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline'
 import CallEndIcon from '@mui/icons-material/CallEnd'
+import { DeviceMenu } from './DeviceMenu'
 import { stage } from './stage'
 
 type Props = {
   muted: boolean
   cameraOn: boolean
   audioMode: boolean
+  screenSharing: boolean
+  chatOpen: boolean
+  chatUnread: number
   participantsOpen: boolean
   participantsCount: number
   onToggleMute: () => void
   onToggleCamera: () => void
   onToggleAudioMode: () => void
+  onToggleScreenShare: () => void
+  onToggleChat: () => void
   onToggleParticipants: () => void
+  onSelectMicrophone: (deviceId: string) => void
+  onSelectCamera: (deviceId: string) => void
   onLeave: () => void
 }
 
@@ -48,12 +59,19 @@ export function MeetControls({
   muted,
   cameraOn,
   audioMode,
+  screenSharing,
+  chatOpen,
+  chatUnread,
   participantsOpen,
   participantsCount,
   onToggleMute,
   onToggleCamera,
   onToggleAudioMode,
+  onToggleScreenShare,
+  onToggleChat,
   onToggleParticipants,
+  onSelectMicrophone,
+  onSelectCamera,
   onLeave,
 }: Props) {
   return (
@@ -105,6 +123,42 @@ export function MeetControls({
         </IconButton>
       </Tooltip>
 
+      <Tooltip
+        title={
+          screenSharing ? 'Остановить демонстрацию' : 'Демонстрация экрана'
+        }
+      >
+        <IconButton
+          aria-label={
+            screenSharing ? 'Остановить демонстрацию' : 'Демонстрация экрана'
+          }
+          aria-pressed={screenSharing}
+          onClick={onToggleScreenShare}
+          sx={controlSx(screenSharing)}
+        >
+          {screenSharing ? (
+            <StopScreenShareOutlinedIcon />
+          ) : (
+            <ScreenShareOutlinedIcon />
+          )}
+        </IconButton>
+      </Tooltip>
+
+      <Tooltip title="Чат встречи">
+        <IconButton
+          aria-label={
+            chatUnread > 0 ? `Чат (${chatUnread} непрочитанных)` : 'Чат встречи'
+          }
+          aria-pressed={chatOpen}
+          onClick={onToggleChat}
+          sx={controlSx(false)}
+        >
+          <Badge badgeContent={chatUnread} color="error" max={99}>
+            <ChatBubbleOutlineIcon />
+          </Badge>
+        </IconButton>
+      </Tooltip>
+
       <Tooltip title="Участники">
         <IconButton
           aria-label={`Участники (${participantsCount})`}
@@ -115,6 +169,11 @@ export function MeetControls({
           <PeopleOutlineIcon />
         </IconButton>
       </Tooltip>
+
+      <DeviceMenu
+        onSelectMicrophone={onSelectMicrophone}
+        onSelectCamera={onSelectCamera}
+      />
 
       <Tooltip title="Покинуть встречу">
         <IconButton

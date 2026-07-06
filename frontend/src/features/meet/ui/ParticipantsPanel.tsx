@@ -7,6 +7,7 @@ import {
   ListItemAvatar,
   ListItemText,
   Stack,
+  Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
@@ -15,6 +16,8 @@ import CloseIcon from '@mui/icons-material/Close'
 import MicIcon from '@mui/icons-material/Mic'
 import MicOffIcon from '@mui/icons-material/MicOff'
 import VideocamOffIcon from '@mui/icons-material/VideocamOff'
+import PersonRemoveOutlinedIcon from '@mui/icons-material/PersonRemoveOutlined'
+import { confirmDialog } from '@/shared/ui/components/ConfirmDialog'
 import type { MeetPeer } from '../core/types'
 
 type Props = {
@@ -26,6 +29,9 @@ type Props = {
   selfIsHost: boolean
   hostUserId: string | null
   peers: MeetPeer[]
+  /** Host-контролы (M4): попросить выключить микрофон / удалить из встречи. */
+  onHostMute: (sessionId: string) => void
+  onHostRemove: (sessionId: string) => void
 }
 
 function initials(name: string): string {
@@ -50,9 +56,22 @@ export function ParticipantsPanel({
   selfIsHost,
   hostUserId,
   peers,
+  onHostMute,
+  onHostRemove,
 }: Props) {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+
+  const removePeer = async (peer: MeetPeer) => {
+    // Удаление необратимо в рамках сессии встречи (бан) — подтверждение
+    const ok = await confirmDialog({
+      title: 'Удалить участника?',
+      message: `${peer.name} будет отключён(а) и не сможет вернуться в эту встречу, пока она не соберётся заново.`,
+      confirmLabel: 'Удалить',
+      destructive: true,
+    })
+    if (ok) onHostRemove(peer.sessionId)
+  }
 
   const row = (params: {
     key: string
@@ -61,6 +80,7 @@ export function ParticipantsPanel({
     muted: boolean
     cameraOn: boolean
     isHost: boolean
+    peer?: MeetPeer
   }) => (
     <ListItem key={params.key} disableGutters sx={{ px: 2 }}>
       <ListItemAvatar>
@@ -77,10 +97,32 @@ export function ParticipantsPanel({
         {!params.cameraOn && (
           <VideocamOffIcon fontSize="small" sx={{ color: 'text.disabled' }} />
         )}
-        {params.muted ? (
+        {/* Host просит замолчать кликом по «живому» микрофону участника */}
+        {params.peer && selfIsHost && !params.muted ? (
+          <Tooltip title="Попросить выключить микрофон">
+            <IconButton
+              size="small"
+              aria-label={`Попросить ${params.name} выключить микрофон`}
+              onClick={() => onHostMute(params.peer!.sessionId)}
+            >
+              <MicIcon fontSize="small" sx={{ color: 'success.main' }} />
+            </IconButton>
+          </Tooltip>
+        ) : params.muted ? (
           <MicOffIcon fontSize="small" sx={{ color: 'error.main' }} />
         ) : (
           <MicIcon fontSize="small" sx={{ color: 'success.main' }} />
+        )}
+        {params.peer && selfIsHost && (
+          <Tooltip title="Удалить из встречи">
+            <IconButton
+              size="small"
+              aria-label={`Удалить ${params.name} из встречи`}
+              onClick={() => void removePeer(params.peer!)}
+            >
+              <PersonRemoveOutlinedIcon fontSize="small" sx={{ color: 'error.main' }} />
+            </IconButton>
+          </Tooltip>
         )}
       </Stack>
     </ListItem>
@@ -128,6 +170,7 @@ export function ParticipantsPanel({
             muted: peer.muted,
             cameraOn: peer.cameraOn,
             isHost: hostUserId !== null && peer.userId === hostUserId,
+            peer,
           }),
         )}
       </List>

@@ -40,10 +40,12 @@ export function useMeetSession(params: {
   const [muted, setMuted] = useState(false)
   const [cameraOn, setCameraOn] = useState(true)
   const [audioMode, setAudioModeState] = useState(false)
+  const [screenSharing, setScreenSharing] = useState(false)
 
   const signalRef = useRef<MeetSignalClient | null>(null)
   const rtcRef = useRef<RtcManager | null>(null)
   const localStreamRef = useRef<MediaStream | null>(null)
+  const screenStreamRef = useRef<MediaStream | null>(null)
   const wasReconnectingRef = useRef(false)
   localStreamRef.current = localStream
 
@@ -189,6 +191,98 @@ export function useMeetSession(params: {
     if (trimmed) signalRef.current?.send({ type: 'chat', text: trimmed })
   }, [])
 
+  const stopScreenShare = useCallback(async () => {
+    const screen = screenStreamRef.current
+    if (!screen) return
+    screenStreamRef.current = null
+    screen.getTracks().forEach((track) => track.stop())
+    // Возвращаем в отправку текущую камеру (с учётом её вкл/выкл состояния)
+    const camera = localStreamRef.current?.getVideoTracks()[0] ?? null
+    await rtcRef.current?.replaceVideoTrack(camera)
+    setScreenSharing(false)
+    signalRef.current?.send({ type: 'state', screenSharing: false })
+  }, [])
+
+  /**
+   * Демонстрация экрана (M4): экранный трек ЗАМЕЩАЕТ исходящее видео
+   * (replaceTrack, без перенегоциации у имеющих камеру; вход без камеры —
+   * поднимается направление recvonly-трансивера). Только по явному действию;
+   * системная кнопка браузера «Закрыть доступ» тоже корректно завершает.
+   */
+  const startScreenShare = useCallback(async () => {
+    if (screenStreamRef.current) return
+    let display: MediaStream
+    try {
+      display = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: { ideal: 15 } },
+        audio: false,
+      })
+    } catch {
+      return // пользователь отменил выбор экрана — не ошибка
+    }
+    const track = display.getVideoTracks()[0]
+    if (!track) return
+    track.contentHint = 'detail' // текст/код важнее плавности (§7 ADR)
+    track.onended = () => void stopScreenShare()
+    screenStreamRef.current = display
+    await rtcRef.current?.replaceVideoTrack(track)
+    setScreenSharing(true)
+    signalRef.current?.send({ type: 'state', screenSharing: true })
+  }, [stopScreenShare])
+
+  /** Смена микрофона прямо в звонке: replaceTrack, mute-состояние сохраняется. */
+  const switchMicrophone = useCallback(
+    async (deviceId: string) => {
+      const local = localStreamRef.current
+      if (!local) return
+      try {
+        const fresh = await navigator.mediaDevices.getUserMedia({
+          audio: { deviceId: { exact: deviceId } },
+        })
+        const next = fresh.getAudioTracks()[0]
+        if (!next) return
+        next.enabled = !muted
+        const old = local.getAudioTracks()[0]
+        if (old) {
+          old.stop()
+          local.removeTrack(old)
+        }
+        local.addTrack(next)
+        await rtcRef.current?.replaceAudioTrack(next)
+      } catch {
+        toast.error('Не удалось переключить микрофон')
+      }
+    },
+    [muted],
+  )
+
+  /** Смена камеры: во время демонстрации меняется только локальный трек. */
+  const switchCamera = useCallback(
+    async (deviceId: string) => {
+      const local = localStreamRef.current
+      if (!local) return
+      try {
+        const fresh = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        })
+        const next = fresh.getVideoTracks()[0]
+        if (!next) return
+        next.enabled = cameraOn
+        const old = local.getVideoTracks()[0]
+        if (old) {
+          old.stop()
+          local.removeTrack(old)
+        }
+        local.addTrack(next)
+        if (!screenStreamRef.current)
+          await rtcRef.current?.replaceVideoTrack(next)
+      } catch {
+        toast.error('Не удалось переключить камеру')
+      }
+    },
+    [cameraOn],
+  )
+
   const hostMute = useCallback((target: string) => {
     signalRef.current?.send({ type: 'host-mute', target })
   }, [])
@@ -200,6 +294,8 @@ export function useMeetSession(params: {
   const leave = useCallback(() => {
     signalRef.current?.close()
     rtcRef.current?.reset()
+    stopStream(screenStreamRef.current)
+    screenStreamRef.current = null
     stopStream(localStreamRef.current)
   }, [])
 
@@ -213,10 +309,17 @@ export function useMeetSession(params: {
     muted,
     cameraOn,
     audioMode,
+    screenSharing,
+    /** Что показывать на своей плитке: экран во время демонстрации. */
+    selfViewStream: screenSharing ? screenStreamRef.current : localStream,
     selfIsHost,
     toggleMute,
     toggleCamera,
     setAudioMode,
+    startScreenShare,
+    stopScreenShare,
+    switchMicrophone,
+    switchCamera,
     sendChat,
     hostMute,
     hostRemove,
