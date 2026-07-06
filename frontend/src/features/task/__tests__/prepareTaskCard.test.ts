@@ -1,0 +1,88 @@
+import { describe, it, expect } from 'vitest'
+import {
+  prepareTaskCard,
+  deriveTitleFromDescription,
+  buildCreateTaskPayload,
+} from '../prepareTaskCard'
+
+describe('prepareTaskCard (ТП-147)', () => {
+  it('название пользователя неприкосновенно (только trim)', () => {
+    const r = prepareTaskCard({
+      title: '  Моё название  ',
+      description: 'Совсем другой текст описания.',
+    })
+    expect(r.title).toBe('Моё название')
+    expect(r.description).toBe('Совсем другой текст описания.')
+  })
+
+  it('пустое название + описание → название из первой мысли, описание не тронуто', () => {
+    const r = prepareTaskCard({
+      title: '',
+      description:
+        'Починить выравнивание карточек на доске. Сейчас колонки разъезжаются при длинных названиях.',
+    })
+    expect(r.title).toBe('Починить выравнивание карточек на доске')
+    expect(r.description).toBe(
+      'Починить выравнивание карточек на доске. Сейчас колонки разъезжаются при длинных названиях.',
+    )
+  })
+
+  it('всё пустое → пустое название (валидация формы не пропустит)', () => {
+    expect(prepareTaskCard({ title: ' ', description: '' })).toEqual({
+      title: '',
+      description: '',
+    })
+  })
+
+  it('длинная первая мысль режется по границе слова (≤80)', () => {
+    const long =
+      'Нужно очень тщательно проверить как ведёт себя система когда пользователь вводит чрезвычайно длинные описания без знаков препинания вообще'
+    const title = deriveTitleFromDescription(long)
+    expect(title.length).toBeLessThanOrEqual(80)
+    expect(long.startsWith(title)).toBe(true)
+    expect(title.endsWith(' ')).toBe(false)
+    // не обрывается посреди слова
+    expect(long.charAt(title.length)).toBe(' ')
+  })
+
+  it('вопрос/восклицание — знак не тащится в название', () => {
+    expect(deriveTitleFromDescription('Почему падает сборка? Разобраться.')).toBe(
+      'Почему падает сборка',
+    )
+  })
+})
+
+describe('buildCreateTaskPayload (ТП-147, единый сервис создания)', () => {
+  const base = {
+    taskTitle: '',
+    description: 'Проверить фильтры на доске. Подробности внутри.',
+    priority: 'MEDIUM' as const,
+    type: 'TASK' as const,
+    assignee: '-1',
+    sprint: 'sprint-1',
+    status: 5,
+  }
+
+  it('собирает DTO с авто-названием и не шлёт «Не назначен»', () => {
+    const dto = buildCreateTaskPayload(base, 'p-1')
+    expect(dto).toEqual({
+      title: 'Проверить фильтры на доске',
+      projectId: 'p-1',
+      priority: 'MEDIUM',
+      taskType: 'TASK',
+      sprintId: 'sprint-1',
+      description: 'Проверить фильтры на доске. Подробности внутри.',
+      statusId: 5,
+    })
+    expect('assignee' in dto).toBe(false)
+  })
+
+  it('передаёт исполнителя и опускает статус, когда его нет', () => {
+    const dto = buildCreateTaskPayload(
+      { ...base, assignee: 'user-9', status: null },
+      'p-1',
+    )
+    expect(dto.assignee).toBe('user-9')
+    expect('statusId' in dto).toBe(false)
+  })
+})

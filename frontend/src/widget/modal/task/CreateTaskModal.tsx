@@ -16,6 +16,7 @@ import { modalStyle } from '@/shared/ui/modalStyles'
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useCreateTask } from '@/features/task/mutation/useCreateTask'
+import { buildCreateTaskPayload } from '@/features/task/prepareTaskCard'
 import { uploadPendingAttachments } from '@/features/task/uploadPendingAttachments'
 import { Loader } from '@/shared/ui/components/Loader'
 
@@ -67,22 +68,11 @@ function CreateTaskModalInner() {
   }
 
   const onSubmit = form.handleSubmit(async (formValues) => {
-    const created = await createTask.mutateAsync({
-      priority: formValues.priority,
-      projectId: activeProject!.id,
-      taskType: formValues.type,
-      title: formValues.taskTitle,
-      sprintId: formValues.sprint,
-
-      ...(formValues.description
-        ? { description: formValues.description }
-        : {}),
-      ...(formValues.assignee === '-1'
-        ? {}
-        : { assignee: formValues.assignee }),
-      // Выбранная колонка доски (ТП-36); для Backlog-спринта поле обнулено
-      ...(formValues.status != null ? { statusId: formValues.status } : {}),
-    })
+    // ТП-147: единая подготовка карточки (авто-название из описания) и
+    // сборка payload — общий сервис всех точек создания.
+    const created = await createTask.mutateAsync(
+      buildCreateTaskPayload(formValues, activeProject!.id),
+    )
 
     // Вложения (ТП-30): задача уже создана, ошибки загрузки не отменяют её.
     await uploadPendingAttachments(

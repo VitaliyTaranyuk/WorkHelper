@@ -19,3 +19,34 @@ export const compactTaskFormSchema = z.object({
   // (первая колонка на бэкенде); не используется формой редактирования.
   status: z.number().nullable().optional(),
 })
+
+/**
+ * Схема СОЗДАНИЯ (ТП-147): название можно не указывать, если заполнено
+ * описание — оно сформируется автоматически (prepareTaskCard). Редактирование
+ * остаётся на compactTaskFormSchema: там пустое название недопустимо.
+ */
+export const createTaskFormSchema = compactTaskFormSchema
+  .omit({ taskTitle: true })
+  .extend({ taskTitle: z.string() })
+  .superRefine((data, ctx) => {
+    const title = data.taskTitle.trim()
+    if (title.length === 0) {
+      if ((data.description ?? '').trim().length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['taskTitle'],
+          message:
+            'Укажите название или заполните описание — название сформируется из него',
+        })
+      }
+      return
+    }
+    if (title.length < 5) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['taskTitle'],
+        message: 'Минимальная длина 5 символов',
+      })
+    }
+  })
+

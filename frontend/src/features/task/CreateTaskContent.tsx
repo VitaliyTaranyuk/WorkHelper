@@ -107,13 +107,15 @@ export function CreateTaskContent({
               голосом покрывает основной голосовой помощник (плавающий микрофон:
               «Создай задачу …»). Единая точка входа, без дублирования. */}
           <FormCaption>Название</FormCaption>
+          {/* ТП-147: название опционально — при пустом поле сформируется из
+              первой мысли описания (prepareTaskCard). */}
           <TextField
             fullWidth
             size="small"
             {...form.register('taskTitle')}
             error={Boolean(errors.taskTitle)}
             helperText={errors.taskTitle?.message}
-            placeholder="Введите заголовок"
+            placeholder="Введите заголовок — или оставьте пустым, сформируем из описания"
           />
         </Stack>
 
