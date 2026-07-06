@@ -1,114 +1,56 @@
-import { memo } from 'react'
-import { Box, Button, Divider, Stack, Typography } from '@mui/material'
+import { memo, useState } from 'react'
+import {
+  Box,
+  Button,
+  Collapse,
+  Stack,
+  Typography,
+} from '@mui/material'
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined'
 import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import KeyboardVoiceOutlinedIcon from '@mui/icons-material/KeyboardVoiceOutlined'
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import { useSettingsStore } from '@/features/settings/settingsStore'
 import { useThemeMode, type ThemeMode } from '@/features/settings/themeMode'
 import { VoiceHelpContent } from '@/features/voice/command/VoiceHelpContent'
-import { useHotkeySetting } from '@/features/voice/useVoiceHotkey'
+import { useHotkeySetting, formatHotkey } from '@/features/voice/useVoiceHotkey'
 import { useOnboardingTrigger } from '@/features/voice/onboarding/onboardingTrigger'
+import { SettingsSection } from './SettingsSection'
 
 /**
- * Настройки приложения (ТП-56).
+ * Настройки приложения (ТП-56, переработка ТП-150).
  *
- * Аудит показал: прежние вкладки-муляжи удалены (практика зрелых TMS: не
- * показывать настройки, которые ни на что не влияют). Здесь — реально
- * работающие параметры (тема) и справочный центр по голосовому помощнику
- * (ТП-110). Настройки уведомлений переехали в саму панель колокольчика
- * (ТП-120), настройки календаря живут в самом календаре — рядом с их объектом.
+ * Единый визуальный язык с остальным приложением: каждая секция — карточка
+ * (SettingsSection), как панели карточки задачи и колонок доски. Здесь только
+ * реально работающие параметры; настройки уведомлений живут в колокольчике
+ * (ТП-120), календаря — в календаре.
+ *
+ * Голосовой помощник (решения по анализу ТП-150): основной способ знакомства —
+ * интерактивное обучение (ТП-118, «Пройти обучение» — главный CTA секции);
+ * полный справочник команд НЕ вываливается простынёй, а раскрывается по
+ * запросу (паттерн progressive disclosure — Linear/ClickUp settings). Тот же
+ * справочник доступен с любого экрана кнопкой «?» у микрофона.
  */
 export const SettingsPage = memo(function SettingsPageInner() {
-  const resetSettings = useSettingsStore((s) => s.reset)
-
-  const resetAll = () => {
-    // ТП-71: без тоста — сброшенные значения видны на этой же странице
-    resetSettings()
-  }
-
   return (
     <Box maxWidth={720}>
       <Typography variant="h5" sx={{ mb: 3 }}>
         Настройки
       </Typography>
 
-      <Stack gap={3}>
+      <Stack gap={2}>
         <ThemeSection />
-
-        <Divider />
-
         <VoiceAssistantSection />
-
-        <Divider />
-
-        <section>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-            Данные интерфейса
-          </Typography>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<RestartAltIcon fontSize="small" />}
-            onClick={resetAll}
-          >
-            Сбросить настройки интерфейса
-          </Button>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: 'block', mt: 0.5 }}
-          >
-            Вернёт вид календаря к значению по умолчанию.
-          </Typography>
-        </section>
+        <InterfaceDataSection />
       </Stack>
     </Box>
   )
 })
-
-/**
- * Справочный раздел о голосовом помощнике (ТП-110): не технические настройки, а
- * справочный центр — как запустить, что умеет, примеры фраз, советы, ограничения.
- * Содержимое — общий `VoiceHelpContent` (тот же, что в модалке-справке, ТП-107),
- * без дублирования логики. Заменил бывший блок «Календарь».
- */
-function VoiceAssistantSection() {
-  const [hotkey] = useHotkeySetting()
-  const startOnboarding = useOnboardingTrigger((s) => s.start)
-  return (
-    <section>
-      <Stack
-        direction="row"
-        alignItems="center"
-        gap={1}
-        sx={{ mb: 1, flexWrap: 'wrap' }}
-      >
-        <KeyboardVoiceOutlinedIcon
-          fontSize="small"
-          sx={{ color: 'text.secondary' }}
-        />
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-          Голосовой помощник
-        </Typography>
-        <Box sx={{ flex: 1 }} />
-        {/* ТП-118: интерактивное обучение — основной способ знакомства; этот
-            раздел остаётся справочником. */}
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<PlayCircleOutlineIcon />}
-          onClick={startOnboarding}
-        >
-          Пройти обучение
-        </Button>
-      </Stack>
-      <VoiceHelpContent hotkey={hotkey} />
-    </section>
-  )
-}
 
 const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
   { value: 'light', label: 'Светлая' },
@@ -120,16 +62,11 @@ const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
 function ThemeSection() {
   const { mode, setMode } = useThemeMode()
   return (
-    <section>
-      <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
-        <DarkModeOutlinedIcon
-          fontSize="small"
-          sx={{ color: 'text.secondary' }}
-        />
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-          Тема оформления
-        </Typography>
-      </Stack>
+    <SettingsSection
+      icon={<DarkModeOutlinedIcon fontSize="small" />}
+      title="Тема оформления"
+      description="«Системная» следует настройке оформления вашей ОС."
+    >
       <ToggleButtonGroup
         size="small"
         exclusive
@@ -140,19 +77,82 @@ function ThemeSection() {
           <ToggleButton
             key={o.value}
             value={o.value}
-            sx={{ textTransform: 'none' }}
+            sx={{ textTransform: 'none', px: 2 }}
           >
             {o.label}
           </ToggleButton>
         ))}
       </ToggleButtonGroup>
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ display: 'block', mt: 0.5 }}
+    </SettingsSection>
+  )
+}
+
+/**
+ * Голосовой помощник (ТП-110/ТП-150): знакомство — интерактивное обучение,
+ * справочник команд — по запросу (Collapse), контент общий с модалкой «?»
+ * (VoiceHelpContent) — без дублирования.
+ */
+function VoiceAssistantSection() {
+  const [hotkey] = useHotkeySetting()
+  const startOnboarding = useOnboardingTrigger((s) => s.start)
+  const [helpOpen, setHelpOpen] = useState(false)
+
+  return (
+    <SettingsSection
+      icon={<KeyboardVoiceOutlinedIcon fontSize="small" />}
+      title="Голосовой помощник"
+      description={`Управляйте WorkTask обычной речью: кнопка микрофона или ${formatHotkey(hotkey)} (нажать — или удерживать как рацию).`}
+      action={
+        <Button
+          size="small"
+          variant="contained"
+          startIcon={<PlayCircleOutlineIcon />}
+          onClick={startOnboarding}
+          sx={{ textTransform: 'none' }}
+        >
+          Пройти обучение
+        </Button>
+      }
+    >
+      <Button
+        size="small"
+        variant="text"
+        color="inherit"
+        onClick={() => setHelpOpen((v) => !v)}
+        startIcon={helpOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+        sx={{ textTransform: 'none', color: 'text.secondary' }}
       >
-        «Системная» следует настройке оформления вашей ОС.
-      </Typography>
-    </section>
+        {helpOpen ? 'Скрыть справочник команд' : 'Справочник команд и примеры фраз'}
+      </Button>
+      <Collapse in={helpOpen} unmountOnExit>
+        <Box sx={{ mt: 1.5 }}>
+          <VoiceHelpContent hotkey={hotkey} />
+        </Box>
+      </Collapse>
+    </SettingsSection>
+  )
+}
+
+/** Сброс локальных настроек интерфейса (вид календаря и т.п.). */
+function InterfaceDataSection() {
+  const resetSettings = useSettingsStore((s) => s.reset)
+  return (
+    <SettingsSection
+      icon={<TuneOutlinedIcon fontSize="small" />}
+      title="Данные интерфейса"
+      description="Вернёт вид календаря к значению по умолчанию."
+      action={
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<RestartAltIcon fontSize="small" />}
+          // ТП-71: без тоста — сброшенные значения видны на этой же странице
+          onClick={() => resetSettings()}
+          sx={{ textTransform: 'none' }}
+        >
+          Сбросить
+        </Button>
+      }
+    />
   )
 }
