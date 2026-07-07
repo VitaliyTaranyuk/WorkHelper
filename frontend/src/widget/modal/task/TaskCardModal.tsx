@@ -45,15 +45,20 @@ export const TaskCardModal = NiceModal.create(
     const [confirmOpen, setConfirmOpen] = useState(false)
     const [saving, setSaving] = useState(false)
 
-    // ТП-89: если передан только код (из уведомлений) — грузим задачу по коду;
-    // с доски/списка задача уже есть, запрос не выполняется.
+    // ТП-201 (КРИТИЧНО, регрессия ТП-187): объект задачи с доски/списка —
+    // СПИСКОВЫЙ, БЕЗ тела описания (ТП-187 toListItems). Сеять из него форму
+    // редактирования нельзя: поле «Описание» было бы пустым, а правки/сохранение
+    // шли бы поверх невидимого текста (потеря данных). Поэтому ВСЕГДА грузим
+    // ПОЛНУЮ задачу по коду и монтируем карточку только на реальных данных.
     const { activeProject } = useProjectData()
     const byCode = useTaskByCode({
       projectId: activeProject?.id,
-      taskCode: taskProp ? undefined : taskCode,
+      taskCode: taskProp?.code ?? taskCode,
     })
-    const task = taskProp ?? byCode.data
-    const code = task?.code ?? taskCode ?? ''
+    // Плейсхолдер из кэша списков (ТП-185) тоже без описания — задачу считаем
+    // готовой к правке только на РЕАЛЬНЫХ данных (не placeholder).
+    const fullTask = byCode.isPlaceholderData ? undefined : byCode.data
+    const code = fullTask?.code ?? taskProp?.code ?? taskCode ?? ''
 
     const forceClose = () => {
       setConfirmOpen(false)
@@ -125,12 +130,12 @@ export const TaskCardModal = NiceModal.create(
           <CloseIcon fontSize="small" />
         </IconButton>
         <DialogContent sx={{ flex: 1, overflowY: 'auto', padding: '0 28px 28px' }}>
-          {task ? (
+          {fullTask ? (
             // ТП-172 (T1): модалка живёт вне роутов — defaultErrorComponent
             // её не прикрывает; краш содержимого не должен ронять приложение
             // в белый экран, а показывает fallback с возможностью закрыть.
             <ErrorBoundary areaLabel="карточку задачи" onReset={forceClose}>
-              <TaskCardContent task={task} onDeleted={forceClose} guardRef={guardRef} />
+              <TaskCardContent task={fullTask} onDeleted={forceClose} guardRef={guardRef} />
             </ErrorBoundary>
           ) : byCode.isError ? (
             // ТП-130 (F-002): раньше ошибка загрузки по коду оставляла вечный
