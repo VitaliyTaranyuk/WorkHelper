@@ -106,14 +106,14 @@ try:
     token_obj = APIToken.objects.filter(user=admin, label="deploy-sourcemaps").first()
     if token_obj is None:
         scopes_field = APIToken._meta.get_field("scopes")
-        flag_names = []
-        for flag in getattr(scopes_field, "flags", []):
-            flag_names.append(flag if isinstance(flag, str) else flag[0])
+        flag_count = len(getattr(scopes_field, "flags", []) or [])
         token_obj = APIToken(user=admin, label="deploy-sourcemaps")
-        if flag_names:
-            token_obj.scopes = flag_names  # BitField принимает список имён
+        if flag_count:
+            # BitField ждёт целочисленную маску (прогон №2: список имён дал
+            # «int() argument ... not 'list'») — включаем все скоупы.
+            token_obj.scopes = (1 << flag_count) - 1
         token_obj.save()
-        log(f"создан API-токен (scopes: {len(flag_names)})")
+        log(f"создан API-токен (scopes: все {flag_count})")
     else:
         log("API-токен deploy-sourcemaps уже есть")
     with open(os.path.join(OUT_DIR, "token"), "w") as f:
