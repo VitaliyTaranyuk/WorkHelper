@@ -48,7 +48,7 @@ for f in "${FILES[@]}"; do
   cp "$f" "$f.bak-glitchtip" || { log "ERROR: бэкап $f не создан"; exit 1; }
 
   # --- 1. ingest-локация перед каждой location /work-task/ ---------------
-  if grep -q "$INGEST_MARKER" "$f"; then
+  if grep -qF "$INGEST_MARKER" "$f"; then
     log "$f: ingest-локация уже есть — пропуск"
   else
     INGEST_BLOCK="$INGEST_BLOCK" python3 - "$f" <<'PYEOF'
