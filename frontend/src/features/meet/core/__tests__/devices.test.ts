@@ -1,5 +1,30 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { accessMessage, acquireLocalMedia } from '../devices'
+import { accessMessage, acquireLocalMedia, cleanDeviceLabel } from '../devices'
+
+/**
+ * ТП-189: служебный USB-идентификатор VID:PID, дописываемый Chrome в конец
+ * label, убирается; осмысленные названия со скобками — сохраняются.
+ */
+describe('cleanDeviceLabel', () => {
+  it('срезает хвост (vid:pid)', () => {
+    expect(cleanDeviceLabel('HD Pro Webcam C920 (046d:082d)')).toBe(
+      'HD Pro Webcam C920',
+    )
+    expect(cleanDeviceLabel('Микрофон (046d:0825)')).toBe('Микрофон')
+  })
+
+  it('не трогает осмысленные скобки и не-VID:PID хвосты', () => {
+    expect(cleanDeviceLabel('Микрофон (Realtek(R) Audio)')).toBe(
+      'Микрофон (Realtek(R) Audio)',
+    )
+    expect(cleanDeviceLabel('Default - Микрофон')).toBe('Default - Микрофон')
+    expect(cleanDeviceLabel('Camera (front)')).toBe('Camera (front)')
+  })
+
+  it('пустой результат после чистки — оставляет исходный label', () => {
+    expect(cleanDeviceLabel('(046d:082d)')).toBe('(046d:082d)')
+  })
+})
 
 function domException(name: string): DOMException {
   return new DOMException('', name)

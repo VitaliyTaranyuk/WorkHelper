@@ -69,6 +69,18 @@ export async function acquireLocalMedia(constraints?: {
   }
 }
 
+/**
+ * ТП-189: очистка ярлыка устройства от служебного USB-идентификатора
+ * VID:PID, который Chrome дописывает в конец label — «HD Webcam C920
+ * (046d:082d)» → «HD Webcam C920». Хвост в скобках — ровно 4 hex : 4 hex,
+ * поэтому осмысленные названия со скобками (напр. «Микрофон (Realtek)») не
+ * затрагиваются. Пустой результат после чистки — оставляем исходный label.
+ */
+export function cleanDeviceLabel(label: string): string {
+  const cleaned = label.replace(/\s*\([0-9a-fA-F]{4}:[0-9a-fA-F]{4}\)\s*$/, '').trim()
+  return cleaned || label
+}
+
 /** Списки устройств для выбора (после выдачи разрешения label непустой). */
 export async function listDevices(): Promise<{
   microphones: MediaDeviceOption[]
@@ -78,7 +90,7 @@ export async function listDevices(): Promise<{
   const devices = await navigator.mediaDevices.enumerateDevices()
   const toOption = (device: MediaDeviceInfo, index: number, kind: string) => ({
     deviceId: device.deviceId,
-    label: device.label || `${kind} ${index + 1}`,
+    label: device.label ? cleanDeviceLabel(device.label) : `${kind} ${index + 1}`,
   })
   return {
     microphones: devices
