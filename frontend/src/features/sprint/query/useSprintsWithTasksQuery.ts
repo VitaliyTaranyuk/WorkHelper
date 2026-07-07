@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { mapSprintMinDtoToSprintMinWithTasks } from '@/entities/sprint/mapDTO'
 import type { SprintMinWithTasks } from '@/entities/sprint/type'
 import { workTechApi } from '@/shared/api/endpoint'
+import { parseContract, sprintListSchema } from '@/shared/api/contracts'
 import { SPRINT_QUERY_KEY } from './constants'
 import { LISTS_POLL_INTERVAL_MS } from '@/features/task/query/pollingConfig'
 
@@ -12,12 +13,20 @@ const fetchSprints = async (
 ): Promise<SprintWithProject[]> => {
   const sprintsResponse = await workTechApi.sprint.getALLSprints({ projectId })
 
-  const preparedSprints: SprintWithProject[] = (
-    sprintsResponse.data.sprints || []
-  ).map((sprint) => ({
-    ...mapSprintMinDtoToSprintMinWithTasks(sprint),
-    projectId,
-  }))
+  // ТП-176: форма списка спринтов проверяется на границе — сломанный ответ
+  // даёт error-состояние запроса, а не краш доски/списка задач
+  const valid = parseContract(
+    sprintListSchema,
+    sprintsResponse.data,
+    'sprint-list',
+  )
+
+  const preparedSprints: SprintWithProject[] = (valid.sprints || []).map(
+    (sprint) => ({
+      ...mapSprintMinDtoToSprintMinWithTasks(sprint),
+      projectId,
+    }),
+  )
 
   return preparedSprints
 }

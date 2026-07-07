@@ -1,5 +1,6 @@
 import { mapTaskMinDTOToTaskCard } from '@/entities/task/mapDTO'
 import { workTechApi } from '@/shared/api/endpoint'
+import { parseContract, taskDataSchema } from '@/shared/api/contracts'
 import { useQuery } from '@tanstack/react-query'
 
 export function useTaskByCode({
@@ -19,7 +20,11 @@ export function useTaskByCode({
         projectId: projectId!,
       })
 
-      return mapTaskMinDTOToTaskCard(response.data)
+      // ТП-176: несоответствие формы = обрабатываемая ошибка запроса
+      // (isError-фолбэк карточки), а не TypeError в рендере
+      return mapTaskMinDTOToTaskCard(
+        parseContract(taskDataSchema, response.data, 'task-by-code'),
+      )
     },
     enabled: !!projectId && !!taskCode, // запрос только при наличии id и кода
     // ТП-130 (F-002): для поиска задачи по коду 404 — нормальный терминальный

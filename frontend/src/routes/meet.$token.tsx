@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Button, CircularProgress, Stack, Typography } from '@mui/material'
 import VideocamOffOutlinedIcon from '@mui/icons-material/VideocamOffOutlined'
 import { workTechApi } from '@/shared/api/endpoint'
+import { meetRoomSchema, parseContract } from '@/shared/api/contracts'
 import { useAuthStore } from '@/features/auth/authStore'
 import { useLocalMedia } from '@/features/meet/useLocalMedia'
 import { useMeetSession } from '@/features/meet/useMeetSession'
@@ -62,7 +63,12 @@ function MeetPage() {
 
   const roomQuery = useQuery({
     queryKey: ['meet-room', token],
-    queryFn: () => workTechApi.meet.getRoom({ token }).then((r) => r.data),
+    // ТП-176: контракт комнаты проверяется на границе — сломанный ответ
+    // даёт существующий error-фолбэк страницы, а не краш лобби
+    queryFn: () =>
+      workTechApi.meet
+        .getRoom({ token })
+        .then((r) => parseContract(meetRoomSchema, r.data, 'meet-room')),
     enabled: isAuthenticated,
     retry: false,
     staleTime: 60_000,
