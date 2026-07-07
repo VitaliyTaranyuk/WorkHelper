@@ -60,9 +60,10 @@ class MonitoringAlertServiceTest {
     }
 
     @Test
-    void alertCreatesNotificationForEveryProjectMember() {
+    void alertCreatesNotificationForEveryProjectMember_withContext() {
         when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
 
+        // ТП-193: контекст в тексте — тип ошибки И место (culprit)
         service.acceptAlert("s3cret", payload("TypeError: x is not a function", "https://mon/issues/1"));
 
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
@@ -71,8 +72,31 @@ class MonitoringAlertServiceTest {
         assertThat(saved).extracting(n -> n.getRecipient().getId())
                 .containsExactlyInAnyOrder("owner-1", "user-2");
         assertThat(saved.get(0).getType()).isEqualTo(MonitoringAlertService.TYPE_MONITORING_ALERT);
-        assertThat(saved.get(0).getMessage()).isEqualTo("TypeError: x is not a function");
+        assertThat(saved.get(0).getMessage()).isEqualTo("TypeError: x is not a function · culprit");
         assertThat(saved.get(0).getLink()).isEqualTo("https://mon/issues/1");
+    }
+
+    @Test
+    void duplicateAlertForSameIssueWithinWindowIsDeduplicated() {
+        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
+
+        service.acceptAlert("s3cret", payload("TypeError: boom", "https://mon/issues/9"));
+        // тот же issue сразу же — дедуп, повторных уведомлений нет
+        service.acceptAlert("s3cret", payload("TypeError: boom", "https://mon/issues/9"));
+
+        // 2 получателя × 1 доставка (второй вызов дедуплицирован)
+        verify(notificationRepository, org.mockito.Mockito.times(2))
+                .save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void testAndAuditNoiseIsFilteredOut() {
+        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
+
+        service.acceptAlert("s3cret", payload("deploy smoke ТП-175", "https://mon/issues/2"));
+        service.acceptAlert("s3cret", payload("AuditError: аудит ТП-170 проверка", null));
+
+        verify(notificationRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
