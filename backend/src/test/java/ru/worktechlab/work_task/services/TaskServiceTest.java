@@ -140,6 +140,28 @@ class TaskServiceTest {
     }
 
     @Test
+    void createTask_shouldAcceptLongDescriptionWithoutTruncation() throws Exception {
+        // ТП-187: лимит 4096 снят (TEXT-колонка) — длинный текст (20 000+
+        // символов) сохраняется целиком, без обрезания и без ошибок валидации.
+        TaskModelDTO dto = buildCreateTaskDto();
+        String longDescription = "х".repeat(20_000);
+        dto.setDescription(longDescription);
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(sprintsService.resolveSprintForTask("sprint-1", project)).thenReturn(sprint);
+        when(taskPlacementService.initialStatusFor(sprint, project, null)).thenReturn(defaultStatus);
+        when(taskRepository.saveAndFlush(any(TaskModel.class))).thenReturn(task);
+        when(taskMapper.toDo(any(TaskModel.class))).thenReturn(mock(TaskDataDto.class));
+
+        taskService.createTask(dto);
+
+        ArgumentCaptor<TaskModel> saved = ArgumentCaptor.forClass(TaskModel.class);
+        verify(taskRepository).saveAndFlush(saved.capture());
+        assertThat(saved.getValue().getDescription()).hasSize(20_000).isEqualTo(longDescription);
+    }
+
+    @Test
     void createTask_shouldLockProjectRowAndUseRefreshedCounter() throws Exception {
         // ТП-148: код выдаётся из счётчика, перечитанного ПОД БЛОКИРОВКОЙ
         // (PESSIMISTIC_WRITE). Симулируем параллельный коммит: refresh
@@ -477,13 +499,13 @@ class TaskServiceTest {
         TaskModel boardDone = TestFixtures.task("task-3", creator, project, sprint, done);
         project.getTasks().addAll(List.of(task, archived, boardDone)); // task — активная, не попадает
 
-        when(taskMapper.toDo(anyList())).thenReturn(List.of());
+        when(taskMapper.toListItems(anyList())).thenReturn(List.of());
 
         taskService.getCompletedTasks("project-1");
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<TaskModel>> captor = ArgumentCaptor.forClass(List.class);
-        verify(taskMapper).toDo(captor.capture());
+        verify(taskMapper).toListItems(captor.capture());
         assertThat(captor.getValue()).containsExactlyInAnyOrder(archived, boardDone);
     }
 
@@ -503,7 +525,7 @@ class TaskServiceTest {
                 .thenReturn(List.<Object[]>of(new Object[]{"task-1", "[Cloud Code][ВОПРОС] нужен ваш ответ"}));
         TaskDataDto dto = new TaskDataDto();
         dto.setId("task-1");
-        when(taskMapper.toDo(anyList())).thenReturn(List.of(dto));
+        when(taskMapper.toListItems(anyList())).thenReturn(List.of(dto));
 
         taskService.getProjectTaskByUserGuid();
 
@@ -526,13 +548,13 @@ class TaskServiceTest {
         myArchived.setArchived(true);
         project.getTasks().addAll(List.of(task, othersTask, myArchived));
 
-        when(taskMapper.toDo(anyList())).thenReturn(List.of(mock(TaskDataDto.class)));
+        when(taskMapper.toListItems(anyList())).thenReturn(List.of(mock(TaskDataDto.class)));
 
         taskService.getMyTasks("project-1");
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<TaskModel>> captor = ArgumentCaptor.forClass(List.class);
-        verify(taskMapper).toDo(captor.capture());
+        verify(taskMapper).toListItems(captor.capture());
         assertThat(captor.getValue()).containsExactly(task);
     }
 

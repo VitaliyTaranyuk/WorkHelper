@@ -26,8 +26,7 @@ public class TaskDataDto {
     @Size(max = 255, message = "Длина поля TITLE не может быть более 255 символов")
     private String title;
 
-    @Schema(description = "Описание", example = "Создать задачу для Яна")
-    @ValidDescription
+    @Schema(description = "Описание (длинный текст, без лимита — ТП-187); в списковых выдачах не заполняется")
     private String description;
 
     @Schema(description = "Приоритет", example = "MEDIUM")

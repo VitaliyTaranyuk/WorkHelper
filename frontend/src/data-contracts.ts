@@ -583,9 +583,7 @@ export interface TaskModelDTO {
    */
   title: string;
   /**
-   * Описание
-   * @minLength 0
-   * @maxLength 4096
+   * Описание (длинный текст, без лимита — ТП-187)
    * @example "Создать задачу для Яна"
    */
   description?: string;

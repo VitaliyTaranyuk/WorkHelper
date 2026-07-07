@@ -14,8 +14,7 @@ public class TaskModelDTO {
     @Size(max = 255, message = "Длина поля TITLE не может быть более 255 символов")
     private String title;
 
-    @Schema(description = "Описание", example = "Создать задачу для Яна")
-    @Size(max = 4096, message = "Длина поля DESCRIPTION не может быть более 4096 символов")
+    @Schema(description = "Описание (длинный текст, без лимита — ТП-187)", example = "Создать задачу для Яна")
     private String description;
 
     @Schema(description = "Приоритет", example = "MEDIUM")
