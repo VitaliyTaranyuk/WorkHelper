@@ -16,9 +16,9 @@ import {
   type TaskCardGuard,
 } from '@/features/task/TaskCardContent'
 import { TaskCardLoadError } from '@/features/task/TaskCardLoadError'
+import { TaskCardSkeleton } from '@/features/task/TaskCardSkeleton'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useTaskByCode } from '@/features/task/query/useTaskByCode'
-import { Loader } from '@/shared/ui/components/Loader'
 import { ErrorBoundary } from '@/shared/ui/components/ErrorBoundary'
 
 /**
@@ -142,7 +142,9 @@ export const TaskCardModal = NiceModal.create(
               onClose={forceClose}
             />
           ) : (
-            <Loader isLoading />
+            // ТП-185 (skeleton-first): при загрузке по коду показываем каркас
+            // карточки, а не блокирующий спиннер — структура видна мгновенно.
+            <TaskCardSkeleton />
           )}
         </DialogContent>
 
