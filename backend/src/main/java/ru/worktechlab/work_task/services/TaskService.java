@@ -118,7 +118,8 @@ public class TaskService {
                     String groupName = assignee != null
                             ? String.format("%s %s", assignee.getFirstName(), assignee.getLastName())
                             : "Не назначено";
-                    List<TaskDataDto> dtos = taskMapper.toDo(tasks);
+                    // ТП-187: списковая выдача — без тела описания
+                    List<TaskDataDto> dtos = taskMapper.toListItems(tasks);
                     dtos.forEach(dto -> dto.setAwaitingReply(awaitingReplyTaskIds.contains(dto.getId())));
                     return new UsersTasksInProjectDTO(groupName, dtos);
                 })
@@ -525,7 +526,7 @@ public class TaskService {
                     return db.compareTo(da);
                 })
                 .toList();
-        return taskMapper.toDo(completed);
+        return taskMapper.toListItems(completed); // ТП-187: без тела описания
     }
 
     @TransactionRequired
@@ -536,7 +537,7 @@ public class TaskService {
                 .filter(t -> !t.isArchived())
                 .filter(t -> t.getAssignee() != null && userId.equals(t.getAssignee().getId()))
                 .toList();
-        return taskMapper.toDo(myTasks);
+        return taskMapper.toListItems(myTasks); // ТП-187: без тела описания
     }
 
     private List<TaskModel> findTasksInProject(List<String> taskIds, Project project) throws NotFoundException {

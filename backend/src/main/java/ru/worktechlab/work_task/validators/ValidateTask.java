@@ -18,7 +18,6 @@ import java.util.stream.Stream;
 public class ValidateTask {
 
     private static final String ERROR_TITLE_FORMAT = "Некорректный формат поля TITLE" ;
-    private static final String ERROR_DESCRIPTION_FORMAT = "Некорректный формат поля DESCRIPTION" ;
     private static final String ERROR_SPRINT_NOT_FOUND_OR_CLOSED = "Спринт закрыт или не существует" ;
     private static final String ERROR_ESTIMATION_FORMAT = "Некорректный формат поля ESTIMATION" ;
     private static final String ERROR_PRIORITY_VALUE = "Некорректное значение поля PRIORITY" ;
@@ -28,7 +27,7 @@ public class ValidateTask {
 
     public List<String> validateTask(TaskModel taskModel) {
         validateTitle(taskModel);
-        validateDescription(taskModel);
+        // ТП-187: лимит описания снят (TEXT-колонка) — проверка длины удалена
         validateSprintId(taskModel);
         validateEstimation(taskModel);
         validatePriority(taskModel);
@@ -55,12 +54,6 @@ public class ValidateTask {
             errors.add(ERROR_TITLE_FORMAT);
         } else if (taskModel.getTitle().length() > 255) {
             errors.add(ERROR_TITLE_FORMAT);
-        }
-    }
-
-    private void validateDescription(TaskModel taskModel) {
-        if (taskModel.getDescription() != null && taskModel.getDescription().length() > 4096) {
-            errors.add(ERROR_DESCRIPTION_FORMAT);
         }
     }
 

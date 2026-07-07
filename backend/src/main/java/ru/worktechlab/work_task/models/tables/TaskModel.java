@@ -27,7 +27,8 @@ public class TaskModel {
     @Column
     private String title;
 
-    @Size(max = 4096)
+    // ТП-187: описание — длинный текст без искусственного потолка
+    // (колонка TEXT, миграция 20260713), как в зрелых TMS.
     @Column
     private String description;
 

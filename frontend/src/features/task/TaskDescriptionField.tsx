@@ -5,8 +5,6 @@ import { FormCaption } from '@/shared/ui/components/FormCaption'
 import { DictationButton } from '@/features/voice/DictationButton'
 import type { FormValues } from './TaskForm/useTaskForm'
 
-/** Лимит длины описания (совпадает с maxLength поля и валидацией). */
-export const DESCRIPTION_MAX = 4096
 
 /**
  * Поле «Описание» задачи с панелью вспомогательных инструментов (ТП-119).
@@ -44,10 +42,11 @@ export function TaskDescriptionField({
         multiline
         minRows={8}
         maxRows={24}
+        // ТП-187: лимит 4096 снят (колонка TEXT) — длинные тексты (промпты,
+        // ТЗ на десятки тысяч символов) вставляются как есть, без maxLength.
         slotProps={{
           htmlInput: {
             style: { overflowY: 'auto', resize: 'vertical' },
-            maxLength: DESCRIPTION_MAX,
           },
         }}
         sx={{
@@ -64,16 +63,14 @@ export function TaskDescriptionField({
         placeholder="Опишите задачу — поддерживаются длинные тексты и переносы строк"
       />
       {/* Панель инструментов поля: слева диктовка, справа счётчик символов —
-          оба воспринимаются как вспомогательные инструменты описания. */}
+          информационный, без потолка (лимит снят в ТП-187, как в Jira/Linear). */}
       <Stack direction="row" alignItems="center" gap={1}>
         <DictationButton targetLabel="описание" onText={appendDictation} />
-        <Typography
-          variant="caption"
-          color={value.length >= DESCRIPTION_MAX ? 'error' : 'text.secondary'}
-          sx={{ ml: 'auto' }}
-        >
-          {value.length}/{DESCRIPTION_MAX}
-        </Typography>
+        {value.length > 0 && (
+          <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
+            {value.length.toLocaleString('ru-RU')} символов
+          </Typography>
+        )}
       </Stack>
     </Stack>
   )

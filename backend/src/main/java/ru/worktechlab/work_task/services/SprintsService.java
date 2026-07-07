@@ -318,7 +318,8 @@ public class SprintsService {
                 sprint.isPaused(),
                 sprint.isDefaultSprint(),
                 sprint.getStatus(),
-                taskMapper.toDo(tasks)
+                // ТП-187: списки спринтов — без тела описания (карточка грузит его сама)
+                taskMapper.toListItems(tasks)
         );
     }
 
