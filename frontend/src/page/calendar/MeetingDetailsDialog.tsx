@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
+// ТП-172: router.navigate вместо useNavigate — единый паттерн навигации из
+// диалогов (класс TD-015: хук требует Router-контекст, singleton — нет).
+import { router } from '@/application/router'
 import {
   Button,
   Dialog,
@@ -57,7 +59,6 @@ export function MeetingDetailsDialog({
   saving,
 }: Props) {
   const [link, setLink] = useState('')
-  const navigate = useNavigate()
   const createMeetRoom = useCreateMeetRoom(projectId)
 
   useEffect(() => {
@@ -86,7 +87,7 @@ export function MeetingDetailsDialog({
   const join = () => {
     if (meetToken) {
       onClose()
-      navigate({ to: '/meet/$token', params: { token: meetToken } })
+      void router.navigate({ to: '/meet/$token', params: { token: meetToken } })
       return
     }
     window.open(meeting.link!, '_blank', 'noopener,noreferrer')
