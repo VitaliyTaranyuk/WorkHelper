@@ -343,7 +343,20 @@ function BoardInner(props: BoardProps) {
           компактная иконка вместо текстовой кнопки — как в Jira («⋯» доски)
           и Linear (иконка настроек вью): не занимает строку и не шумит. */}
       {!editMode && (
-        <Stack direction="row" justifyContent="flex-end" sx={{ mb: 0.5 }}>
+        // ТП-191: «История изменений» — не настройка, поэтому отдельной иконкой
+        // в шапке доски (доступна всегда, а не только в режиме редактирования),
+        // рядом с настройками, но не внутри их панели.
+        <Stack direction="row" justifyContent="flex-end" gap={0.5} sx={{ mb: 0.5 }}>
+          <Tooltip title="История изменений доски">
+            <IconButton
+              size="small"
+              aria-label="История изменений доски"
+              onClick={() => historyModal.show({ projectId: activeProject.id })}
+              sx={{ color: 'text.secondary' }}
+            >
+              <HistoryIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Настройки доски">
             <IconButton
               size="small"
@@ -406,6 +419,19 @@ function BoardInner(props: BoardProps) {
             </Stack>
             <div style={{ flex: 1 }} />
             <Stack direction="row" gap={1}>
+              {/* ТП-191: «Добавить колонку» — управление структурой колонок,
+                  сведено в единую верхнюю панель настройки (было отдельной
+                  кнопкой справа от доски). */}
+              <Button
+                size="small"
+                variant="outlined"
+                color="inherit"
+                startIcon={<AddIcon />}
+                onClick={handleAddColumn}
+                sx={{ textTransform: 'none' }}
+              >
+                Добавить колонку
+              </Button>
               {/* ТП-168: в чистом состоянии «Отменить/Сохранить» скрыты, а не
                   задизейблены — MUI-disabled в тёмной теме (белый 12%) почти
                   невидим и выглядит «провалами»; мёртвые кнопки против DoD.
@@ -618,26 +644,8 @@ function BoardInner(props: BoardProps) {
               )
             })}
             {boardProvided.placeholder}
-            {editMode && (
-              <Stack gap={1} sx={{ flexShrink: 0, pt: '2px' }}>
-                <Button
-                  onClick={handleAddColumn}
-                  startIcon={<AddIcon />}
-                  sx={{ minWidth: 180, height: 40, textTransform: 'none' }}
-                >
-                  Добавить колонку
-                </Button>
-                <Button
-                  onClick={() =>
-                    historyModal.show({ projectId: activeProject.id })
-                  }
-                  startIcon={<HistoryIcon />}
-                  sx={{ minWidth: 180, height: 40, textTransform: 'none' }}
-                >
-                  История изменений
-                </Button>
-              </Stack>
-            )}
+            {/* ТП-191: кнопки «Добавить колонку»/«История изменений» убраны
+                отсюда — сведены в верхнюю панель настройки и шапку доски. */}
           </BoardContainer>
         )}
       </Droppable>
