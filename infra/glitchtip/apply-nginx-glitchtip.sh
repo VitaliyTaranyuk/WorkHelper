@@ -139,13 +139,22 @@ fi
 
 # --- Post-check ingest: envelope-путь должен уйти в GlitchTip, а не в SPA.
 # GET к GlitchTip даёт 405/401/400 (метод/аутентификация), SPA отдала бы
-# 200 text/html. 404 = локация не применилась.
+# 200 text/html; 502/504 = локация работает, но сам GlitchTip лежит.
+# При лежащем GlitchTip конфиг не откатываем: локация валидна и безвредна
+# (путь /api/N/envelope/ SPA не использует), а откат зациклил бы применение —
+# прогон №1 показал именно этот сценарий (образ не спуллился → 8090 мёртв).
+GT_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "http://127.0.0.1:8090/_health/")
 CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 -k \
   --resolve "wowoffcata.hlab.kz:443:127.0.0.1" \
   "https://wowoffcata.hlab.kz/api/1/envelope/")
 if [ "$CODE" = "405" ] || [ "$CODE" = "401" ] || [ "$CODE" = "400" ] || [ "$CODE" = "403" ]; then
   log "post-check ingest OK (HTTP $CODE от GlitchTip)"
+elif [ "$GT_CODE" != "200" ] && { [ "$CODE" = "502" ] || [ "$CODE" = "504" ]; }; then
+  log "WARNING: локация применена, но GlitchTip лежит (health $GT_CODE, ingest $CODE) — конфиг оставлен, поднять glitchtip-web"
+  audit "WARN applied, glitchtip down (health $GT_CODE ingest $CODE)"
 else
+  log "диагностика: glitchtip health=$GT_CODE; локации /api в конфигах:"
+  grep -n 'location ~ \^/api' "${FILES[@]}" 2>/dev/null || log "  (локация ingest НЕ найдена в конфигах)"
   if [ "$CHANGED" -eq 1 ]; then
     rollback_all
     log "ERROR: post-check ingest дал HTTP $CODE — откат"

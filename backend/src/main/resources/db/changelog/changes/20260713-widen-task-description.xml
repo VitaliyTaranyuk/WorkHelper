@@ -1,0 +1,19 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        ТП-187: лимит описания задачи 4096 символов был искусственным
+        (VARCHAR(4096) + дублирующие проверки в DTO/валидаторах) и вынуждал
+        выносить длинные тексты в приложенные .txt-файлы вручную. Зрелые TMS
+        (Jira/Linear/GitHub Issues) хранят описание как длинный текст без
+        потолка. Расширение типа до TEXT — аддитивная, обратно-совместимая
+        миграция (как 20260703 для task_history): данные не переписываются,
+        прежний код с ней полностью совместим.
+    -->
+    <changeSet id="20260713-widen-task-description" author="cloud-code">
+        <modifyDataType tableName="task_model" columnName="description" newDataType="TEXT"/>
+    </changeSet>
+
+</databaseChangeLog>
