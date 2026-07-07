@@ -3,19 +3,25 @@ import { useEffect, useState } from 'react'
 // диалогов (класс TD-015: хук требует Router-контекст, singleton — нет).
 import { router } from '@/application/router'
 import {
-  Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
   Stack,
-  TextField,
+  Tooltip,
   Typography,
 } from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import { Button } from '@/shared/ui/Button'
+import { Spacer } from '@/shared/ui/Spacer'
+import { TextField } from '@/shared/ui/mui/TextFileld'
+import { FormCaption } from '@/shared/ui/components/FormCaption'
+import { modalStyle } from '@/shared/ui/modalStyles'
+import { confirmDialog } from '@/shared/ui/components/ConfirmDialog'
 import type { MeetingDto } from '@/shared/api/endpoint/meetingsApi'
 import { useCreateMeetRoom } from '@/features/meet/useCreateMeetRoom'
 import { buildMeetUrl, parseMeetToken } from '@/features/meet/meetLink'
@@ -51,6 +57,13 @@ function formatRange(meeting: MeetingDto): string {
   return `${date}, ${time} – ${end}`
 }
 
+/**
+ * Карточка встречи календаря. ТП-180: приведена к единому стилю модалок
+ * приложения (modalStyle, заголовок, close-иконка, кнопки shared/ui,
+ * FormCaption) и удаление — только через общий ConfirmDialog (деструктивное
+ * действие без подтверждения было единственным таким местом, F-007/ТП-133);
+ * карточка гарантированно закрывается ДО запуска удаления.
+ */
 export function MeetingDetailsDialog({
   meeting,
   projectId,
@@ -73,8 +86,6 @@ export function MeetingDetailsDialog({
   const linkValid = trimmed.length === 0 || LINK_PATTERN.test(trimmed)
   const meetToken = parseMeetToken(meeting.link)
 
-  // M5 (ТП-165): видеоссылку WorkTask можно добавить и к существующей записи —
-  // комната привязывается к встрече (идемпотентно), ссылка в то же поле link.
   const generateMeetLink = async () => {
     try {
       const room = await createMeetRoom.mutateAsync({ meetingId: meeting.id })
@@ -94,102 +105,135 @@ export function MeetingDetailsDialog({
     window.open(meeting.link!, '_blank', 'noopener,noreferrer')
   }
 
+  const remove = async () => {
+    const ok = await confirmDialog({
+      title: 'Удалить встречу',
+      message: `Удалить встречу «${meeting.title}»? Действие необратимо; ссылка на видеовстречу перестанет работать.`,
+      confirmLabel: 'Удалить',
+      destructive: true,
+    })
+    if (!ok) return
+    // Сначала закрываем карточку, затем запускаем удаление — карточка не
+    // «живёт» после удаления даже при медленной сети (ТП-180).
+    onClose()
+    onDelete(meeting.id)
+  }
+
+  const copyLink = () => {
+    void navigator.clipboard
+      .writeText(meeting.link!)
+      .then(() => notify.success('Ссылка скопирована'))
+      .catch(() => notify.error('Не удалось скопировать ссылку'))
+  }
+
   return (
-    <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle
-        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-      >
+    <Dialog
+      open
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{ paper: { sx: modalStyle.modalContainer } }}
+    >
+      <DialogTitle sx={{ p: 0, pr: 5, fontSize: '24px', fontWeight: 500 }}>
         {meeting.title}
-        <IconButton
-          size="small"
-          aria-label="Удалить встречу"
-          onClick={() => onDelete(meeting.id)}
-        >
-          <DeleteOutlineIcon fontSize="small" />
-        </IconButton>
       </DialogTitle>
-      <DialogContent>
-        <Stack gap={1.5}>
+      <IconButton
+        aria-label="close"
+        onClick={onClose}
+        sx={{ position: 'absolute', right: 32, top: 28 }}
+        size="small"
+      >
+        <CloseIcon fontSize="small" />
+      </IconButton>
+      <DialogContent sx={{ ...modalStyle.modalContent, pb: 0 }}>
+        <Stack gap={2}>
           <Typography color="text.secondary">{formatRange(meeting)}</Typography>
           {meeting.description && (
             <Typography whiteSpace="pre-wrap">{meeting.description}</Typography>
           )}
-          {meeting.creatorName && (
-            <Typography variant="body2" color="text.secondary">
-              Организатор: {meeting.creatorName}
-            </Typography>
+          {(meeting.creatorName || meeting.participants.length > 0) && (
+            <Stack gap={0.5}>
+              {meeting.creatorName && (
+                <Typography variant="body2" color="text.secondary">
+                  Организатор: {meeting.creatorName}
+                </Typography>
+              )}
+              {meeting.participants.length > 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  Участники:{' '}
+                  {meeting.participants.map((p) => p.displayName).join(', ')}
+                </Typography>
+              )}
+            </Stack>
           )}
-          {meeting.participants.length > 0 && (
-            <Typography variant="body2" color="text.secondary">
-              Участники: {meeting.participants.map((p) => p.displayName).join(', ')}
-            </Typography>
-          )}
+
           {!meeting.link && (
             <Stack direction="row">
               <Button
-                variant="outlined"
-                startIcon={<VideocamOutlinedIcon />}
+                variant="secondary"
+                size="small"
                 disabled={createMeetRoom.isPending || saving}
                 onClick={() => void generateMeetLink()}
               >
-                Создать видеовстречу WorkTask
+                <VideocamOutlinedIcon fontSize="small" />
+                Добавить видеовстречу
               </Button>
             </Stack>
           )}
-          <Stack direction="row" gap={1} alignItems="flex-start">
-            <TextField
-              label="Ссылка на встречу"
-              size="small"
-              fullWidth
-              value={link}
-              onChange={(e) => setLink(e.target.value)}
-              error={!linkValid}
-              helperText={
-                !linkValid
-                  ? 'Ссылка должна начинаться с http:// или https://'
-                  : meetToken
-                    ? 'Видеовстреча WorkTask — откроется внутри приложения; очистите поле и сохраните, чтобы убрать встречу'
-                    : undefined
-              }
-            />
-            {/* ТП-169: скопировать ссылку-приглашение в один клик */}
-            {meeting.link && !linkChanged && (
-              <IconButton
-                aria-label="Скопировать ссылку"
-                title="Скопировать ссылку"
-                onClick={() => {
-                  void navigator.clipboard
-                    .writeText(meeting.link!)
-                    .then(() => notify.success('Ссылка скопирована'))
-                    .catch(() => notify.error('Не удалось скопировать ссылку'))
-                }}
-              >
-                <ContentCopyIcon fontSize="small" />
-              </IconButton>
-            )}
-            {linkChanged && (
-              <Button
-                variant="outlined"
-                disabled={!linkValid || saving}
-                onClick={() => onSaveLink(meeting, trimmed)}
-              >
-                Сохранить
-              </Button>
-            )}
+
+          <Stack gap={0.5}>
+            <FormCaption>Ссылка на встречу</FormCaption>
+            <Stack direction="row" gap={1} alignItems="flex-start">
+              <TextField
+                size="small"
+                fullWidth
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                error={!linkValid}
+                helperText={
+                  !linkValid
+                    ? 'Ссылка должна начинаться с http:// или https://'
+                    : meetToken
+                      ? 'Видеовстреча WorkTask — откроется внутри приложения; очистите поле и сохраните, чтобы убрать встречу'
+                      : undefined
+                }
+              />
+              {meeting.link && !linkChanged && (
+                <Tooltip title="Скопировать ссылку">
+                  <IconButton aria-label="Скопировать ссылку" onClick={copyLink}>
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {linkChanged && (
+                <Button
+                  variant="secondary"
+                  disabled={!linkValid || saving}
+                  onClick={() => onSaveLink(meeting, trimmed)}
+                >
+                  Сохранить
+                </Button>
+              )}
+            </Stack>
           </Stack>
         </Stack>
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ p: 0, mt: '20px', gap: '12px' }}>
         {meeting.link && (
-          <Button
-            variant="contained"
-            startIcon={<VideocamOutlinedIcon />}
-            onClick={join}
-          >
+          <Button style={{ width: '50%' }} variant="primary" onClick={join}>
+            <VideocamOutlinedIcon fontSize="small" />
             Подключиться
           </Button>
         )}
-        <Button onClick={onClose}>Закрыть</Button>
+        <Button
+          style={meeting.link ? undefined : { width: '50%' }}
+          variant="secondary"
+          onClick={() => void remove()}
+        >
+          <DeleteOutlineIcon fontSize="small" />
+          Удалить
+        </Button>
+        <Spacer />
       </DialogActions>
     </Dialog>
   )
