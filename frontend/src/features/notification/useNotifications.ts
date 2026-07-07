@@ -10,12 +10,21 @@ export function useUnreadCount() {
   })
 }
 
-export function useNotifications(enabled: boolean) {
+/**
+ * ТП-179: список грузится фоном с тем же ритмом, что и счётчик (30с,
+ * только активная вкладка — паттерн pollingConfig ТП-47), а не по клику —
+ * открытие колокольчика показывает данные МГНОВЕННО из кэша, свежесть
+ * поддерживает поллинг. Раньше запрос стартовал при открытии меню, и
+ * пользователь ждал сеть на каждый клик.
+ */
+export function useNotifications() {
   return useQuery({
     queryKey: ['notifications', 'list'],
     queryFn: () =>
       workTechApi.notification.getNotifications().then((r) => r.data),
-    enabled,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   })
 }
 
