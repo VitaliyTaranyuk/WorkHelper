@@ -44,7 +44,7 @@ services:
     mem_limit: 64m
 
   glitchtip-web:
-    image: glitchtip/glitchtip:v6.2
+    image: glitchtip/glitchtip:6.2
     container_name: glitchtip-web
     env_file: .env.glitchtip
     ports:
@@ -62,7 +62,7 @@ services:
       start_period: 90s
 
   glitchtip-worker:
-    image: glitchtip/glitchtip:v6.2
+    image: glitchtip/glitchtip:6.2
     container_name: glitchtip-worker
     command: ./bin/run-celery-with-beat.sh
     env_file: .env.glitchtip
@@ -73,7 +73,7 @@ services:
     mem_limit: 512m
 
   glitchtip-migrate:
-    image: glitchtip/glitchtip:v6.2
+    image: glitchtip/glitchtip:6.2
     container_name: glitchtip-migrate
     command: ./bin/run-migrate.sh
     env_file: .env.glitchtip
