@@ -49,6 +49,9 @@ public class SecurityConfig {
     // WebSocket-handshake не несёт Authorization-заголовка: JWT проверяется в
     // MeetHandshakeInterceptor (query-параметр) — HTTP-цепочка пропускает путь.
     private static final String[] WS_URLS = {"/work-task/ws/**"};
+    // ТП-175: вебхук алертов мониторинга приходит от GlitchTip без JWT;
+    // аутентификация — общий секрет в query, проверяется MonitoringAlertService.
+    private static final String[] MONITORING_URLS = {"/work-task/api/v1/monitoring/alert"};
 
     @Value("${spring.cors.allowed.origins}")
     private String allowedOrigins;
@@ -82,6 +85,7 @@ public class SecurityConfig {
                         .requestMatchers(AUTH_URLS).permitAll()
                         .requestMatchers(SWAGGER_URLS).permitAll()
                         .requestMatchers(WS_URLS).permitAll()
+                        .requestMatchers(MONITORING_URLS).permitAll()
                         .anyRequest().authenticated());
         http.sessionManagement(
                 session ->

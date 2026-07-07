@@ -79,6 +79,11 @@ public class Notification {
         return n;
     }
 
+    /** ТП-175: алерт мониторинга — уведомление ведёт на внешнюю карточку issue. */
+    public void attachExternalLink(String link) {
+        this.link = link;
+    }
+
     public void markRead() {
         this.read = true;
     }
