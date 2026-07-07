@@ -406,28 +406,36 @@ function BoardInner(props: BoardProps) {
             </Stack>
             <div style={{ flex: 1 }} />
             <Stack direction="row" gap={1}>
-              <Button
-                size="small"
-                variant="outlined"
-                color="inherit"
-                startIcon={<CloseIcon />}
-                onClick={handleCancelDraft}
-                disabled={!isDirty || updateStatuses.isPending}
-                sx={{ textTransform: 'none' }}
-              >
-                Отменить
-              </Button>
-              <Button
-                size="small"
-                variant="contained"
-                color="primary"
-                startIcon={<SaveOutlinedIcon />}
-                onClick={handleSaveDraft}
-                disabled={!isDirty || updateStatuses.isPending}
-                sx={{ textTransform: 'none' }}
-              >
-                Сохранить
-              </Button>
+              {/* ТП-168: в чистом состоянии «Отменить/Сохранить» скрыты, а не
+                  задизейблены — MUI-disabled в тёмной теме (белый 12%) почти
+                  невидим и выглядит «провалами»; мёртвые кнопки против DoD.
+                  Появляются активными вместе с изменениями (паттерн Linear). */}
+              {isDirty && (
+                <>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<CloseIcon />}
+                    onClick={handleCancelDraft}
+                    disabled={updateStatuses.isPending}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Отменить
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="primary"
+                    startIcon={<SaveOutlinedIcon />}
+                    onClick={handleSaveDraft}
+                    disabled={updateStatuses.isPending}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Сохранить
+                  </Button>
+                </>
+              )}
               <Button
                 size="small"
                 variant="text"
