@@ -13,11 +13,21 @@ import {
   workTechApiClient,
 } from './shared/api/workTechHttpClient'
 import { QueryProvider } from './application/provider/QueryProvider'
+import {
+  initMonitoring,
+  setMonitoringUser,
+} from './shared/monitoring/init'
 
 function InnerApp() {
   const isAuthenticated = useAuthStore((store) => store.isAuthenticated)
   return <RouterProvider router={router} context={{ isAuthenticated }} />
 }
+
+// ТП-175: мониторинг ошибок инициализируется ДО рендера — краш при старте
+// приложения тоже попадает в отчёты. Пользователь привязывается только
+// внутренним UUID (не PII) и снимается при логауте.
+initMonitoring()
+useAuthStore.subscribe((state) => setMonitoringUser(state.user?.id ?? null))
 
 addWorkTechApiAuthMiddleware(workTechApiClient)
 // TODO: переделать обработку ошибки в обертке над workTechApiClient

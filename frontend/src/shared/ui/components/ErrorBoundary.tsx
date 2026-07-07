@@ -1,6 +1,7 @@
 import { Component, type ReactNode } from 'react'
 import { Button, Stack, Typography } from '@mui/material'
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
+import { captureMonitoredError } from '@/shared/monitoring/init'
 
 type Props = {
   children: ReactNode
@@ -30,7 +31,12 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: { componentStack?: string | null }) {
-    // T5-шов: сюда встанет отправка в мониторинг клиентских ошибок
+    // ТП-175 (T5): краш дерева уходит в прод-мониторинг с областью и
+    // React-стеком; console.error остаётся для локальной отладки.
+    captureMonitoredError(error, {
+      area: this.props.areaLabel ?? 'блок',
+      componentStack: info.componentStack,
+    })
     console.error('[ErrorBoundary]', this.props.areaLabel ?? 'блок', error, info.componentStack)
   }
 

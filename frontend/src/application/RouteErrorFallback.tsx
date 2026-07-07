@@ -1,8 +1,10 @@
+import { useEffect } from 'react'
 import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
 import { useRouter } from '@tanstack/react-router'
+import { captureMonitoredError } from '@/shared/monitoring/init'
 
 /**
  * Корневой запасной экран при краше рендера маршрута (ТП-131, TD-015).
@@ -12,6 +14,13 @@ import { useRouter } from '@tanstack/react-router'
  */
 export function RouteErrorFallback({ error }: { error: Error }) {
   const router = useRouter()
+
+  // ТП-175 (T5): крах рендера маршрута уходит в прод-мониторинг. Роутер
+  // ловит исключение сам (в window.onerror оно не попадает), поэтому
+  // отправка отсюда — единственная точка для этого класса ошибок.
+  useEffect(() => {
+    captureMonitoredError(error, { area: 'маршрут' })
+  }, [error])
 
   return (
     <Stack

@@ -6,6 +6,7 @@ import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNone
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline'
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import BugReportOutlinedIcon from '@mui/icons-material/BugReportOutlined'
 
 /**
  * Реестр типов уведомлений (ТП-59): единая точка расширения — новый тип
@@ -37,6 +38,12 @@ const NOTIFICATION_META: Record<string, NotificationMeta> = {
   MEETING_STARTED: {
     title: 'Встреча началась',
     icon: <VideocamOutlinedIcon sx={iconSx} />,
+  },
+  // ТП-175: алерт прод-мониторинга (всплеск/новый тип клиентской ошибки) —
+  // приходит вебхуком от GlitchTip, link ведёт на карточку issue.
+  MONITORING_ALERT: {
+    title: 'Ошибки на проде',
+    icon: <BugReportOutlinedIcon sx={iconSx} />,
   },
 }
 
