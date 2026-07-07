@@ -11,6 +11,7 @@ import ru.worktechlab.work_task.dto.meetings.MeetingDto;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.models.tables.Meeting;
 import ru.worktechlab.work_task.models.tables.User;
+import ru.worktechlab.work_task.repositories.MeetRoomRepository;
 import ru.worktechlab.work_task.repositories.MeetingRepository;
 import ru.worktechlab.work_task.repositories.UserRepository;
 import ru.worktechlab.work_task.utils.CheckerUtil;
@@ -23,6 +24,7 @@ import java.util.List;
 public class MeetingService {
 
     private final MeetingRepository meetingRepository;
+    private final MeetRoomRepository meetRoomRepository;
     private final UserRepository userRepository;
     private final CheckerUtil checkerUtil;
 
@@ -63,6 +65,14 @@ public class MeetingService {
     public ApiResponse deleteMeeting(String meetingId) throws NotFoundException {
         Meeting meeting = findMeeting(meetingId);
         checkerUtil.findAndCheckProjectUserData(meeting.getProject().getId(), false, false);
+        // ТП-169: комната Meet удаляемой встречи закрывается — «осиротевшая»
+        // активная ссылка не должна жить после отмены события (вход по ней
+        // честно ответит «Встреча завершена»).
+        meetRoomRepository.findFirstByMeetingIdAndEndedAtIsNull(meetingId)
+                .ifPresent(room -> {
+                    room.end();
+                    meetRoomRepository.save(room);
+                });
         meetingRepository.delete(meeting);
         meetingRepository.flush();
         return new ApiResponse("Встреча удалена");
