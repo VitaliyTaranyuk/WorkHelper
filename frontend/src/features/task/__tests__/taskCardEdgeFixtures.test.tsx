@@ -38,10 +38,16 @@ const base: ITaskCard = {
 const HUGE = 'Очень длинное описание. '.repeat(400) // ~9.6k символов
 
 const fixtures: Array<{ name: string; task: ITaskCard }> = [
-  { name: 'без исполнителя', task: { ...base, assignee: undefined } as ITaskCard },
-  { name: 'без спринта', task: { ...base, sprintId: undefined } as ITaskCard },
-  { name: 'пустое описание', task: { ...base, description: '' } as ITaskCard },
-  { name: 'огромное описание', task: { ...base, description: HUGE } as ITaskCard },
+  {
+    name: 'без исполнителя',
+    task: { ...base, assignee: undefined } as unknown as ITaskCard,
+  },
+  {
+    name: 'без спринта',
+    task: { ...base, sprintId: undefined } as unknown as ITaskCard,
+  },
+  { name: 'пустое описание', task: { ...base, description: '' } },
+  { name: 'огромное описание', task: { ...base, description: HUGE } },
   {
     name: 'без опциональных полей (estimation/updatedAt/creator)',
     task: {
