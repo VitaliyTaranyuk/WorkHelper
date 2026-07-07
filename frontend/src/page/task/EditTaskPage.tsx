@@ -21,12 +21,19 @@ export const EditTaskPage = memo(function EditTaskPageInner({
     taskCode: code,
   })
 
+  // ТП-201: плейсхолдер из кэша списков (ТП-185) без тела описания — форму
+  // редактирования монтируем ТОЛЬКО на реальных данных, иначе описание пусто
+  // и правки идут поверх невидимого текста.
+  const fullTask = taskByCodeQuery.isPlaceholderData
+    ? undefined
+    : taskByCodeQuery.data
+
   return (
     <>
       <BackButton />
 
-      {taskByCodeQuery.isLoading && <Loader isLoading={true} />}
-      {taskByCodeQuery.data && <TaskPageBody task={taskByCodeQuery.data} />}
+      {!fullTask && !taskByCodeQuery.isError && <Loader isLoading={true} />}
+      {fullTask && <TaskPageBody task={fullTask} />}
     </>
   )
 })
