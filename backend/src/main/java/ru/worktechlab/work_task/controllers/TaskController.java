@@ -321,6 +321,14 @@ public class TaskController {
     }
 
     @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @GetMapping("/{projectId}/search")
+    @Operation(summary = "Поиск id задач по коду/названию/описанию (ТП-188)")
+    public List<String> searchTaskIds(@PathVariable String projectId,
+                                      @RequestParam("q") String query) throws NotFoundException {
+        return taskService.searchTaskIds(projectId, query);
+    }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
     @PutMapping("/update-sprint")
     @Operation(summary = "Перенести задачи между спринтами (wrapper над /bulk/move-sprint)")
     public ApiResponse updateTasksSprint(@Valid @RequestBody UpdateTasksSprintRequestDto dto) throws NotFoundException {

@@ -33,6 +33,20 @@ public interface TaskRepository extends JpaRepository<TaskModel, String>, TaskFi
     /** Минимальная позиция карточки в колонке — для вставки новой задачи в самый верх (ТП-36). */
     @Query("select min(t.position) from TaskModel t where t.project = :project and t.status = :status and t.archived = false")
     Integer findMinPositionByProjectAndStatus(Project project, TaskStatus status);
+
+    /**
+     * ТП-188: серверный поиск по ВСЕМ задачам проекта (активный/неактивные
+     * спринты, Backlog, завершённые, архив). Регистронезависимо, частичное
+     * совпадение по коду, названию и ОПИСАНИЮ (тело описания в списковых
+     * выдачах не передаётся — ТП-187, поэтому поиск по описанию возможен
+     * только здесь). Возвращаем только id — фронт подсвечивает совпадения в
+     * уже загруженном сгруппированном списке, не таская тела описаний.
+     */
+    @Query("select t.id from TaskModel t where t.project = :project and (" +
+            "lower(t.code) like lower(concat('%', :q, '%')) or " +
+            "lower(t.title) like lower(concat('%', :q, '%')) or " +
+            "lower(t.description) like lower(concat('%', :q, '%')))")
+    List<String> searchTaskIds(Project project, String q);
 }
 
 

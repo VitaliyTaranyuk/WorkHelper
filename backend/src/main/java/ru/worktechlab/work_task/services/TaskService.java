@@ -540,6 +540,22 @@ public class TaskService {
         return taskMapper.toListItems(myTasks); // ТП-187: без тела описания
     }
 
+    /**
+     * ТП-188: id задач проекта, совпавших с запросом по коду/названию/описанию
+     * (регистронезависимо, частичное совпадение, все спринты+бэклог+
+     * завершённые+архив). Фронт подсвечивает их в уже загруженном списке —
+     * так поиск покрывает и описание, тело которого в списки не грузится.
+     * Короткие запросы (<2 символов) не ищем — шум и лишняя нагрузка.
+     */
+    @TransactionRequired
+    public List<String> searchTaskIds(String projectId, String query) throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        String q = query == null ? "" : query.trim();
+        if (q.length() < 2)
+            return List.of();
+        return taskRepository.searchTaskIds(data.getProject(), q);
+    }
+
     private List<TaskModel> findTasksInProject(List<String> taskIds, Project project) throws NotFoundException {
         List<TaskModel> tasks = new java.util.ArrayList<>();
         for (String taskId : taskIds)

@@ -111,6 +111,25 @@ export function findTaskByCode({
 }
 
 /**
+ * ТП-188: поиск id задач по коду/названию/описанию во всех секциях проекта.
+ */
+export function searchTasks({
+  projectId,
+  q,
+  otherParams = {},
+}: {
+  projectId: string
+  q: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<string[]>({
+    method: 'GET',
+    url: API_ENDPOINT_PATH.TASKS.SEARCH({ projectId, q }),
+    ...otherParams,
+  })
+}
+
+/**
  * @name UpdateTask
  * @summary Обновить задачу
  * @request PUT:/tasks/{projectId}/{taskId}/update
