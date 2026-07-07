@@ -102,13 +102,21 @@ fi
 # Post-check: хендшейк с Upgrade-заголовками через nginx должен дойти до
 # backend-интерцептора. Без валидного JWT ожидаем 400/401 ОТ BACKEND
 # (значит прокси и upgrade-путь живы). 404/5xx = проксирование сломано.
-# Host обязателен: без него запрос к 127.0.0.1 попадает в default-server
-# (урок первого прогона: 404 не от нашего блока → ложный откат).
-CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-  -H "Host: wowoffcata.hlab.kz" \
-  -H "Connection: Upgrade" -H "Upgrade: websocket" \
-  -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
-  "http://127.0.0.1/work-task/ws/meet?room=probe&token=probe")
+# Проверяем РАБОЧИЙ блок: :80 у certbot — только 301-редирект на HTTPS,
+# рабочий server живёт на :443 (урок прогона №3). --resolve даёт корректный
+# SNI/Host на локальный 443; фолбэк — прямой :80 (если TLS терминируется выше).
+probe() {
+  curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$@" \
+    -H "Connection: Upgrade" -H "Upgrade: websocket" \
+    -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
+    "${PROBE_URL}"
+}
+PROBE_URL="https://wowoffcata.hlab.kz/work-task/ws/meet?room=probe&token=probe"
+CODE=$(probe --resolve "wowoffcata.hlab.kz:443:127.0.0.1" -k)
+if [ "$CODE" = "000" ]; then
+  PROBE_URL="http://127.0.0.1/work-task/ws/meet?room=probe&token=probe"
+  CODE=$(probe -H "Host: wowoffcata.hlab.kz")
+fi
 if [ "$CODE" = "401" ] || [ "$CODE" = "400" ] || [ "$CODE" = "101" ]; then
   log "post-check OK: nginx проксирует WS-путь на backend (HTTP $CODE)"
   audit "OK applied (post-check HTTP $CODE, changed=$CHANGED)"
