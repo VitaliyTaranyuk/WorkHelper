@@ -68,14 +68,21 @@ except Exception:
 
 from apps.projects.models import Project, ProjectKey  # noqa: E402
 
-project = Project.objects.filter(organization=org, slug=PROJECT_SLUG).first()
+# Идемпотентность по ИМЕНИ, старейший первым: GlitchTip уникализирует slug
+# при сохранении (прогоны №2–4 плодили дубли и меняли DSN на каждый деплой,
+# теряя историю ошибок). Пустые дубли можно удалить в UI.
+project = (
+    Project.objects.filter(organization=org, name="WorkTask Frontend")
+    .order_by("id")
+    .first()
+)
 if project is None:
     project = Project.objects.create(
         organization=org, name="WorkTask Frontend", slug=PROJECT_SLUG, platform="javascript-react"
     )
     log("создан проект work-task-frontend")
 else:
-    log("проект work-task-frontend уже есть")
+    log(f"проект work-task-frontend уже есть (id={project.id})")
 
 # Команда нужна, чтобы проект был виден в UI не-суперпользователям.
 try:
