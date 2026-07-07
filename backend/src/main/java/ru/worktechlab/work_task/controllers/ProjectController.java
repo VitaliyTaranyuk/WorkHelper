@@ -147,7 +147,7 @@ public class ProjectController {
             @Parameter(description = "ИД проекта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
             @PathVariable String projectId,
             @Parameter(description = "Данные проекта")
-            @RequestBody EditProjectRequestDto data
+            @RequestBody @Valid EditProjectRequestDto data
     ) throws NotFoundException, BadRequestException {
         return projectsService.editProject(projectId, data);
     }

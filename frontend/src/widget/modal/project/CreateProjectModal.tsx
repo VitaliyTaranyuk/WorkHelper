@@ -13,15 +13,37 @@ import { useState } from 'react'
 import { Button } from '@/shared/ui/Button'
 import { modalStyle } from '@/shared/ui/modalStyles'
 import { useCreateProject } from '@/features/project/mutation/useProjectActions'
+import {
+  PROJECT_CODE_HINT,
+  deriveProjectCode,
+  isValidProjectCode,
+  normalizeProjectCodeInput,
+} from '@/features/project/projectCode'
 
 export const CreateProjectModal = NiceModal.create(() => {
   const modal = useModal()
   const createProject = useCreateProject()
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
+  // ТП-190: код автогенерируется из названия, пока пользователь не задал
+  // его вручную — тогда автосинхронизация прекращается (паттерн Linear).
+  const [codeTouched, setCodeTouched] = useState(false)
   const [description, setDescription] = useState('')
 
-  const valid = name.trim().length > 0 && code.trim().length > 0
+  const codeValid = isValidProjectCode(code)
+  const valid = name.trim().length > 0 && codeValid
+  // Ошибку формата показываем только когда есть что показывать (не на пустом)
+  const codeError = code.length > 0 && !codeValid
+
+  const onNameChange = (value: string) => {
+    setName(value)
+    if (!codeTouched) setCode(deriveProjectCode(value))
+  }
+
+  const onCodeChange = (value: string) => {
+    setCodeTouched(true)
+    setCode(normalizeProjectCodeInput(value))
+  }
 
   const close = () => {
     modal.reject()
@@ -64,17 +86,21 @@ export const CreateProjectModal = NiceModal.create(() => {
           <TextField
             label="Название"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => onNameChange(e.target.value)}
             fullWidth
             size="small"
             autoFocus
           />
           <TextField
-            label="Код (например TP)"
+            label="Код проекта"
             value={code}
-            onChange={(e) => setCode(e.target.value)}
+            onChange={(e) => onCodeChange(e.target.value)}
             fullWidth
             size="small"
+            error={codeError}
+            helperText={
+              codeError ? 'Неверный формат. ' + PROJECT_CODE_HINT : PROJECT_CODE_HINT
+            }
           />
           <TextField
             label="Описание"
