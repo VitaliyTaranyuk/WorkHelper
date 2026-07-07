@@ -11,8 +11,8 @@ import { persist } from 'zustand/middleware'
  * локализация). Старые ключи в localStorage безвредны — persist их игнорирует.
  */
 export type UserSettings = {
-  /** Вид календаря по умолчанию — запоминается при переключении (ТП-56). */
-  calendarView: 'week' | 'month'
+  /** Вид календаря по умолчанию — запоминается при переключении (ТП-56, ТП-186). */
+  calendarView: 'week' | 'month' | 'agenda'
 }
 
 const DEFAULTS: UserSettings = {

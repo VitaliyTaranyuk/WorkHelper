@@ -24,11 +24,13 @@ import {
 import type { MeetingDto } from '@/shared/api/endpoint/meetingsApi'
 import { toBackendDateTime } from '@/features/meeting/dateTimeFormat'
 import { MeetingDetailsDialog } from './MeetingDetailsDialog'
+import { AgendaView } from './AgendaView'
 import { CreateMeetingModal } from '@/widget/modal/meeting/CreateMeetingModal'
 
 type Props = { projectId: string; focusMeetingId?: string }
 
-type CalendarView = 'week' | 'month'
+// ТП-186 ST-3: «Ближайшие» — хронологический список предстоящих встреч.
+type CalendarView = 'week' | 'month' | 'agenda'
 
 const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
@@ -181,18 +183,28 @@ export function CalendarPage({ projectId, focusMeetingId }: Props) {
           flexWrap="wrap"
           sx={{ justifyContent: { xs: 'center', md: 'flex-start' } }}
         >
-          <Button size="small" variant="outlined" onClick={() => setAnchor(dayjs())}>
-            Сегодня
-          </Button>
-          <Stack direction="row" alignItems="center">
-            <IconButton size="small" aria-label="Назад" onClick={() => shift(-1)}>
-              <ChevronLeftIcon />
-            </IconButton>
-            <IconButton size="small" aria-label="Вперёд" onClick={() => shift(1)}>
-              <ChevronRightIcon />
-            </IconButton>
-          </Stack>
-          <Typography variant="h6">{periodLabel}</Typography>
+          {/* ТП-186: «Ближайшие» — хронологический список вперёд, навигация по
+              периодам к нему не относится и скрыта. */}
+          {view !== 'agenda' && (
+            <>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => setAnchor(dayjs())}
+              >
+                Сегодня
+              </Button>
+              <Stack direction="row" alignItems="center">
+                <IconButton size="small" aria-label="Назад" onClick={() => shift(-1)}>
+                  <ChevronLeftIcon />
+                </IconButton>
+                <IconButton size="small" aria-label="Вперёд" onClick={() => shift(1)}>
+                  <ChevronRightIcon />
+                </IconButton>
+              </Stack>
+              <Typography variant="h6">{periodLabel}</Typography>
+            </>
+          )}
         </Stack>
 
         <Stack
@@ -210,6 +222,7 @@ export function CalendarPage({ projectId, focusMeetingId }: Props) {
           >
             <ToggleButton value="week">Неделя</ToggleButton>
             <ToggleButton value="month">Месяц</ToggleButton>
+            <ToggleButton value="agenda">Ближайшие</ToggleButton>
           </ToggleButtonGroup>
           <Button
             variant="contained"
@@ -225,6 +238,11 @@ export function CalendarPage({ projectId, focusMeetingId }: Props) {
         <Box sx={{ display: { xs: 'none', md: 'block' } }} />
       </Box>
 
+      {view === 'agenda' && (
+        <AgendaView meetings={meetings} onSelect={setSelectedMeeting} />
+      )}
+
+      {view !== 'agenda' && (
       <Box
         sx={{
           display: 'grid',
@@ -291,6 +309,7 @@ export function CalendarPage({ projectId, focusMeetingId }: Props) {
           )
         })}
       </Box>
+      )}
 
       <MeetingDetailsDialog
         meeting={selectedMeeting}
