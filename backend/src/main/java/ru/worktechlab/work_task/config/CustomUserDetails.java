@@ -27,6 +27,11 @@ public class CustomUserDetails implements UserDetails {
         return user.getId();
     }
 
+    /** ТП-182: пользователь уже загружен аутентификацией — без повторного SQL. */
+    public User getUser() {
+        return user;
+    }
+
     @Override
     public String getPassword() {
         return user.getPassword();

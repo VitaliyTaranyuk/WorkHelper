@@ -11,14 +11,20 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import ru.worktechlab.work_task.config.CustomUserDetails;
 import ru.worktechlab.work_task.utils.UserContext;
 
 import java.io.IOException;
 
-@Component
+/**
+ * ТП-182: НЕ помечать @Component. Бин создаётся только в
+ * {@code SecurityConfig#authenticationJwtTokenFilter()} и участвует в
+ * security-цепочке через addFilterBefore. С @Component Spring Boot
+ * дополнительно регистрировал фильтр как обычный servlet-фильтр, и каждый
+ * запрос проходил его ДВАЖДЫ — двойная загрузка пользователя из БД
+ * (+~150мс на удалённую БД на каждый запрос API).
+ */
 public class AuthTokenFilter extends OncePerRequestFilter {
     @Autowired
     private JwtUtils jwtUtils;

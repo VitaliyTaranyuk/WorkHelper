@@ -7,7 +7,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.Authentication;
 import ru.worktechlab.work_task.TestFixtures;
+import ru.worktechlab.work_task.config.CustomUserDetails;
 import ru.worktechlab.work_task.dto.auth.LoginRequestDTO;
 import ru.worktechlab.work_task.dto.auth.LoginResponseDTO;
 import ru.worktechlab.work_task.dto.auth.TokenRefreshRequestDTO;
@@ -62,9 +64,11 @@ class AuthServiceTest {
                 .expiryDate(Instant.now().plusSeconds(3600))
                 .build();
 
+        // ТП-182: пользователь приходит из principal результата authenticate
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn(new CustomUserDetails(user));
         when(authMapper.toAuthenticationToken(request)).thenReturn(null);
-        when(authenticationManager.authenticate(any())).thenReturn(null);
-        when(userService.findActiveUserByEmail("test@test.com")).thenReturn(user);
+        when(authenticationManager.authenticate(any())).thenReturn(authentication);
         when(tokenService.generateToken(user)).thenReturn("access-token");
         when(tokenService.createRefreshToken(user)).thenReturn(refreshToken);
 
@@ -73,6 +77,8 @@ class AuthServiceTest {
         assertThat(response.getAccessToken()).isEqualTo("access-token");
         assertThat(response.getRefreshToken()).isEqualTo("refresh-token-value");
         verify(authenticationManager).authenticate(any());
+        // ТП-182: повторного SELECT того же пользователя больше нет
+        verify(userService, never()).findActiveUserByEmail(any());
     }
 
     @Test

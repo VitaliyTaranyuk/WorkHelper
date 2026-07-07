@@ -2,7 +2,9 @@ package ru.worktechlab.work_task.services;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import ru.worktechlab.work_task.config.CustomUserDetails;
 import ru.worktechlab.work_task.annotations.TransactionRequired;
 import ru.worktechlab.work_task.dto.auth.LoginRequestDTO;
 import ru.worktechlab.work_task.dto.auth.TokenRefreshRequestDTO;
@@ -28,11 +30,15 @@ public class AuthService {
 
     @TransactionRequired
     public LoginResponseDTO authenticate(LoginRequestDTO loginRequestDTO) throws NotFoundException {
-        authenticationManager.authenticate(
+        // ТП-182: пользователь уже загружен провайдером аутентификации
+        // (UsersDetailsService) — берём его из principal вместо повторного
+        // запроса к БД (findActiveUserByEmail дублировал тот же SELECT,
+        // +~150мс на удалённую БД при каждом входе).
+        Authentication authentication = authenticationManager.authenticate(
                 authMapper.toAuthenticationToken(loginRequestDTO)
         );
+        User user = ((CustomUserDetails) authentication.getPrincipal()).getUser();
 
-        User user = userService.findActiveUserByEmail(loginRequestDTO.getEmail());
         String accessToken = tokenService.generateToken(user);
         RefreshToken refreshToken = tokenService.createRefreshToken(user);
 
