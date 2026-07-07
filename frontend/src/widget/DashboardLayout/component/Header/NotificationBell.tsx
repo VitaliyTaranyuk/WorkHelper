@@ -53,12 +53,17 @@ export function NotificationBell() {
   const taskCardModal = useModal(TaskCardModal)
 
   const unreadQuery = useUnreadCount()
-  const listQuery = useNotifications(open)
+  // ТП-179: список подгружен фоном заранее — открытие меню мгновенное
+  const listQuery = useNotifications()
   const markRead = useMarkRead()
   const markAllRead = useMarkAllRead()
 
   const unread = unreadQuery.data ?? 0
-  const notifications = listQuery.data ?? []
+  // ТП-179: рендерим последние 50 — сотни MenuItem заметно тормозили
+  // открытие меню; старое доступно в истории задач, не в колокольчике.
+  const allNotifications = listQuery.data ?? []
+  const notifications = allNotifications.slice(0, 50)
+  const hiddenCount = allNotifications.length - notifications.length
 
   // ТП-72: наведение мышью помечает уведомление прочитанным (паттерн
   // GitHub/Linear — не требуется переходить в объект). Set уже отправленных
@@ -177,6 +182,16 @@ export function NotificationBell() {
         <Divider />
 
         {showSettings && <NotificationSettingsForm />}
+
+        {!showSettings && hiddenCount > 0 && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: 'block', px: 2, py: 0.5 }}
+          >
+            Показаны последние 50 из {allNotifications.length}
+          </Typography>
+        )}
 
         {!showSettings && notifications.length === 0 && (
           <Stack alignItems="center" sx={{ py: 4, px: 2 }}>
