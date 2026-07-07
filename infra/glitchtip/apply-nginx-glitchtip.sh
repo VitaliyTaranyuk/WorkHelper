@@ -57,19 +57,47 @@ path = sys.argv[1]
 block = os.environ["INGEST_BLOCK"].strip("\n")
 with io.open(path, encoding="utf-8") as fh:
     text = fh.read()
-pattern = re.compile(r"^([ \t]*)location\s+/work-task/\s*\{", re.M)
+# Якорь — первая /work-task/-локация КАЖДОГО вида записи (допускаем
+# модификатор ^~ и вариант ws/): ingest-локация должна попасть во все
+# server-блоки, где проксируется приложение (в т.ч. certbot-443).
+pattern = re.compile(
+    r"^([ \t]*)location\s+(?:\^~\s+)?/work-task/(?:ws/)?\s*\{", re.M)
 matches = list(pattern.finditer(text))
 if not matches:
-    raise SystemExit(f"marker 'location /work-task/' not found in {path}")
-def repl(m):
+    raise SystemExit(f"marker 'location /work-task/…' not found in {path}")
+# Не дублировать в пределах одного server-блока: вставляем только перед
+# ПЕРВЫМ якорем каждой непрерывной группы (грубая, но достаточная эвристика:
+# перед якорем, которому не предшествует другой якорь ближе, чем начало
+# server-блока). Практично: вставляем перед каждым якорем, которому не
+# предшествует наш маркер в том же блоке — здесь файл уже проверен на
+# отсутствие маркера, а два якоря подряд в одном блоке разделяет только
+# whitespace/комментарии между локациями, поэтому вставляем перед первым
+# якорем каждого server-блока: определяем блоки по строкам 'server {'.
+server_starts = [m.start() for m in re.finditer(r"^\s*server\s*\{", text, re.M)]
+def block_index(pos):
+    idx = -1
+    for i, s in enumerate(server_starts):
+        if s <= pos:
+            idx = i
+    return idx
+seen_blocks = set()
+first_anchors = []
+for m in matches:
+    b = block_index(m.start())
+    if b in seen_blocks:
+        continue
+    seen_blocks.add(b)
+    first_anchors.append(m)
+# Вставки с конца, чтобы позиции не сдвигались
+for m in reversed(first_anchors):
     indent = m.group(1)
     indented = "\n".join(indent + line if line.strip() else line
                          for line in block.splitlines())
-    return indented + "\n\n" + m.group(0)
-text = pattern.sub(repl, text)
+    text = text[:m.start()] + indented + "\n\n" + text[m.start():]
 with io.open(path, "w", encoding="utf-8") as fh:
     fh.write(text)
-print(f"ingest inserted into {path} ({len(matches)} block(s))")
+print(f"ingest inserted into {path} ({len(first_anchors)} block(s), "
+      f"anchors={len(matches)}, servers={len(server_starts)})")
 PYEOF
     if [ $? -ne 0 ]; then
       cp "$f.bak-glitchtip" "$f"
@@ -155,6 +183,15 @@ elif [ "$GT_CODE" != "200" ] && { [ "$CODE" = "502" ] || [ "$CODE" = "504" ]; };
 else
   log "диагностика: glitchtip health=$GT_CODE; локации /api в конфигах:"
   grep -n 'location ~ \^/api' "${FILES[@]}" 2>/dev/null || log "  (локация ingest НЕ найдена в конфигах)"
+  log "структура server-блоков (server/listen/server_name/location):"
+  for f in "${FILES[@]}"; do
+    echo "--- $f"
+    grep -nE '^\s*(server\s*\{|listen |server_name |location )' "$f" | head -40
+  done
+  log "заголовки ответа post-check:"
+  curl -sD - -o /dev/null --max-time 10 -k \
+    --resolve "wowoffcata.hlab.kz:443:127.0.0.1" \
+    "https://wowoffcata.hlab.kz/api/1/envelope/" | head -8
   if [ "$CHANGED" -eq 1 ]; then
     rollback_all
     log "ERROR: post-check ingest дал HTTP $CODE — откат"

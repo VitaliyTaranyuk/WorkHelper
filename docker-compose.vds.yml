@@ -48,14 +48,14 @@ services:
     container_name: glitchtip-web
     env_file: .env.glitchtip
     ports:
-      - "127.0.0.1:8090:8080"
+      - "127.0.0.1:8090:8000"
     depends_on:
       - glitchtip-postgres
       - glitchtip-redis
     restart: unless-stopped
     mem_limit: 768m
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/_health/ || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/_health/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
