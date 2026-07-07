@@ -32,12 +32,16 @@ if [ -z "$WS_BLOCK" ]; then
   exit 1
 fi
 
-# Все server-блоки wowoffcata (http:80 и https:443 от certbot)
-mapfile -t FILES < <(grep -rl "server_name wowoffcata" /etc/nginx/sites-enabled/ /etc/nginx/conf.d/ 2>/dev/null | sort -u)
+# Все конфиги с server_name wowoffcata — ищем по ВСЕМУ /etc/nginx (раскладка
+# дистрибутива может не иметь sites-enabled/conf.d), бэкапы исключаем.
+mapfile -t FILES < <(grep -rls "server_name[^;]*wowoffcata" /etc/nginx 2>/dev/null \
+  | grep -v -e '\.bak' -e '~$' | sort -u)
 if [ ${#FILES[@]} -eq 0 ]; then
-  log "ERROR: nginx-конфиг wowoffcata не найден"
+  log "ERROR: nginx-конфиг wowoffcata не найден. Файлы /etc/nginx:"
+  find /etc/nginx -maxdepth 2 -type f 2>/dev/null | head -20
   exit 1
 fi
+log "найдено конфигов: ${#FILES[@]} (${FILES[*]})"
 
 CHANGED=0
 for f in "${FILES[@]}"; do
@@ -46,20 +50,27 @@ for f in "${FILES[@]}"; do
     continue
   fi
   cp "$f" "$f.bak-ws" || { log "ERROR: бэкап $f не создан"; exit 1; }
-  # Вставка блока перед КАЖДОЙ "location /work-task/ {" (python3 есть на VDS)
+  # Вставка блока перед КАЖДОЙ "location /work-task/ {" с адаптацией отступа
+  # под реальный конфиг (python3 есть на VDS).
   WS_BLOCK="$WS_BLOCK" python3 - "$f" <<'PYEOF'
-import io, os, sys
+import io, os, re, sys, textwrap
 path = sys.argv[1]
-block = os.environ["WS_BLOCK"].rstrip() + "\n"
+block = textwrap.dedent(os.environ["WS_BLOCK"]).strip("\n")
 with io.open(path, encoding="utf-8") as fh:
     text = fh.read()
-target = "    location /work-task/ {"
-if target not in text:
+pattern = re.compile(r"^([ \t]*)location\s+/work-task/\s*\{", re.M)
+matches = list(pattern.finditer(text))
+if not matches:
     raise SystemExit(f"marker 'location /work-task/' not found in {path}")
-text = text.replace(target, block + "\n" + target)
+def repl(m):
+    indent = m.group(1)
+    indented = "\n".join(indent + line if line.strip() else line
+                         for line in block.splitlines())
+    return indented + "\n\n" + m.group(0)
+text = pattern.sub(repl, text)
 with io.open(path, "w", encoding="utf-8") as fh:
     fh.write(text)
-print(f"inserted into {path}")
+print(f"inserted into {path} ({len(matches)} block(s))")
 PYEOF
   if [ $? -ne 0 ]; then
     cp "$f.bak-ws" "$f"
