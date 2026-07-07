@@ -5,18 +5,15 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
-  FormControlLabel,
   IconButton,
   MenuItem,
   Select,
   Stack,
-  Switch,
   TextField,
   Typography,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
-import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import { useState } from 'react'
 import { Button } from '@/shared/ui/Button'
 import { Spacer } from '@/shared/ui/Spacer'
@@ -28,10 +25,6 @@ import { useCreateMeeting, useUpdateMeeting } from '@/features/meeting/useMeetin
 import { useCreateMeetRoom } from '@/features/meet/useCreateMeetRoom'
 import { buildMeetUrl } from '@/features/meet/meetLink'
 
-// ТП-113: путь /create отдаёт 404 — кнопка вела на несуществующую страницу и
-// «не позволяла создать встречу». Рабочая точка входа — главная Телемоста, где
-// «Создать видеовстречу» генерирует ссылку автоматически (нужен аккаунт Яндекса).
-const TELEMOST_URL = 'https://telemost.yandex.ru/'
 const LINK_PATTERN = /^https?:\/\/.+/
 
 function withSeconds(local: string): string {
@@ -60,10 +53,11 @@ export const CreateMeetingModal = NiceModal.create(
     const [endAt, setEndAt] = useState('')
     const [link, setLink] = useState('')
     const [participantIds, setParticipantIds] = useState<string[]>([])
-    // M5 (ТП-165): видеовстреча WorkTask включена по умолчанию — ссылка
-    // генерируется сама (паттерн Google Calendar + Meet). Введённая внешняя
-    // ссылка имеет приоритет и отключает генерацию.
-    const [withMeetRoom, setWithMeetRoom] = useState(true)
+    // ТП-169 (ПЗ-1, продуктовое решение владельца): видеовстреча добавляется
+    // ЯВНЫМ действием («Добавить видеовстречу»), а не автоматически на каждое
+    // событие — иначе плодятся мусорные комнаты. Введённая внешняя ссылка
+    // имеет приоритет и отключает генерацию.
+    const [withMeetRoom, setWithMeetRoom] = useState(false)
 
     const linkTrimmed = link.trim()
     const externalLink = linkTrimmed.length > 0
@@ -196,25 +190,49 @@ export const CreateMeetingModal = NiceModal.create(
             </Stack>
 
             <Stack gap={0.5}>
-              {/* M5: своя видеовстреча — первичный путь; внешняя ссылка ниже
-                  остаётся для Телемоста и т.п. и имеет приоритет при вводе. */}
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={meetRoomEnabled}
+              <FormCaption>Видеовстреча</FormCaption>
+              {/* ТП-169 (ПЗ-1): нативный контрол WorkTask Meet вместо внешнего
+                  входа Телемоста. Три состояния: не добавлена → добавлена →
+                  убрана; сама комната создаётся после сохранения встречи. */}
+              {!meetRoomEnabled ? (
+                <Stack direction="row">
+                  <Button
+                    variant="secondary"
+                    size="small"
                     disabled={externalLink}
-                    onChange={(e) => setWithMeetRoom(e.target.checked)}
-                  />
-                }
-                label={
-                  <Stack direction="row" alignItems="center" gap={0.75}>
+                    onClick={() => setWithMeetRoom(true)}
+                  >
                     <VideocamOutlinedIcon fontSize="small" />
-                    <Typography variant="body2">
-                      Видеовстреча WorkTask — ссылка создастся автоматически
-                    </Typography>
-                  </Stack>
-                }
-              />
+                    Добавить видеовстречу
+                  </Button>
+                </Stack>
+              ) : (
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  gap={1}
+                  sx={{
+                    p: '8px 12px',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--wt-accent-soft)',
+                  }}
+                >
+                  <VideocamOutlinedIcon
+                    fontSize="small"
+                    sx={{ color: 'var(--wt-accent)' }}
+                  />
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    Видеовстреча WorkTask — ссылка создастся после сохранения
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    aria-label="Убрать видеовстречу"
+                    onClick={() => setWithMeetRoom(false)}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
+              )}
               {externalLink && (
                 <Typography variant="caption" color="text.secondary">
                   Указана внешняя ссылка — она будет использована вместо
@@ -228,7 +246,7 @@ export const CreateMeetingModal = NiceModal.create(
               <TextField
                 size="small"
                 fullWidth
-                placeholder="https://telemost.yandex.ru/j/…"
+                placeholder="Ссылка из другого сервиса, если встреча не в WorkTask"
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
                 error={!linkValid}
@@ -238,32 +256,6 @@ export const CreateMeetingModal = NiceModal.create(
                     : undefined
                 }
               />
-              <Stack direction="row">
-                <Button
-                  variant="secondary"
-                  size="small"
-                  onClick={() =>
-                    window.open(TELEMOST_URL, '_blank', 'noopener,noreferrer')
-                  }
-                  // Длинная подпись: на узких экранах разрешаем перенос и рост
-                  // по высоте вместо обрезки (у общей Button высота фиксирована).
-                  style={{
-                    height: 'auto',
-                    minHeight: 28,
-                    paddingTop: 6,
-                    paddingBottom: 6,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  <VideocamOutlinedIcon fontSize="small" />
-                  Создать встречу в Телемосте
-                  <OpenInNewIcon fontSize="small" />
-                </Button>
-              </Stack>
-              <Typography variant="caption" color="text.secondary">
-                Телемост откроется в новой вкладке — нажмите там «Создать
-                видеовстречу», скопируйте ссылку и вставьте её в поле выше.
-              </Typography>
             </Stack>
           </Stack>
         </DialogContent>

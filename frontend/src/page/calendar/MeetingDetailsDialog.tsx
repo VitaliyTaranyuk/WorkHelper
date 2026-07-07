@@ -15,6 +15,7 @@ import {
 } from '@mui/material'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import type { MeetingDto } from '@/shared/api/endpoint/meetingsApi'
 import { useCreateMeetRoom } from '@/features/meet/useCreateMeetRoom'
 import { buildMeetUrl, parseMeetToken } from '@/features/meet/meetLink'
@@ -147,10 +148,25 @@ export function MeetingDetailsDialog({
                 !linkValid
                   ? 'Ссылка должна начинаться с http:// или https://'
                   : meetToken
-                    ? 'Видеовстреча WorkTask — откроется внутри приложения'
+                    ? 'Видеовстреча WorkTask — откроется внутри приложения; очистите поле и сохраните, чтобы убрать встречу'
                     : undefined
               }
             />
+            {/* ТП-169: скопировать ссылку-приглашение в один клик */}
+            {meeting.link && !linkChanged && (
+              <IconButton
+                aria-label="Скопировать ссылку"
+                title="Скопировать ссылку"
+                onClick={() => {
+                  void navigator.clipboard
+                    .writeText(meeting.link!)
+                    .then(() => notify.success('Ссылка скопирована'))
+                    .catch(() => notify.error('Не удалось скопировать ссылку'))
+                }}
+              >
+                <ContentCopyIcon fontSize="small" />
+              </IconButton>
+            )}
             {linkChanged && (
               <Button
                 variant="outlined"
