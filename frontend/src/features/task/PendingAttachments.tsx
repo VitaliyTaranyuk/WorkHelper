@@ -7,6 +7,7 @@ import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutl
 import { notify as toast } from '@/shared/ui/notify'
 import { LightboxDialog } from './ImageLightbox'
 import { isBrowserViewable } from './useTaskAttachments'
+import { useFileDrop } from './useFileDrop'
 
 /** Открыть локальный файл формы создания в новой вкладке (object URL). */
 function openFileInNewTab(file: File) {
@@ -93,15 +94,40 @@ export function PendingAttachments({ files, onChange }: Props) {
     onChange(files.filter((_, i) => i !== idx))
   }
 
+  // ТП-171: единый хук перетаскивания (как в карточке задачи) — с подсветкой
+  // зоны вместо прежних «немых» inline-обработчиков.
+  const { isDragOver, dropHandlers } = useFileDrop((dropped) => addFiles(dropped))
+
   return (
     <Stack
       gap={1}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={(e) => {
-        e.preventDefault()
-        addFiles(e.dataTransfer?.files ?? null)
+      {...dropHandlers}
+      sx={{
+        position: 'relative',
+        borderRadius: 2,
+        outline: isDragOver ? '2px dashed var(--wt-accent)' : '2px dashed transparent',
+        outlineOffset: 4,
+        transition: 'outline-color 120ms ease',
       }}
     >
+      {isDragOver && (
+        <Stack
+          alignItems="center"
+          justifyContent="center"
+          sx={{
+            position: 'absolute',
+            inset: -4,
+            zIndex: 1,
+            borderRadius: 2,
+            backgroundColor: 'var(--wt-accent-soft)',
+            pointerEvents: 'none',
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ color: 'var(--wt-accent)' }}>
+            Отпустите файлы, чтобы прикрепить
+          </Typography>
+        </Stack>
+      )}
       <Stack direction="row" alignItems="center" gap={1}>
         <AttachFileIcon fontSize="small" sx={{ color: 'text.secondary' }} />
         <Typography variant="subtitle2">Вложения</Typography>

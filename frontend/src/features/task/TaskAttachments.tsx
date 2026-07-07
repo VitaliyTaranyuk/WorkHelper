@@ -24,6 +24,7 @@ import {
   type AttachmentDto,
 } from './useTaskAttachments'
 import { ImageLightbox } from './ImageLightbox'
+import { useFileDrop } from './useFileDrop'
 import { extractGeneralError } from '@/shared/api/extractFieldErrors'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
 
@@ -98,6 +99,9 @@ export function TaskAttachments({ projectId, taskId }: Props) {
     return () => document.removeEventListener('paste', onPaste)
   }, [handleFiles])
 
+  // ТП-171: перетаскивание файлов с компьютера прямо в блок вложений
+  const { isDragOver, dropHandlers } = useFileDrop((files) => void handleFiles(files))
+
   const remove = async (att: AttachmentDto) => {
     const ok = await confirmDialog({
       title: 'Удалить вложение',
@@ -118,7 +122,36 @@ export function TaskAttachments({ projectId, taskId }: Props) {
   }
 
   return (
-    <Stack gap={1}>
+    <Stack
+      gap={1}
+      {...dropHandlers}
+      sx={{
+        position: 'relative',
+        borderRadius: 2,
+        // ТП-171: зона перетаскивания подсвечивается только при переносе файлов
+        outline: isDragOver ? '2px dashed var(--wt-accent)' : '2px dashed transparent',
+        outlineOffset: 4,
+        transition: 'outline-color 120ms ease',
+      }}
+    >
+      {isDragOver && (
+        <Stack
+          alignItems="center"
+          justifyContent="center"
+          sx={{
+            position: 'absolute',
+            inset: -4,
+            zIndex: 1,
+            borderRadius: 2,
+            backgroundColor: 'var(--wt-accent-soft)',
+            pointerEvents: 'none',
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ color: 'var(--wt-accent)' }}>
+            Отпустите файлы, чтобы прикрепить
+          </Typography>
+        </Stack>
+      )}
       <Stack direction="row" alignItems="center" gap={1}>
         <AttachFileIcon fontSize="small" sx={{ color: 'text.secondary' }} />
         <Typography variant="subtitle2">Вложения</Typography>
@@ -155,7 +188,8 @@ export function TaskAttachments({ projectId, taskId }: Props) {
           способ добавления уже виден по кнопке в заголовке. */}
       {!isLoading && (!attachments || attachments.length === 0) && (
         <Typography variant="caption" color="text.disabled">
-          Нет вложений — добавьте файл или вставьте из буфера (Ctrl+V)
+          Нет вложений — перетащите файлы сюда, добавьте кнопкой или вставьте
+          из буфера (Ctrl+V)
         </Typography>
       )}
 
