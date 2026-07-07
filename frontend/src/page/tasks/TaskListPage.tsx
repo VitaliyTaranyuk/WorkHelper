@@ -10,6 +10,7 @@ import { useSprintsWithTasksQuery } from '@/features/sprint/query/useSprintsWith
 import { useSortedSprints } from '@/page/sprint/useSortedSprints'
 import { CompletedTasksSection } from '@/features/task/CompletedTasksSection'
 import { useReorderSprint } from '@/features/task/mutation/useReorderSprint'
+import { useTaskSearch } from '@/features/task/query/useTaskSearch'
 import type { ITaskCard } from '@/entities/task/types'
 
 type TaskListPageProps = {
@@ -34,18 +35,32 @@ export const TaskListPage = memo(function TaskListPageInner({
   // Порядок секций: активный → плановые (по дате старта) → Бэклог.
   const { sortedSprints } = useSortedSprints(sprints)
 
-  // Поиск по коду/названию (ТП-160: кнопочный фильтр «Мои задачи» удалён —
-  // единственным срезом остаётся поиск).
+  // ТП-188: код/название фильтруются мгновенно на клиенте; описание —
+  // серверным поиском (тело описания в списки не грузится, ТП-187), его
+  // совпадения приходят множеством id и подсвечиваются в том же виде.
+  const { matchedIds } = useTaskSearch(projectId, search)
+  const matchedIdSet = useMemo(
+    () => (matchedIds ? new Set(matchedIds) : undefined),
+    [matchedIds],
+  )
+
+  const isSearching = search.trim().length > 0
+
+  // Поиск по коду/названию/описанию во всех секциях (ТП-160/ТП-188).
   const combinedFilter = useMemo(() => {
     const query = search.trim().toLowerCase()
     return (task: ITaskCard) => {
       if (!query) return true
-      return (
+      if (
         task.code.toLowerCase().includes(query) ||
         task.title.toLowerCase().includes(query)
       )
+        return true
+      // Совпадение по описанию (пришло с сервера) — пока ответ не готов,
+      // показываем мгновенные совпадения по коду/названию.
+      return matchedIdSet ? matchedIdSet.has(task.id) : false
     }
-  }, [search])
+  }, [search, matchedIdSet])
 
   // DnD (ТП-24): активен только без поиска — иначе видимые индексы не
   // совпадают с реальным порядком списка и бросок ляжет не туда.
@@ -93,7 +108,7 @@ export const TaskListPage = memo(function TaskListPageInner({
       >
         <TextField
           size="small"
-          placeholder="Поиск по коду или названию задачи"
+          placeholder="Поиск по коду, названию или описанию"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           sx={{ width: { xs: '100%', md: 360 } }}
@@ -129,11 +144,14 @@ export const TaskListPage = memo(function TaskListPageInner({
         </Stack>
       </DragDropContext>
 
-      {/* Завершённые — в самом низу, свёрнуты по умолчанию (ТП-33/ТП-50). */}
+      {/* Завершённые — в самом низу, свёрнуты по умолчанию (ТП-33/ТП-50);
+          ТП-188: при активном поиске раздел авто-раскрывается, если в нём
+          есть совпадения (результаты не должны прятаться в свёрнутой секции). */}
       <Stack mt={3}>
         <CompletedTasksSection
           projectId={projectId}
           taskFilter={combinedFilter}
+          autoExpand={isSearching}
         />
       </Stack>
       <MoveToSprintMenu />

@@ -18,6 +18,12 @@ import type { TaskFilter } from '@/entities/task/types'
 type Props = {
   projectId: string
   taskFilter?: TaskFilter
+  /**
+   * ТП-188: при активном поиске раздел авто-раскрывается, если в нём есть
+   * совпадения — результаты не должны прятаться в свёрнутой секции. Когда
+   * поиск снят, возвращается к ручному состоянию сворачивания.
+   */
+  autoExpand?: boolean
 }
 
 /**
@@ -25,9 +31,13 @@ type Props = {
  * доски текущего спринта и архивные (после закрытия спринтов). В списках
  * спринтов эти задачи не показываются (бэкенд исключает их из sprint-list).
  */
-export function CompletedTasksSection({ projectId, taskFilter }: Props) {
+export function CompletedTasksSection({
+  projectId,
+  taskFilter,
+  autoExpand = false,
+}: Props) {
   const taskCardModal = useModal(TaskCardModal)
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [manualExpanded, setManualExpanded] = useState(false)
 
   const { data: completedTasks } = useQuery({
     queryKey: ['tasks', projectId, 'completed'],
@@ -44,6 +54,12 @@ export function CompletedTasksSection({ projectId, taskFilter }: Props) {
     const tasks = completedTasks ?? []
     return taskFilter ? tasks.filter(taskFilter) : tasks
   }, [completedTasks, taskFilter])
+
+  // ТП-188: во время поиска с совпадениями секция раскрыта принудительно;
+  // без поиска — ручное состояние (клик по заголовку).
+  const isExpanded =
+    autoExpand && visibleTasks.length > 0 ? true : manualExpanded
+  const setIsExpanded = setManualExpanded
 
   const openCard = (task: ITaskCard) => taskCardModal.show({ task })
 

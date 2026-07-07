@@ -559,6 +559,27 @@ class TaskServiceTest {
     }
 
     @Test
+    void searchTaskIds_shouldDelegateToRepository_forValidQuery() throws Exception {
+        // ТП-188: поиск делегируется в репозиторий (title/description/code)
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(taskRepository.searchTaskIds(project, "оплат")).thenReturn(List.of("t-1", "t-2"));
+
+        assertThat(taskService.searchTaskIds("project-1", "  оплат  ")).containsExactly("t-1", "t-2");
+    }
+
+    @Test
+    void searchTaskIds_shouldReturnEmpty_forShortQuery_withoutHittingRepository() throws Exception {
+        // ТП-188: запросы короче 2 символов не ищем (шум/нагрузка)
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+
+        assertThat(taskService.searchTaskIds("project-1", "a")).isEmpty();
+        assertThat(taskService.searchTaskIds("project-1", "  ")).isEmpty();
+        verify(taskRepository, never()).searchTaskIds(any(), any());
+    }
+
+    @Test
     void reorderSprint_shouldApplySprintAndPositions() throws Exception {
         // ТП-24: DnD в «Списке задач» — задача переезжает в спринт и получает
         // позицию по порядку из запроса

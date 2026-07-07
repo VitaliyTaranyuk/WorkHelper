@@ -138,6 +138,10 @@ export const API_ENDPOINT_PATH = {
     GET_BY_CODE: ({ code, projectId }: { code: string } & ProjectId) =>
       `/tasks/${projectId}/code/${code}`,
 
+    // ТП-188: поиск id задач по коду/названию/описанию (все спринты+бэклог+завершённые)
+    SEARCH: ({ projectId, q }: ProjectId & { q: string }) =>
+      `/tasks/${projectId}/search?q=${encodeURIComponent(q)}`,
+
     LINK: () => `/tasks/create-link`,
 
     GET_LINKS: ({ taskId, projectId }: TaskId & ProjectId) =>
