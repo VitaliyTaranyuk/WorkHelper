@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type MutableRefObject } from 'react'
 import { Avatar, Box, CircularProgress, Stack, Typography } from '@mui/material'
 import MicOffIcon from '@mui/icons-material/MicOff'
 import { stage } from './stage'
+import { MicLevelIndicator } from './MicLevelIndicator'
 
 type Props = {
   stream?: MediaStream | null
@@ -14,6 +15,8 @@ type Props = {
   connecting?: boolean
   /** Демонстрация экрана: contain вместо cover (текст не обрезается), без зеркала. */
   screenSharing?: boolean
+  /** ТП-177 (ST-1): уровень СВОЕГО микрофона — только для self-плитки. */
+  micLevelRef?: MutableRefObject<number>
 }
 
 function initials(name: string): string {
@@ -39,6 +42,7 @@ export function VideoTile({
   speaking,
   connecting,
   screenSharing,
+  micLevelRef,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
 
@@ -136,6 +140,11 @@ export function VideoTile({
         }}
       >
         {muted && <MicOffIcon sx={{ fontSize: 14, color: '#f28b82' }} />}
+        {/* ТП-177 (ST-1): в self-view видно, что микрофон ловит звук.
+            В mute индикатор не показывается — трек выдаёт тишину. */}
+        {!muted && isSelf && micLevelRef && (
+          <MicLevelIndicator levelRef={micLevelRef} />
+        )}
         <Typography
           variant="caption"
           noWrap

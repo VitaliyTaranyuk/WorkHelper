@@ -48,6 +48,10 @@ export function useMeetSession(params: {
   const screenStreamRef = useRef<MediaStream | null>(null)
   const wasReconnectingRef = useRef(false)
   localStreamRef.current = localStream
+  // ТП-177 (ST-2): актуальное медиа-состояние для ресинка после hello —
+  // onMessage создаётся один раз, читать React-state из замыкания нельзя.
+  const mediaStateRef = useRef({ muted, cameraOn, screenSharing })
+  mediaStateRef.current = { muted, cameraOn, screenSharing }
 
   const sendStats = useCallback(
     (event: 'connected' | 'ice-failed' | 'reconnected', setupMs?: number) => {
@@ -84,6 +88,10 @@ export function useMeetSession(params: {
             rtcRef.current?.reset()
             setRemoteStreams(new Map())
             setConnectionStates(new Map())
+            // ТП-177 (ST-2): на сервере новая сессия завела peer с дефолтным
+            // состоянием — рассылаем актуальное mute/камеру/экран, чтобы после
+            // входа из лобби или реконнекта состояние не «отлипало» у других.
+            client.send({ type: 'state', ...mediaStateRef.current })
             const iceServersPromise = workTechApi.meet
               .getIceServers()
               .then((r) => r.data.iceServers)

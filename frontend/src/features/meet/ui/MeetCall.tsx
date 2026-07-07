@@ -55,7 +55,12 @@ export function MeetCall({ room, selfName, localStream, session, onLeave }: Prop
   }, [chatOpen, state.chat.length])
   const chatUnread = chatOpen ? 0 : state.chat.length - seenChatRef.current
 
-  const speaking = useSpeakingDetection(remoteStreams, localStream, muted)
+  // ТП-177: единый анализатор — подсветка говорящих + уровень своего микрофона
+  const { speaking, selfLevelRef } = useSpeakingDetection(
+    remoteStreams,
+    localStream,
+    muted,
+  )
 
   const tiles = useMemo(
     () => [
@@ -180,6 +185,7 @@ export function MeetCall({ room, selfName, localStream, session, onLeave }: Prop
               speaking={tile.speaking}
               connecting={tile.connecting}
               screenSharing={tile.screenSharing}
+              micLevelRef={tile.isSelf ? selfLevelRef : undefined}
             />
           </Box>
         ))}
