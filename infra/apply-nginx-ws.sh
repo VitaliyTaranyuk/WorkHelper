@@ -102,7 +102,10 @@ fi
 # Post-check: хендшейк с Upgrade-заголовками через nginx должен дойти до
 # backend-интерцептора. Без валидного JWT ожидаем 400/401 ОТ BACKEND
 # (значит прокси и upgrade-путь живы). 404/5xx = проксирование сломано.
+# Host обязателен: без него запрос к 127.0.0.1 попадает в default-server
+# (урок первого прогона: 404 не от нашего блока → ложный откат).
 CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+  -H "Host: wowoffcata.hlab.kz" \
   -H "Connection: Upgrade" -H "Upgrade: websocket" \
   -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
   "http://127.0.0.1/work-task/ws/meet?room=probe&token=probe")
