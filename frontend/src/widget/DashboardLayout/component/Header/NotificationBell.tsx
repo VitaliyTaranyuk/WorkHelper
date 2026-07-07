@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useModal } from '@ebay/nice-modal-react'
-import { TaskCardModal } from '@/widget/modal/task'
+import { TaskCardModal, CreateTaskModal } from '@/widget/modal/task'
 import Badge from '@mui/material/Badge'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
@@ -51,6 +51,8 @@ export function NotificationBell() {
   // ТП-89: задача из уведомления открывается той же модальной карточкой, что и
   // с доски/списка (единый компонент), а не отдельной страницей.
   const taskCardModal = useModal(TaskCardModal)
+  // ТП-193: авто-задача на фикс прод-ошибки из уведомления
+  const createTaskModal = useModal(CreateTaskModal)
 
   const unreadQuery = useUnreadCount()
   // ТП-179: список подгружен фоном заранее — открытие меню мгновенное
@@ -97,6 +99,25 @@ export function NotificationBell() {
   // Куда ведёт уведомление: задача (по коду), внешняя ссылка (Телемост),
   // запись встречи в календаре. Общая логика для всех типов.
   const openTarget = (n: NotificationDto) => {
+    // ТП-193: алерт прод-ошибки — вместо пустой вкладки на GlitchTip (нужен
+    // отдельный вход) создаём ЗАДАЧУ НА ФИКС с контекстом ошибки. Ссылка на
+    // issue остаётся в описании — для тех, у кого есть доступ к мониторингу.
+    if (n.type === 'MONITORING_ALERT') {
+      closeMenu()
+      const description = [
+        `Прод-ошибка из мониторинга: ${n.message}`,
+        n.link ? `\nIssue: ${n.link}` : '',
+      ]
+        .join('')
+        .trim()
+      void createTaskModal
+        .show({
+          initialTitle: `Исправить: ${n.message}`.slice(0, 200),
+          initialDescription: description,
+        })
+        .catch(() => undefined)
+      return
+    }
     // ТП-152: задача удалена — карточку не открываем, компактное сообщение.
     if (isTaskDeleted(n.taskState)) {
       notify.info(`Задача ${n.taskCode ?? ''} была удалена`.trim())
@@ -207,7 +228,12 @@ export function NotificationBell() {
         {!showSettings &&
           notifications.map((n) => {
             const meta = getNotificationMeta(n.type)
-            const clickable = Boolean(n.taskCode || n.link || n.meetingId)
+            const clickable = Boolean(
+              n.taskCode ||
+                n.link ||
+                n.meetingId ||
+                n.type === 'MONITORING_ALERT',
+            )
             return (
               <MenuItem
                 key={n.id}

@@ -20,9 +20,21 @@ import { buildCreateTaskPayload } from '@/features/task/prepareTaskCard'
 import { uploadPendingAttachments } from '@/features/task/uploadPendingAttachments'
 import { Loader } from '@/shared/ui/components/Loader'
 
+/**
+ * ТП-193: опциональный префилл названия/описания — из уведомления
+ * прод-ошибки создаётся задача на фикс (авто-задача) с контекстом ошибки.
+ */
+export type CreateTaskModalProps = {
+  initialTitle?: string
+  initialDescription?: string
+}
+
 export const CreateTaskModal = NiceModal.create(CreateTaskModalInner)
 
-function CreateTaskModalInner() {
+function CreateTaskModalInner({
+  initialTitle,
+  initialDescription,
+}: CreateTaskModalProps) {
   const modal = useModal()
   const { activeProject } = useProjectData()
   const { data: sprints, isLoading: isSprintsLoading } = useSprintsInfoQuery({
@@ -61,6 +73,13 @@ function CreateTaskModalInner() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preferredSprintId])
+
+  // ТП-193: префилл из уведомления прод-ошибки — один раз при открытии.
+  useEffect(() => {
+    if (initialTitle) form.setValue('taskTitle', initialTitle, { shouldValidate: true })
+    if (initialDescription) form.setValue('description', initialDescription)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleClose = () => {
     modal.reject()
