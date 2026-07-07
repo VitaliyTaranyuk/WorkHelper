@@ -21,7 +21,7 @@ backend/dist/
 backend/nbdist/
 
 # ===== FRONTEND (Node / Vite) =====
-frontend/node_modules/
+node_modules/
 frontend/dist/
 frontend/dist-ssr/
 frontend/*.local

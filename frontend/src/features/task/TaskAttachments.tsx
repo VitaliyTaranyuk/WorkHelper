@@ -25,6 +25,7 @@ import {
 } from './useTaskAttachments'
 import { ImageLightbox } from './ImageLightbox'
 import { useFileDrop } from './useFileDrop'
+import { FileDropOverlay } from './FileDropOverlay'
 import { extractGeneralError } from '@/shared/api/extractFieldErrors'
 import { formatDateDDMMYYYY } from '@/shared/utils/date'
 
@@ -134,24 +135,7 @@ export function TaskAttachments({ projectId, taskId }: Props) {
         transition: 'outline-color 120ms ease',
       }}
     >
-      {isDragOver && (
-        <Stack
-          alignItems="center"
-          justifyContent="center"
-          sx={{
-            position: 'absolute',
-            inset: -4,
-            zIndex: 1,
-            borderRadius: 2,
-            backgroundColor: 'var(--wt-accent-soft)',
-            pointerEvents: 'none',
-          }}
-        >
-          <Typography variant="subtitle2" sx={{ color: 'var(--wt-accent)' }}>
-            Отпустите файлы, чтобы прикрепить
-          </Typography>
-        </Stack>
-      )}
+      {isDragOver && <FileDropOverlay />}
       <Stack direction="row" alignItems="center" gap={1}>
         <AttachFileIcon fontSize="small" sx={{ color: 'text.secondary' }} />
         <Typography variant="subtitle2">Вложения</Typography>
