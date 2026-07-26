@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
+import CircularProgress from '@mui/material/CircularProgress'
 import MicNoneOutlinedIcon from '@mui/icons-material/MicNoneOutlined'
 import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined'
 import { notify as toast } from '@/shared/ui/notify'
@@ -34,6 +35,8 @@ export function DictationButton({
     onEmpty: () => toast.error('Ничего не удалось расслышать — попробуйте ещё раз'),
   })
   const listening = speech.status === 'listening'
+  // ТП-208: короткое ожидание улучшения текста после окончания записи.
+  const processing = speech.enhancing
 
   // Ошибки распознавания (нет доступа к микрофону и т.п.) — тостом.
   useEffect(() => {
@@ -47,21 +50,28 @@ export function DictationButton({
       title={
         listening
           ? 'Идёт запись — нажмите, чтобы закончить'
-          : `Надиктовать ${targetLabel} голосом`
+          : processing
+            ? 'Обрабатываем распознанный текст…'
+            : `Надиктовать ${targetLabel} голосом`
       }
     >
-      <IconButton
-        size="small"
-        aria-label={listening ? 'Закончить диктовку' : 'Надиктовать голосом'}
-        onClick={() => (listening ? speech.stop() : speech.start())}
-        sx={listening ? { color: 'error.main' } : undefined}
-      >
-        {listening ? (
-          <StopCircleOutlinedIcon fontSize="small" />
-        ) : (
-          <MicNoneOutlinedIcon fontSize="small" />
-        )}
-      </IconButton>
+      <span>
+        <IconButton
+          size="small"
+          disabled={processing}
+          aria-label={listening ? 'Закончить диктовку' : 'Надиктовать голосом'}
+          onClick={() => (listening ? speech.stop() : speech.start())}
+          sx={listening ? { color: 'error.main' } : undefined}
+        >
+          {listening ? (
+            <StopCircleOutlinedIcon fontSize="small" />
+          ) : processing ? (
+            <CircularProgress size={16} thickness={5} />
+          ) : (
+            <MicNoneOutlinedIcon fontSize="small" />
+          )}
+        </IconButton>
+      </span>
     </Tooltip>
   )
 }

@@ -221,4 +221,9 @@ export const API_ENDPOINT_PATH = {
     ICE_SERVERS: () => `/meet/ice-servers`,
     STATS: ({ token }: { token: string }) => `/meet/rooms/${token}/stats`,
   },
+
+  VOICE: {
+    // ТП-208: улучшение текста голосового ввода/названия задачи через DeepSeek.
+    ENHANCE_TEXT: () => `/voice/enhance-text`,
+  },
 } as const

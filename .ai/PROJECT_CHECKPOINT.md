@@ -2,7 +2,67 @@
 
 > Текущее состояние проекта WorkHelper.
 > Обновлять после каждой завершённой задачи.
-> **Последнее обновление:** 2026-07-06
+> **Последнее обновление:** 2026-07-26
+
+---
+
+## Завершено 2026-07-26: ТП-208 «Улучшить голосовой помощник и автоподстановку названия» (ветка `claude/workhelper-tp-208-8946b7`)
+
+Задача пришла из трекера с API-ключом DeepSeek открытым текстом в описании —
+ключ сразу убран из карточки задачи (заменено описание в UI), перенесён в
+конфигурацию через переменную окружения (нигде не закоммичен).
+
+Провайдер DeepSeek — чисто текстовый chat-completions API (OpenAI-совместимый,
+`https://api.deepseek.com`, модель `deepseek-v4-flash`; `deepseek-chat`
+устарела 2026-07-24), аудио он не распознаёт — поэтому задача реализована как
+**улучшение качества уже распознанного Web Speech API текста** и
+**переформулирование автоподстановленного названия задачи**, а не замена ASR.
+
+- **Backend (`DeepSeekVoiceEnhancementService` + `VoiceController`,
+  `POST /work-task/api/v1/voice/enhance-text`):** два режима (DICTATION —
+  очистка речи; TITLE — короткое название); паттерн как у
+  `GitHubDevPanelService` (голый `java.net.http.HttpClient`, в проекте нет
+  WebClient/RestTemplate) — пустой `DEEPSEEK_API_KEY` или любая ошибка
+  сети/провайдера → честный фолбэк на исходный текст (`enhanced=false`),
+  исключение наружу не пробрасывается. Эндпоинт защищён общим правилом
+  SecurityConfig (`anyRequest().authenticated()`) — изменений в
+  SecurityConfig не потребовалось.
+- **Frontend:** `shared/text/enhanceText.ts` (`enhanceTextSafe`, таймаут 6с,
+  ВСЕГДА резолвится) — единая точка вызова прокси, чтобы избежать повторного
+  импорта voice-модуля из `features/task` (тот же мотив, что вынес
+  `generateTaskTitle` в shared в ТП-153). Подключена в двух местах:
+  - `features/voice/core/voiceActionExecutor.ts` — после детерминированного
+    `TextFormatter` (ТП-88, не тронут, остаётся мгновенным базовым
+    результатом) дополнительно улучшает текст; `useVoiceInput` — новое
+    состояние `enhancing`, `DictationButton` показывает
+    `CircularProgress` вместо иконки микрофона на время ожидания;
+  - `features/task/prepareTaskCard.ts` — новая `prepareTaskCardAsync`;
+    `buildCreateTaskPayload` стал async (оба вызова в `CreateTaskDetails.tsx`
+    и `CreateTaskModal.tsx` уже были внутри `form.handleSubmit(async …)`,
+    `isSubmitting` уже отражает ожидание — изменений UX-состояния не
+    потребовалось). Правило «название пользователя неприкосновенно»
+    (ТП-147) сохранено буквально: DeepSeek вызывается ТОЛЬКО когда название
+    сгенерировано автоматически из описания.
+- **Тесты:** backend — юнит-тесты чистых методов (`buildRequestBody`,
+  `parseContent`, `sanitize`, disabled-when-no-key) по паттерну
+  `GitHubDevPanelServiceTest`/`MonitoringAlertServiceTest`
+  (`ReflectionTestUtils.setField`) — сетевой happy-path не мокается (в
+  проекте нет WebClient/wiremock). Frontend — 449/449 тестов зелёных (+14
+  новых: `enhanceText.test.ts`, `voiceActionExecutor.test.ts`, расширенный
+  `prepareTaskCard.test.ts`), lint 0, production build (`tsc -b && vite
+  build`) ok.
+- **Известное ограничение верификации:** локальный запуск backend-тестов
+  (`./gradlew test`) в этой рабочей копии падает на ЛЮБОМ тестовом классе
+  (`ClassNotFoundException` из форкнутого test-воркера) — воспроизведено и
+  на немодифицированном `main` через `git stash`, то есть это
+  окруженческая проблема сборки (путь репозитория содержит кириллицу —
+  похоже на известный класс багов Gradle/Windows с classpath для
+  форкнутых JVM), а не регрессия от ТП-208. `compileJava`/`compileTestJava`
+  проходят чисто. Требует прогона на CI/другой машине для финального
+  подтверждения backend-тестов.
+- **TD-017 не закрыт** (уточнено в TECH_DEBT.md): ключ DeepSeek заведён
+  только для качества текста, `RemoteResolver` для командного намерения
+  (I2/ТП-96) — отдельная нереализованная задача.
 
 ---
 

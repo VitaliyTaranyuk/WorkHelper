@@ -1,5 +1,22 @@
-import { describe, it, expect } from 'vitest'
-import { prepareTaskCard, buildCreateTaskPayload } from '../prepareTaskCard'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import {
+  prepareTaskCard,
+  prepareTaskCardAsync,
+  buildCreateTaskPayload,
+} from '../prepareTaskCard'
+
+// ТП-208: prepareTaskCardAsync/buildCreateTaskPayload пытаются улучшить
+// авто-название через backend-прокси DeepSeek. Сеть не мокаем — мокаем сам
+// enhanceTextSafe шпионом, чтобы проверить И контракт вызова (не трогает
+// пользовательское название), И безопасный фолбэк по умолчанию (возвращает
+// локальный текст как есть — тот же контракт, что и реальный фолбэк при
+// недоступности API).
+const { enhanceTextSafeMock } = vi.hoisted(() => ({
+  enhanceTextSafeMock: vi.fn((local: string) => Promise.resolve(local)),
+}))
+vi.mock('@/shared/text/enhanceText', () => ({
+  enhanceTextSafe: enhanceTextSafeMock,
+}))
 
 describe('prepareTaskCard (ТП-147)', () => {
   it('название пользователя неприкосновенно (только trim)', () => {
@@ -49,6 +66,41 @@ describe('prepareTaskCard (ТП-147)', () => {
   })
 })
 
+describe('prepareTaskCardAsync (ТП-208, улучшение авто-названия через DeepSeek)', () => {
+  beforeEach(() => {
+    enhanceTextSafeMock.mockClear()
+    enhanceTextSafeMock.mockImplementation((local: string) => Promise.resolve(local))
+  })
+
+  it('название пользователя неприкосновенно — enhanceTextSafe не вызывается', async () => {
+    const draft = await prepareTaskCardAsync({
+      title: '  Моё название  ',
+      description: 'Текст описания.',
+    })
+    expect(draft.title).toBe('Моё название')
+    expect(enhanceTextSafeMock).not.toHaveBeenCalled()
+  })
+
+  it('авто-название передаётся на улучшение и подставляется результат', async () => {
+    enhanceTextSafeMock.mockResolvedValueOnce('Исправить фильтры доски (DeepSeek)')
+
+    const draft = await prepareTaskCardAsync({
+      title: '',
+      description: 'Проверить фильтры на доске. Подробности внутри.',
+    })
+
+    expect(enhanceTextSafeMock).toHaveBeenCalledWith('Проверить фильтры на доске', 'TITLE')
+    expect(draft.title).toBe('Исправить фильтры доски (DeepSeek)')
+    expect(draft.description).toBe('Проверить фильтры на доске. Подробности внутри.')
+  })
+
+  it('всё пустое — улучшение не запускается (нечего улучшать)', async () => {
+    const draft = await prepareTaskCardAsync({ title: '', description: '' })
+    expect(draft).toEqual({ title: '', description: '' })
+    expect(enhanceTextSafeMock).not.toHaveBeenCalled()
+  })
+})
+
 describe('buildCreateTaskPayload (ТП-147, единый сервис создания)', () => {
   const base = {
     taskTitle: '',
@@ -60,8 +112,8 @@ describe('buildCreateTaskPayload (ТП-147, единый сервис созда
     status: 5,
   }
 
-  it('собирает DTO с авто-названием и не шлёт «Не назначен»', () => {
-    const dto = buildCreateTaskPayload(base, 'p-1')
+  it('собирает DTO с авто-названием и не шлёт «Не назначен»', async () => {
+    const dto = await buildCreateTaskPayload(base, 'p-1')
     expect(dto).toEqual({
       title: 'Проверить фильтры на доске',
       projectId: 'p-1',
@@ -74,8 +126,8 @@ describe('buildCreateTaskPayload (ТП-147, единый сервис созда
     expect('assignee' in dto).toBe(false)
   })
 
-  it('передаёт исполнителя и опускает статус, когда его нет', () => {
-    const dto = buildCreateTaskPayload(
+  it('передаёт исполнителя и опускает статус, когда его нет', async () => {
+    const dto = await buildCreateTaskPayload(
       { ...base, assignee: 'user-9', status: null },
       'p-1',
     )

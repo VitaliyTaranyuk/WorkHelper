@@ -1,4 +1,5 @@
 import { generateTaskTitle } from '@/shared/text/generateTaskTitle'
+import { enhanceTextSafe } from '@/shared/text/enhanceText'
 
 /**
  * Единая подготовка карточки задачи перед созданием (ТП-147, ТП-153).
@@ -34,11 +35,28 @@ export function prepareTaskCard(input: {
 }
 
 /**
+ * Асинхронный вариант (ТП-208): название, введённое пользователем,
+ * по-прежнему неприкосновенно (правило 1) — DeepSeek вызывается ТОЛЬКО для
+ * автоматически сгенерированного названия (правило 2), пытаясь
+ * переформулировать его «своими словами»; при недоступности/ошибке/таймауте
+ * остаётся детерминированный результат generateTaskTitle без изменений.
+ */
+export async function prepareTaskCardAsync(input: {
+  title: string
+  description: string
+}): Promise<TaskCardDraft> {
+  const draft = prepareTaskCard(input)
+  if (input.title.trim().length > 0 || !draft.title) return draft
+  const title = await enhanceTextSafe(draft.title, 'TITLE')
+  return { ...draft, title }
+}
+
+/**
  * Единый payload создания задачи из значений формы — используется всеми
  * точками создания (модалка, страница /task/create); раньше каждая собирала
  * DTO сама (дублирование).
  */
-export function buildCreateTaskPayload(
+export async function buildCreateTaskPayload(
   values: {
     taskTitle: string
     description?: string
@@ -50,7 +68,7 @@ export function buildCreateTaskPayload(
   },
   projectId: string,
 ) {
-  const draft = prepareTaskCard({
+  const draft = await prepareTaskCardAsync({
     title: values.taskTitle,
     description: values.description ?? '',
   })
