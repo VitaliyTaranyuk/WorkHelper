@@ -1,11 +1,8 @@
 import { useRef, useState } from 'react'
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
 import {
-  Button,
   Dialog,
-  DialogActions,
   DialogContent,
-  DialogContentText,
   DialogTitle,
   IconButton,
 } from '@mui/material'
@@ -17,6 +14,7 @@ import {
 } from '@/features/task/TaskCardContent'
 import { TaskCardLoadError } from '@/features/task/TaskCardLoadError'
 import { TaskCardSkeleton } from '@/features/task/TaskCardSkeleton'
+import { UnsavedChangesGuardDialog } from '@/features/task/UnsavedChangesGuardDialog'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useTaskByCode } from '@/features/task/query/useTaskByCode'
 import { ErrorBoundary } from '@/shared/ui/components/ErrorBoundary'
@@ -155,23 +153,14 @@ export const TaskCardModal = NiceModal.create(
 
         {/* Guard несохранённых изменений (ТП-34). Клик мимо/Escape —
             вернуться к редактированию. */}
-        <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs">
-          <DialogTitle>Несохранённые изменения</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              В задаче {code} есть несохранённые изменения. Сохранить их
-              перед закрытием?
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button color="inherit" onClick={forceClose} disabled={saving}>
-              Отменить изменения и закрыть
-            </Button>
-            <Button variant="contained" onClick={handleSaveAndClose} disabled={saving}>
-              Сохранить изменения
-            </Button>
-          </DialogActions>
-        </Dialog>
+        <UnsavedChangesGuardDialog
+          open={confirmOpen}
+          code={code}
+          saving={saving}
+          onDiscard={forceClose}
+          onSave={handleSaveAndClose}
+          onCancel={() => setConfirmOpen(false)}
+        />
       </Dialog>
     )
   },
