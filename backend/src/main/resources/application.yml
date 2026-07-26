@@ -50,6 +50,19 @@ app:
     api-key: ${DEEPSEEK_API_KEY:}
     base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
     model: ${DEEPSEEK_MODEL:deepseek-v4-flash}
+    # ТП-212: ответ модели возвращается целиком (диктовка не короче входа),
+    # поэтому таймаут запроса выше клиентского — клиент отваливается в фолбэк
+    # сам, а сервер успевает досчитать и записать метрики.
+    request-timeout-seconds: ${DEEPSEEK_REQUEST_TIMEOUT_SECONDS:20}
+    # Предохранитель расхода платного провайдера на пользователя (0 = без лимита).
+    # Превышение не ошибка: пользователь получает исходный текст, как при
+    # недоступности DeepSeek.
+    rate-limit-per-hour: ${DEEPSEEK_RATE_LIMIT_PER_HOUR:60}
+    # Прайс deepseek-v4-flash (USD за 1M токенов) — только для оценки стоимости
+    # в логах метрик; источник истины по расходу остаётся у провайдера.
+    price:
+      input-per-1m-usd: ${DEEPSEEK_PRICE_INPUT:0.14}
+      output-per-1m-usd: ${DEEPSEEK_PRICE_OUTPUT:0.28}
   meet:
     # WorkTask Meet (.ai/MEET_ARCHITECTURE.md): mesh-топология, жёсткий предел
     # комнаты. TURN подключается env-переменными без изменения кода; креденшелы

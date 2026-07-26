@@ -37,9 +37,14 @@ export function prepareTaskCard(input: {
 /**
  * Асинхронный вариант (ТП-208): название, введённое пользователем,
  * по-прежнему неприкосновенно (правило 1) — DeepSeek вызывается ТОЛЬКО для
- * автоматически сгенерированного названия (правило 2), пытаясь
- * переформулировать его «своими словами»; при недоступности/ошибке/таймауте
- * остаётся детерминированный результат generateTaskTitle без изменений.
+ * автоматически сгенерированного названия (правило 2); при
+ * недоступности/ошибке/таймауте остаётся детерминированный результат
+ * generateTaskTitle без изменений.
+ *
+ * ТП-212: модели отдаётся ПОЛНОЕ описание (постановка), а не локальный
+ * заголовок. Раньше на вход уходил результат generateTaskTitle, уже урезанный
+ * до 70 символов по границе слова, — модель переформулировала огрызок и не
+ * могла увидеть контекст, который в этот лимит не поместился.
  */
 export async function prepareTaskCardAsync(input: {
   title: string
@@ -47,7 +52,7 @@ export async function prepareTaskCardAsync(input: {
 }): Promise<TaskCardDraft> {
   const draft = prepareTaskCard(input)
   if (input.title.trim().length > 0 || !draft.title) return draft
-  const title = await enhanceTextSafe(draft.title, 'TITLE')
+  const title = await enhanceTextSafe(draft.description, 'TITLE', draft.title)
   return { ...draft, title }
 }
 

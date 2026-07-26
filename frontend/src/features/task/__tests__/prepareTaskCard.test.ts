@@ -8,11 +8,13 @@ import {
 // ТП-208: prepareTaskCardAsync/buildCreateTaskPayload пытаются улучшить
 // авто-название через backend-прокси DeepSeek. Сеть не мокаем — мокаем сам
 // enhanceTextSafe шпионом, чтобы проверить И контракт вызова (не трогает
-// пользовательское название), И безопасный фолбэк по умолчанию (возвращает
-// локальный текст как есть — тот же контракт, что и реальный фолбэк при
-// недоступности API).
+// пользовательское название), И безопасный фолбэк по умолчанию.
+// ТП-212: по умолчанию мок ведёт себя как реальный фолбэк — возвращает третий
+// аргумент (локальный заголовок), а НЕ отправленный текст описания.
 const { enhanceTextSafeMock } = vi.hoisted(() => ({
-  enhanceTextSafeMock: vi.fn((local: string) => Promise.resolve(local)),
+  enhanceTextSafeMock: vi.fn((source: string, _mode: string, fallback?: string) =>
+    Promise.resolve(fallback ?? source),
+  ),
 }))
 vi.mock('@/shared/text/enhanceText', () => ({
   enhanceTextSafe: enhanceTextSafeMock,
@@ -66,10 +68,13 @@ describe('prepareTaskCard (ТП-147)', () => {
   })
 })
 
-describe('prepareTaskCardAsync (ТП-208, улучшение авто-названия через DeepSeek)', () => {
+describe('prepareTaskCardAsync (ТП-208/ТП-212, улучшение авто-названия через DeepSeek)', () => {
   beforeEach(() => {
     enhanceTextSafeMock.mockClear()
-    enhanceTextSafeMock.mockImplementation((local: string) => Promise.resolve(local))
+    enhanceTextSafeMock.mockImplementation(
+      (source: string, _mode: string, fallback?: string) =>
+        Promise.resolve(fallback ?? source),
+    )
   })
 
   it('название пользователя неприкосновенно — enhanceTextSafe не вызывается', async () => {
@@ -81,17 +86,34 @@ describe('prepareTaskCardAsync (ТП-208, улучшение авто-назва
     expect(enhanceTextSafeMock).not.toHaveBeenCalled()
   })
 
-  it('авто-название передаётся на улучшение и подставляется результат', async () => {
+  it('ТП-212: модели отдаётся ПОЛНОЕ описание, а не обрезанный локальный заголовок', async () => {
     enhanceTextSafeMock.mockResolvedValueOnce('Исправить фильтры доски (DeepSeek)')
+    const description = 'Проверить фильтры на доске. Подробности внутри.'
+
+    const draft = await prepareTaskCardAsync({ title: '', description })
+
+    expect(enhanceTextSafeMock).toHaveBeenCalledWith(
+      description,
+      'TITLE',
+      'Проверить фильтры на доске',
+    )
+    expect(draft.title).toBe('Исправить фильтры доски (DeepSeek)')
+    expect(draft.description).toBe(description)
+  })
+
+  it('ТП-212: при неудаче улучшения остаётся ЛОКАЛЬНЫЙ заголовок, а не текст описания', async () => {
+    // Контракт enhanceTextSafe: при сбое возвращается третий аргумент (fallback).
+    enhanceTextSafeMock.mockImplementationOnce(
+      (source: string, _mode: string, fallback?: string) =>
+        Promise.resolve(fallback ?? source),
+    )
 
     const draft = await prepareTaskCardAsync({
       title: '',
       description: 'Проверить фильтры на доске. Подробности внутри.',
     })
 
-    expect(enhanceTextSafeMock).toHaveBeenCalledWith('Проверить фильтры на доске', 'TITLE')
-    expect(draft.title).toBe('Исправить фильтры доски (DeepSeek)')
-    expect(draft.description).toBe('Проверить фильтры на доске. Подробности внутри.')
+    expect(draft.title).toBe('Проверить фильтры на доске')
   })
 
   it('всё пустое — улучшение не запускается (нечего улучшать)', async () => {

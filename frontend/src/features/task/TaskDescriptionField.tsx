@@ -3,6 +3,7 @@ import type { UseFormReturn } from 'react-hook-form'
 import { TextField } from '@/shared/ui/mui/TextFileld'
 import { FormCaption } from '@/shared/ui/components/FormCaption'
 import { DictationButton } from '@/features/voice/DictationButton'
+import { applyDictation } from '@/shared/text/applyDictation'
 import type { FormValues } from './TaskForm/useTaskForm'
 
 
@@ -25,11 +26,13 @@ export function TaskDescriptionField({
   const value = form.watch('description') ?? ''
   const error = form.formState.errors.description
 
-  const appendDictation = (text: string) => {
+  // ТП-212: диктовка приходит дважды — локальный результат сразу, улучшенный
+  // следом (заменяет ранее вставленный фрагмент, если пользователь его не правил).
+  const appendDictation = (text: string, replaces?: string) => {
     const current = form.getValues('description') ?? ''
-    form.setValue('description', current ? `${current}\n${text}` : text, {
-      shouldDirty: true,
-    })
+    const next = applyDictation(current, text, { replaces })
+    if (next === current) return
+    form.setValue('description', next, { shouldDirty: true })
   }
 
   return (

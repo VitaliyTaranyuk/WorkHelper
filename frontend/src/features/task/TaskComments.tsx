@@ -13,6 +13,7 @@ import {
 } from './useTaskComments'
 import { MentionTextField } from '@/features/user/MentionTextField'
 import { DictationButton } from '@/features/voice/DictationButton'
+import { applyDictation } from '@/shared/text/applyDictation'
 import { formatUserName } from '@/entities/user/utils'
 
 type Props = { projectId: string; taskId: string }
@@ -44,11 +45,15 @@ export function TaskComments({ projectId, taskId }: Props) {
           multiline
           maxRows={6}
         />
-        {/* ТП-88: диктовка комментария голосом — текст добавляется в поле. */}
+        {/* ТП-88: диктовка комментария голосом — текст добавляется в поле.
+            ТП-212: улучшенный вариант приходит вторым вызовом и заменяет
+            вставленный фрагмент, если пользователь его не успел изменить. */}
         <DictationButton
           field="comment"
           targetLabel="комментарий"
-          onText={(t) => setText((prev) => (prev ? `${prev} ${t}` : t))}
+          onText={(t, replaces) =>
+            setText((prev) => applyDictation(prev, t, { replaces, separator: ' ' }))
+          }
         />
         <Button
           variant="contained"
