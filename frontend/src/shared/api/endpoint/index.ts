@@ -10,6 +10,7 @@ import * as sprint from './sprintsApi'
 import * as status from './statusesApi'
 import * as task from './tasksApi'
 import * as user from './usersApi'
+import * as voice from './voiceApi'
 
 export const workTechApi = {
   admin,
@@ -24,4 +25,5 @@ export const workTechApi = {
   status,
   task,
   user,
+  voice,
 }

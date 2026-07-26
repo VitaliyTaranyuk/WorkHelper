@@ -90,7 +90,7 @@ function CreateTaskModalInner({
     // ТП-147: единая подготовка карточки (авто-название из описания) и
     // сборка payload — общий сервис всех точек создания.
     const created = await createTask.mutateAsync(
-      buildCreateTaskPayload(formValues, activeProject!.id),
+      await buildCreateTaskPayload(formValues, activeProject!.id),
     )
 
     // Вложения (ТП-30): задача уже создана, ошибки загрузки не отменяют её.

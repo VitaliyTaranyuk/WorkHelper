@@ -41,6 +41,15 @@ app:
     # Репозиторий публичный — GitHub REST API используется без токена
     # (лимит 60 запросов/час на IP покрывается кэшем в 5 минут).
     github-repo: ${DEV_PANEL_GITHUB_REPO:VitaliyTaranyuk/WorkHelper}
+  deepseek:
+    # ТП-208: улучшение текста голосового ввода и автоподстановки названия
+    # задачи через DeepSeek (chat completions, OpenAI-совместимый формат).
+    # Пустой ключ = функция выключена (эндпоинт честно возвращает исходный
+    # текст, enhanced=false) — секрет только через окружение, в репозитории
+    # его нет.
+    api-key: ${DEEPSEEK_API_KEY:}
+    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+    model: ${DEEPSEEK_MODEL:deepseek-v4-flash}
   meet:
     # WorkTask Meet (.ai/MEET_ARCHITECTURE.md): mesh-топология, жёсткий предел
     # комнаты. TURN подключается env-переменными без изменения кода; креденшелы
