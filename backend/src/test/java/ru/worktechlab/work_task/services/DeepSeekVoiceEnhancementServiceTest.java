@@ -48,7 +48,7 @@ class DeepSeekVoiceEnhancementServiceTest {
     @Test
     void systemPromptDiffersByMode() {
         assertThat(DeepSeekVoiceEnhancementService.systemPromptFor(VoiceEnhanceMode.DICTATION))
-                .contains("распознанного");
+                .contains("распознанный");
         assertThat(DeepSeekVoiceEnhancementService.systemPromptFor(VoiceEnhanceMode.TITLE))
                 .contains("название");
     }
