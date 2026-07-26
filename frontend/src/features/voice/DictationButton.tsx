@@ -9,8 +9,14 @@ import { useVoiceInput } from './useVoiceInput'
 import type { VoiceField } from './core/intentAnalyzer'
 
 type Props = {
-  /** Вызывается с надиктованным (отформатированным) текстом после записи. */
-  onText: (text: string) => void
+  /**
+   * Вызывается с надиктованным (отформатированным) текстом после записи.
+   *
+   * ТП-212: вызовов может быть два — сначала мгновенный локальный результат,
+   * затем улучшенный, с `replaces` = ранее вставленный текст. Обработчик обязан
+   * заменять только его и только если он ещё в поле (см. `applyDictation`).
+   */
+  onText: (text: string, replaces?: string) => void
   /** Поле-цель — определяет намерение диктовки (ТП-88) и подпись тултипа. */
   field?: VoiceField
   /** Подпись цели для тултипа, например «описание». */
@@ -31,11 +37,14 @@ export function DictationButton({
 }: Props) {
   const speech = useVoiceInput({
     context: { intent: { type: 'DICTATE_FIELD', field } },
-    handlers: { onFieldText: (_field, text) => onText(text) },
+    handlers: {
+      onFieldText: (_field, text, replaces) => onText(text, replaces),
+    },
     onEmpty: () => toast.error('Ничего не удалось расслышать — попробуйте ещё раз'),
   })
   const listening = speech.status === 'listening'
-  // ТП-208: короткое ожидание улучшения текста после окончания записи.
+  // ТП-212: текст уже в поле, идёт лишь фоновое улучшение — кнопка остаётся
+  // рабочей, индикатор только сообщает о фоновой работе (ТП-208 блокировал её).
   const processing = speech.enhancing
 
   // Ошибки распознавания (нет доступа к микрофону и т.п.) — тостом.
@@ -51,14 +60,13 @@ export function DictationButton({
         listening
           ? 'Идёт запись — нажмите, чтобы закончить'
           : processing
-            ? 'Обрабатываем распознанный текст…'
+            ? 'Текст уже в поле — улучшаем формулировку…'
             : `Надиктовать ${targetLabel} голосом`
       }
     >
       <span>
         <IconButton
           size="small"
-          disabled={processing}
           aria-label={listening ? 'Закончить диктовку' : 'Надиктовать голосом'}
           onClick={() => (listening ? speech.stop() : speech.start())}
           sx={listening ? { color: 'error.main' } : undefined}

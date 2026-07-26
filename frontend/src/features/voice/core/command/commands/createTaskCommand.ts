@@ -1,4 +1,5 @@
 import { transcriptToTaskDraft } from '../../../textUtils'
+import { enhanceTaskDraftSafe } from '@/shared/text/enhanceText'
 import type { VoiceCommand } from '../types'
 
 /**
@@ -87,12 +88,19 @@ export const createTaskCommand: VoiceCommand = {
       ok: true,
       summary,
       run: async (context) => {
+        // ТП-212: до этого голосовое создание задачи шло полностью мимо LLM —
+        // единственный путь, где надиктованная постановка не вычищалась.
+        // TASK_DRAFT отдаёт название и описание одним вызовом; при любой
+        // неудаче остаётся локальный черновик (enhanceTaskDraftSafe всегда
+        // резолвится). Улучшение выполняется здесь, а не в prepare: итоговое
+        // название пользователь видит в сообщении о созданной задаче.
+        const enhanced = await enhanceTaskDraftSafe(blob, draft)
         const created = await context.createTask({
-          title: draft.title,
+          title: enhanced.title,
           taskType: 'TASK',
           priority: 'MEDIUM',
           sprintId: ctx.defaultSprintId,
-          ...(draft.description ? { description: draft.description } : {}),
+          ...(enhanced.description ? { description: enhanced.description } : {}),
         })
         return {
           message: `Создана задача ${created.code} «${created.title}»`,
