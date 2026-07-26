@@ -202,11 +202,15 @@ export function TaskLinks({ projectId, taskId, taskCode }: Props) {
                 sx={{ flexShrink: 0 }}
               />
               {other.code ? (
-                // Обычный <a>, а не router-<Link>: блок связей рендерится и в
-                // TaskCardModal (NiceModal-провайдер смонтирован ВНЕ
-                // RouterProvider) — router-компоненты там падают с
-                // «useRouter must be used inside a <RouterProvider>» и
-                // обваливают всё приложение в белый экран (ТП-39).
+                // Обычный <a>, а не router-<Link>: проверено вживую (ТП-195) —
+                // <Link>/useLinkProps падает внутри TaskCardModal
+                // («Cannot read properties of null, reading '__store'» в
+                // useRouterState), несмотря на то что NiceModal.Provider
+                // формально смонтирован внутри RouterProvider (ТП-131). Раньше
+                // считалось, что это устраняет проблему целиком (ТП-39) — на
+                // практике конкретно <Link> всё равно падает в этой позиции
+                // дерева. Полная перезагрузка тут — намеренный, проверенный
+                // компромисс, а не historical leftover.
                 <a
                   href={`/task/${encodeURIComponent(other.code)}`}
                   style={{ minWidth: 0, textDecoration: 'none' }}
