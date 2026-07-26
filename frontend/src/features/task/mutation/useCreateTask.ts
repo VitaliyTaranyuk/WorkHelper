@@ -1,9 +1,7 @@
 import type { TaskModelDTO } from '@/data-contracts'
 import { workTechApi } from '@/shared/api/endpoint'
 import { truncateText } from '@/shared/utils/text'
-// Императивный router: useCreateTask вызывается и из NiceModal-модалок,
-// которые монтируются ВНЕ RouterProvider (урок ТП-39) — useNavigate там упадёт.
-import { router } from '@/application/router'
+import NiceModal from '@ebay/nice-modal-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { notify as toast } from '@/shared/ui/notify'
 
@@ -34,8 +32,23 @@ export function useCreateTask() {
         description: truncateText(created.title, 80),
         action: {
           label: 'Открыть',
-          onClick: () =>
-            router.navigate({ to: '/task/$code', params: { code: created.code } }),
+          // ТП-195: та же модальная карточка, что и по клику с доски/списка,
+          // а не переход на полную страницу /task/$code — задача обязана
+          // открываться ОДИНАКОВО из любой точки входа. `NiceModal.show` —
+          // глобальная функция (диспатч в сторе провайдера), поэтому работает
+          // из мутации вне React-дерева, где хуки роутера недоступны (урок
+          // ТП-39). Динамический импорт разрывает цикл
+          // useCreateTask → TaskCardModal → … → useCreateTask и не тянет
+          // карточку в бандл формы создания.
+          onClick: () => {
+            void import('@/widget/modal/task/TaskCardModal')
+              .then(({ TaskCardModal }) =>
+                NiceModal.show(TaskCardModal, { taskCode: created.code }),
+              )
+              // Закрытие карточки резолвится через modal.reject() — это не
+              // ошибка, гасим, чтобы не было unhandled rejection.
+              .catch(() => undefined)
+          },
         },
       })
     },
