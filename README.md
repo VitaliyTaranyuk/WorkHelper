@@ -113,12 +113,37 @@ npm run openapi-generate
 
 ## CI/CD
 
-Деплой на K3s-кластер через GitHub Actions:
+**CI (автоматически, на каждый PR):**
 
-- `.github/workflows/backend-deploy.yml` — ручной запуск (prod / test-env)
-- `.github/workflows/frontend-deploy.yml` — автоматически при пуше в `main` (изменения в `frontend/`)
+- `.github/workflows/backend-ci.yml` — сборка и тесты backend (при изменениях в `backend/`)
+- `.github/workflows/frontend-ci.yml` — lint, тесты и build frontend (при изменениях в `frontend/`)
 
-Необходимые секреты репозитория: `SERVER_IP`, `SERVER_USER`, `SSH_PRIVATE_KEY`
+**Деплой — ручной, на VDS.** Автоматического пайплайна нет (TD-021). Раздел
+раньше описывал деплой на K3s через `backend-deploy.yml` / `frontend-deploy.yml`
+— этих workflow в репозитории никогда не существовало, и именно это описание
+привело к тому, что смерженная задача три недели считалась развёрнутой,
+не работая у пользователя.
+
+Порядок на сервере (каталог `/opt/workhelper`, рядом лежит `.env.vds` вне git):
+
+```bash
+git checkout main && git pull
+docker compose -f docker-compose.vds.yml up -d --build backend
+```
+
+Backend собирается ВНУТРИ образа (многоэтапный `backend/Dockerfile`), поэтому
+отдельная сборка jar не нужна: обновление кода доезжает до прода само.
+
+Frontend собирается вручную и раскладывается в корень nginx
+(`/var/www/workhelper`). Переменная обязательна — без неё бандл уйдёт на
+дефолтный адрес из `frontend/src/config.ts` (TD-024):
+
+```bash
+cd frontend && npm ci && VITE_API_BASE_URL=https://wowoffcata.hlab.kz npm run build
+```
+
+Секреты (`DEEPSEEK_API_KEY`, доступ к БД и т.п.) живут только в `.env.vds` на
+сервере и в репозиторий не попадают.
 
 ## Документация
 
