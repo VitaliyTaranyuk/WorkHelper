@@ -139,8 +139,17 @@ Frontend собирается вручную и раскладывается в 
 дефолтный адрес из `frontend/src/config.ts` (TD-024):
 
 ```bash
-cd frontend && npm ci && VITE_API_BASE_URL=https://wowoffcata.hlab.kz npm run build
+cd frontend && npm ci \
+  && VITE_API_BASE_URL=https://wowoffcata.hlab.kz \
+     VITE_SENTRY_DSN=https://f6cee9c358cd4d1db97e069c05e783f3@wowoffcata.hlab.kz/1 \
+     npm run build
 ```
+
+`VITE_SENTRY_DSN` — приём клиентских ошибок в GlitchTip (ТП-175). Публичный
+ключ, не секрет: он в любом случае попадает в бандл. **Важно:** ключ пишется
+БЕЗ дефисов, хотя GlitchTip показывает его как UUID — Sentry SDK принимает
+только `[A-Za-z0-9_]` (`DSN_REGEX` в `@sentry/core`), и с дефисами DSN молча
+отбрасывается вместе со всем мониторингом (TD-025).
 
 Секреты (`DEEPSEEK_API_KEY`, доступ к БД и т.п.) живут только в `.env.vds` на
 сервере и в репозиторий не попадают.
