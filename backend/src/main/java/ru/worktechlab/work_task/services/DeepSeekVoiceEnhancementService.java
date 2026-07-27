@@ -116,9 +116,16 @@ public class DeepSeekVoiceEnhancementService {
     /** Диктовка не пересказывается: результат короче половины исходника — потеря смысла. */
     private static final double MIN_DICTATION_LENGTH_RATIO = 0.5;
 
-    /** Потолок вывода: с запасом перекрывает MAX_DICTATION_LENGTH символов кириллицы. */
-    private static final int MAX_OUTPUT_TOKENS = 4096;
-    private static final int TITLE_OUTPUT_TOKENS = 160;
+    /**
+     * Потолок вывода. Щедрый сознательно: {@code max_tokens} — это верхняя
+     * граница, платим по факту, поэтому запас ничего не стоит, а его нехватка
+     * стоит дорого — обрезанный ответ уходит в фолбэк, и улучшения не будет.
+     * Проверено на проде (ТП-212): при 4096/160 обрезались и длинная диктовка,
+     * и короткое название — модель расходует часть лимита на рассуждения,
+     * поэтому «по длине ответа» лимит считать нельзя.
+     */
+    private static final int MAX_OUTPUT_TOKENS = 16000;
+    private static final int TITLE_OUTPUT_TOKENS = 1500;
 
     /** Одна попытка + один повтор при невалидном ответе (требование ТП-212). */
     private static final int MAX_ATTEMPTS = 2;
@@ -250,14 +257,13 @@ public class DeepSeekVoiceEnhancementService {
 
     /**
      * Лимит вывода от длины входа: текст возвращается целиком, поэтому вывод не
-     * короче входа. Кириллица дробится токенизатором мелко — считаем
-     * консервативно ~1 токен на 1.5 символа плюс запас на JSON-обёртку и
-     * экранирование. Фиксированные 300 токенов (ТП-208) резали длинные диктовки.
+     * короче входа. Считаем ~1 токен на символ кириллицы (пессимистично) плюс
+     * фиксированный запас на рассуждения модели и JSON-обёртку. Фиксированные
+     * 300 токенов (ТП-208) резали длинные диктовки.
      */
     static int maxTokensFor(VoiceEnhanceMode mode, String text) {
         if (mode == VoiceEnhanceMode.TITLE) return TITLE_OUTPUT_TOKENS;
-        int estimated = (int) Math.ceil(text.length() / 1.5) + 300;
-        return Math.min(estimated, MAX_OUTPUT_TOKENS);
+        return Math.min(text.length() + 2000, MAX_OUTPUT_TOKENS);
     }
 
     /** Сборка JSON-тела запроса — тестируется без сети. */
@@ -305,7 +311,7 @@ public class DeepSeekVoiceEnhancementService {
                                               String original, ObjectMapper mapper) {
         JsonNode json;
         try {
-            json = mapper.readTree(content);
+            json = mapper.readTree(stripCodeFence(content));
         } catch (Exception e) {
             return null;
         }
@@ -350,6 +356,22 @@ public class DeepSeekVoiceEnhancementService {
         if (value == null) return null;
         String title = sanitize(value);
         return title.length() > MAX_TITLE_LENGTH ? null : title;
+    }
+
+    /**
+     * Снятие markdown-обёртки вокруг JSON. Промпт и {@code response_format}
+     * требуют голый JSON, но модель периодически возвращает его в ```-блоке —
+     * на проде это давало «ответ не соответствует схеме» и лишний повтор
+     * (ТП-212). Дешевле принять оба варианта, чем терять улучшение.
+     */
+    static String stripCodeFence(String content) {
+        String trimmed = content.trim();
+        if (!trimmed.startsWith("```")) return trimmed;
+        int firstLineEnd = trimmed.indexOf('\n');
+        if (firstLineEnd < 0) return trimmed;
+        String body = trimmed.substring(firstLineEnd + 1);
+        int closing = body.lastIndexOf("```");
+        return (closing < 0 ? body : body.substring(0, closing)).trim();
     }
 
     /** Значение обязательного строкового поля; {@code null} — поля нет или это не строка. */

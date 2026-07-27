@@ -57,6 +57,20 @@
         </logger>
     </springProfile>
 
+    <!--
+      Боевой VDS (SPRING_PROFILES_ACTIVE=vds). Профиль отсутствовал в этом файле,
+      из-за чего НИ ОДИН appender не подключался: логи приложения не попадали ни
+      в файл, ни в stdout — на проде диагностика была слепой (обнаружено при
+      разборе фолбэков DeepSeek, ТП-212). Пишем и в файл, и в stdout: в
+      контейнере stdout — стандартный канал (`docker logs`).
+    -->
+    <springProfile name="vds">
+        <root level="INFO">
+            <appender-ref ref="ASYNC"/>
+            <appender-ref ref="STDOUT"/>
+        </root>
+    </springProfile>
+
     <!--for local LOG everything at INFO level, but our code in DEBUG -->
     <springProfile name="local">
         <root level="INFO">
