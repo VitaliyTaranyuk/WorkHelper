@@ -25,4 +25,21 @@ describe('buildMeetWsUrl — адрес сигналинга из базовог
     vi.doUnmock('@/config')
     vi.resetModules()
   })
+
+  // TD-024: базовый адрес по умолчанию пуст (относительные запросы к своему
+  // origin), но WebSocket требует абсолютный URL.
+  it('пустой базовый адрес → origin страницы', async () => {
+    vi.doMock('@/config', () => ({ WORKTECH_API_BASE_URL: '' }))
+    vi.resetModules()
+    const { buildMeetWsUrl } = await import('../wsUrl')
+
+    const url = buildMeetWsUrl('r', 't')
+
+    expect(url).toBe(
+      `${window.location.origin.replace(/^http/, 'ws')}/work-task/ws/meet?room=r&token=t`,
+    )
+    expect(url.startsWith('ws')).toBe(true)
+    vi.doUnmock('@/config')
+    vi.resetModules()
+  })
 })

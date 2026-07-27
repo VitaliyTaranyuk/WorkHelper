@@ -8,7 +8,11 @@ import {
  * комнаты — в query: браузерный WebSocket не умеет заголовки.
  */
 export function buildMeetWsUrl(roomToken: string, accessToken: string): string {
-  const base = WORKTECH_API_BASE_URL.replace(/^http/, 'ws').replace(/\/$/, '')
+  // TD-024: базовый адрес API может быть пустым (относительные запросы к тому
+  // же origin), но WebSocket требует абсолютный URL — берём origin страницы.
+  const origin =
+    WORKTECH_API_BASE_URL || (typeof window === 'undefined' ? '' : window.location.origin)
+  const base = origin.replace(/^http/, 'ws').replace(/\/$/, '')
   const params = new URLSearchParams({ room: roomToken, token: accessToken })
   return `${base}/work-task/ws/meet?${params.toString()}`
 }
