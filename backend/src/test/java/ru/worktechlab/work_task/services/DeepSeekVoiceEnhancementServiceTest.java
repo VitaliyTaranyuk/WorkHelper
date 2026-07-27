@@ -93,16 +93,39 @@ class DeepSeekVoiceEnhancementServiceTest {
                 VoiceEnhanceMode.DICTATION, "я".repeat(4000));
 
         assertThat(longText).isGreaterThan(shortText);
-        assertThat(longText).isGreaterThan(2000);
+        // Запас на рассуждения модели: лимит заведомо больше длины входа,
+        // иначе ответ обрежется и улучшение пропадёт (проверено на проде).
+        assertThat(longText).isGreaterThan(4000);
         // Потолок вывода не превышается даже на максимально длинном входе.
-        assertThat(longText).isLessThanOrEqualTo(4096);
+        assertThat(longText).isLessThanOrEqualTo(16000);
     }
 
     @Test
-    void maxTokensForTitleIsSmallAndConstant() {
-        assertThat(DeepSeekVoiceEnhancementService.maxTokensFor(VoiceEnhanceMode.TITLE, "x"))
-                .isEqualTo(DeepSeekVoiceEnhancementService.maxTokensFor(
-                        VoiceEnhanceMode.TITLE, "я".repeat(4000)));
+    void maxTokensForTitleIsConstantAndLeavesRoomForReasoning() {
+        int title = DeepSeekVoiceEnhancementService.maxTokensFor(VoiceEnhanceMode.TITLE, "x");
+
+        assertThat(title).isEqualTo(DeepSeekVoiceEnhancementService.maxTokensFor(
+                VoiceEnhanceMode.TITLE, "я".repeat(4000)));
+        // 160 токенов (первая версия ТП-212) обрезали даже короткое название.
+        assertThat(title).isGreaterThanOrEqualTo(1000);
+    }
+
+    /** Модель периодически оборачивает JSON в ```-блок — это не повод терять улучшение. */
+    @Test
+    void jsonWrappedInMarkdownFenceIsAccepted() {
+        String fenced = "```json\n{\"text\": \"Починить логин на проде.\"}\n```";
+
+        VoiceEnhanceResponseDto result = DeepSeekVoiceEnhancementService.toResponse(
+                fenced, VoiceEnhanceMode.DICTATION, "починить логин на проде", MAPPER);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getText()).isEqualTo("Починить логин на проде.");
+    }
+
+    @Test
+    void stripCodeFenceLeavesPlainJsonUntouched() {
+        assertThat(DeepSeekVoiceEnhancementService.stripCodeFence("{\"text\":\"a\"}"))
+                .isEqualTo("{\"text\":\"a\"}");
     }
 
     @Test
