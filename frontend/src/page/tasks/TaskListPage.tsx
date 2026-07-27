@@ -3,6 +3,7 @@ import { InputAdornment, Stack } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import { DragDropContext, type DropResult } from '@hello-pangea/dnd'
 import { Loader } from '@/shared/ui/components/Loader'
+import { LoadErrorState } from '@/shared/ui/components/LoadErrorState'
 import { TextField } from '@/shared/ui/mui/TextFileld'
 import { Sprint } from '@/widget/Sprint'
 import { MoveToSprintMenu } from '@/features/sprint/MoveToSprintMenu'
@@ -28,7 +29,12 @@ type TaskListPageProps = {
 export const TaskListPage = memo(function TaskListPageInner({
   projectId,
 }: TaskListPageProps) {
-  const { data: sprints, isLoading } = useSprintsWithTasksQuery(projectId)
+  const {
+    data: sprints,
+    isLoading,
+    isError,
+    refetch,
+  } = useSprintsWithTasksQuery(projectId)
   const [search, setSearch] = useState('')
   const reorderSprint = useReorderSprint(projectId)
 
@@ -93,6 +99,18 @@ export const TaskListPage = memo(function TaskListPageInner({
       <Stack alignItems="center" pt={4}>
         <Loader isLoading />
       </Stack>
+    )
+  }
+
+  // Инцидент 2026-07-28: запрос спринтов падал, а страница молча рендерила
+  // одну секцию «Завершённые» — выглядело как «задачи и бэклог пропали».
+  // Ошибка обязана быть видимой и обратимой.
+  if (isError) {
+    return (
+      <LoadErrorState
+        title="Не удалось загрузить список задач"
+        onRetry={() => void refetch()}
+      />
     )
   }
 

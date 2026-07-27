@@ -110,6 +110,9 @@ export function resolveStatus(
 // --- Приоритеты ---
 
 const PRIORITY_SYNONYMS: Array<{ re: RegExp; value: string }> = [
+  // «Блокер» — отдельный приоритет бэкенда; синонимы не пересекаются с HIGH,
+  // иначе фраза давала бы двух кандидатов и уходила в уточнение.
+  { re: /(блокер|блокирующ|наивысш|blocker)/, value: 'BLOCKER' },
   { re: /(высок|срочн|важн|критич|high|приоритетн)/, value: 'HIGH' },
   { re: /(средн|обычн|medium|нормальн)/, value: 'MEDIUM' },
   { re: /(низк|неважн|low|незначительн|потом)/, value: 'LOW' },
