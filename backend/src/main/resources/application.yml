@@ -5,7 +5,14 @@ spring:
     change-log: classpath:/db/changelog/db.changelog-master.xml
     enabled: true
   app:
-    jwtSecret: mySecretKey123912738aopsgjnspkmndfsopkvajoirjg94gf2opfng2moknm
+    # TD-019: секрет подписи JWT — ТОЛЬКО из окружения. Прежнее значение было
+    # захардкожено здесь и лежало в ПУБЛИЧНОМ репозитории: по нему можно было
+    # подписать токен с любым userId и войти под любым пользователем.
+    # Пустое значение допустимо лишь для local/test — там JwtUtils генерирует
+    # одноразовый секрет при старте; в остальных профилях приложение
+    # осознанно не поднимется (см. JwtUtils#initSecret).
+    # Значение (base64, минимум 32 байта): openssl rand -base64 48
+    jwtSecret: ${JWT_SECRET:}
     jwtExpirationMs: ${EXPIRATIONS_MS:1800000}
     refreshExpiration: ${REFRESH_EXPIRATIONS:86400000}
   datasource:
