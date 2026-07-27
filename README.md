@@ -118,11 +118,22 @@ npm run openapi-generate
 - `.github/workflows/backend-ci.yml` — сборка и тесты backend (при изменениях в `backend/`)
 - `.github/workflows/frontend-ci.yml` — lint, тесты и build frontend (при изменениях в `frontend/`)
 
-**Деплой — ручной, на VDS.** Автоматического пайплайна нет (TD-021). Раздел
-раньше описывал деплой на K3s через `backend-deploy.yml` / `frontend-deploy.yml`
-— этих workflow в репозитории никогда не существовало, и именно это описание
-привело к тому, что смерженная задача три недели считалась развёрнутой,
-не работая у пользователя.
+**Деплой:** `.github/workflows/deploy.yml` — запускается вручную (Actions →
+Deploy to VDS → Run workflow), можно выкатить backend, frontend или оба.
+Workflow ждёт, пока контейнер станет `healthy`, и проверяет, что сайт отвечает;
+предыдущая версия фронтенда сохраняется рядом в `*.old` для быстрого отката.
+
+Чтобы он заработал, нужны секреты репозитория (Settings → Secrets and variables
+→ Actions): `SERVER_IP`, `SERVER_USER`, `SSH_PRIVATE_KEY`. Без них workflow
+намеренно падает на первом шаге с понятным сообщением. Необязательные
+переменные (вкладка Variables): `DEPLOY_DIR`, `WEB_ROOT`, `PUBLIC_URL`,
+`VITE_SENTRY_DSN`.
+
+Ту же процедуру можно выполнить руками — ниже описано, что именно она делает.
+Раздел раньше описывал деплой на K3s через `backend-deploy.yml` /
+`frontend-deploy.yml` — этих workflow в репозитории никогда не существовало, и
+именно это описание привело к тому, что смерженная задача три недели считалась
+развёрнутой, не работая у пользователя.
 
 Порядок на сервере (каталог `/opt/workhelper`, рядом лежит `.env.vds` вне git):
 
