@@ -2,6 +2,7 @@ package ru.worktechlab.work_task.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,7 +39,17 @@ public class AdminUsersBootstrap implements ApplicationRunner {
 
     private record AdminSeed(String email, String firstName, String lastName) {}
 
-    private static final String DEFAULT_PASSWORD = "password12345";
+    /**
+     * TD-026: пароль администраторов больше не хранится в коде. Раньше здесь
+     * лежала константа `password12345`, а репозиторий публичный — то есть логин
+     * и пароль администраторов прода знал любой, кто открыл GitHub.
+     *
+     * Пусто = bootstrap НЕ создаёт учётные записи. Это сознательно: лучше не
+     * создать админа, чем создать его с угадываемым паролем. Существующим
+     * пользователям пароль не менялся и не меняется (см. upsertAdmin).
+     */
+    @Value("${app.bootstrap.admin-password:}")
+    private String defaultPassword;
 
     private static final List<AdminSeed> ADMINS = List.of(
             new AdminSeed("vt@mail.ru", "Виталий", "Администратор"),
@@ -52,6 +63,11 @@ public class AdminUsersBootstrap implements ApplicationRunner {
         RoleModel adminRole = roleService.getRoleByName(Roles.ADMIN);
         if (adminRole == null) {
             log.warn("ADMIN role не найдена — пропускаю bootstrap admin-пользователей");
+            return;
+        }
+        if (defaultPassword == null || defaultPassword.isBlank()) {
+            log.warn("BOOTSTRAP_ADMIN_PASSWORD не задан — bootstrap admin-пользователей пропущен "
+                    + "(создание учётной записи с паролем по умолчанию запрещено, TD-026)");
             return;
         }
 
@@ -84,7 +100,7 @@ public class AdminUsersBootstrap implements ApplicationRunner {
                     Collections.singletonList(adminRole),
                     null, // birthDate
                     Gender.MALE,
-                    passwordEncoder.encode(DEFAULT_PASSWORD)
+                    passwordEncoder.encode(defaultPassword)
             );
             user.setActive(true);
             user.setSystem(true); // ТП-114: bootstrap-админ — технический аккаунт
