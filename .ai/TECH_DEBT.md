@@ -42,6 +42,7 @@
 
 | ID | Описание | Дата устранения | PR/Commit |
 |----|----------|-----------------|-----------|
+| BUG-030 | Фронт знал только `TASK`/`BUG` и `LOW`/`MEDIUM`/`HIGH`, а маппер БРОСАЛ на прочих значениях бэкенда (`RESEARCH`, `STORY`, `BLOCKER`) → 5 задач-исследований в бэклоге роняли запрос `sprint-list`, «Список задач» показывал одну секцию «Завершённые» без единой ошибки (CRITICAL) | 2026-07-28 | `claude/workhelper-missing-tasks-backlog-1ac14c`, post-mortem 2026-07-28 |
 | BUG-024 | Рассинхрон статус↔спринт: задача, созданная в активный спринт, получала скрытый BACKLOG-статус и «исчезала» из UI; перенос между спринтами/удаление колонки/удаление-архивация-завершение спринта не синхронизировали статус (CRITICAL) | 2026-07-03 | `fix/backlog-status-sprint-consistency`, TaskPlacementService |
 | BUG-025 | Задачи без исполнителя не попадали на доску (`/tasks/tasks-in-project` отбрасывал их) (HIGH) | 2026-07-03 | `fix/backlog-status-sprint-consistency` |
 | BUG-026 | `TaskModel.setAssignee` — NPE при назначении исполнителя задаче, у которой его не было (HIGH) | 2026-07-03 | `fix/backlog-status-sprint-consistency` |

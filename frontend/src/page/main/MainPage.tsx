@@ -6,12 +6,17 @@ import type { OnReorder } from '@/widget/Board/Board'
 import { useActiveSprintTasks } from '@/features/task/query/useActiveSprintTasks'
 import { useReorderColumn } from '@/features/task/mutation/useReorderColumn'
 import { useProjectData } from '@/features/project/query/useProjectData'
+import { LoadErrorState } from '@/shared/ui/components/LoadErrorState'
 
 export function MainPage() {
   const { activeProject } = useProjectData()
   const modal = useModal(TaskCardModal)
 
-  const { data: tasks } = useActiveSprintTasks({ projectId: activeProject?.id })
+  const {
+    data: tasks,
+    isError,
+    refetch,
+  } = useActiveSprintTasks({ projectId: activeProject?.id })
   const reorderMutation = useReorderColumn()
 
   const [activeSprintTasks, setActiveSprintTasks] = useState(tasks || [])
@@ -51,6 +56,18 @@ export function MainPage() {
     },
     [activeProject, reorderMutation],
   )
+
+  // Доска, как и «Список задач», умеет быть пустой — поэтому ошибку загрузки
+  // обязана показывать явно, иначе сбой запроса выглядит как «задачи пропали»
+  // (инцидент 2026-07-28).
+  if (isError) {
+    return (
+      <LoadErrorState
+        title="Не удалось загрузить задачи спринта"
+        onRetry={() => void refetch()}
+      />
+    )
+  }
 
   // ТП-160: фильтр «Мои задачи» удалён — доска показывает все задачи спринта
   // без полосы фильтров (меньше хрома, паттерн Linear); срезы — в «Списке

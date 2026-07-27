@@ -1,5 +1,6 @@
 import { generateTaskTitle } from '@/shared/text/generateTaskTitle'
 import { enhanceTextSafe } from '@/shared/text/enhanceText'
+import type { TaskPriority, TaskType } from '@/entities/task/types'
 
 /**
  * Единая подготовка карточки задачи перед созданием (ТП-147, ТП-153).
@@ -65,8 +66,10 @@ export async function buildCreateTaskPayload(
   values: {
     taskTitle: string
     description?: string
-    priority: 'HIGH' | 'MEDIUM' | 'LOW'
-    type: 'TASK' | 'BUG'
+    // Значения перечислений — из общих типов сущности, а не литералами:
+    // локальная копия набора уже расходилась с бэкендом (инцидент 2026-07-28).
+    priority: TaskPriority
+    type: TaskType
     assignee: string
     sprint: string
     status?: number | null

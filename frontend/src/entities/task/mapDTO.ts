@@ -13,6 +13,7 @@ import {
 } from './types'
 import { mapUserShortDataDtoToUserWithEmail } from '../user/mapDTO'
 import type { UserWithAvatar } from '../user/types'
+import { captureMonitoredError } from '@/shared/monitoring/init'
 
 export function mapTaskMinDTOToTaskCard(taskDTO: TaskDataDto): ITaskCard {
   return {
@@ -69,18 +70,51 @@ function mapUserShortDataDtoToUserWithAvatar(
   }
 }
 
-function castTaskPriority(priority?: string) {
+/**
+ * Незнакомое значение перечисления НЕ роняет выдачу (инцидент 2026-07-28).
+ *
+ * Раньше эти функции бросали исключение: одна задача с типом `RESEARCH`
+ * (валидное значение бэкенда) роняла маппинг всего списка спринтов — запрос
+ * уходил в error, «Список задач» показывал только «Завершённые», а доска
+ * осталась бы пустой. Класс дефекта: расширение перечисления на бэкенде
+ * (аддитивное, обратно совместимое изменение) обнуляло экран на фронте.
+ *
+ * Теперь неизвестное значение деградирует до безопасного дефолта, а сам факт
+ * расхождения контракта уходит в прод-мониторинг (ТП-175) — команда видит
+ * дрейф до жалоб пользователей. Каждое значение сообщается один раз за
+ * сессию: список из сотни задач не должен давать сотню одинаковых событий.
+ */
+const TASK_PRIORITY_FALLBACK: TaskPriority = 'MEDIUM'
+const TASK_TYPE_FALLBACK: TaskType = 'TASK'
+
+const reportedDrift = new Set<string>()
+
+function reportEnumDrift(field: string, value: string | undefined, fallback: string) {
+  const key = `${field}:${value}`
+  if (reportedDrift.has(key)) return
+  reportedDrift.add(key)
+  captureMonitoredError(
+    new Error(
+      `Неизвестное значение «${field}» от бэкенда: ${value ?? '(пусто)'} — использован фолбэк «${fallback}»`,
+    ),
+    { area: `контракт API: task.${field}` },
+  )
+}
+
+function castTaskPriority(priority?: string): TaskPriority {
   if (priority && TASK_PRIORITY_TUPPLE.includes(priority as TaskPriority)) {
     return priority as TaskPriority
   }
 
-  throw new Error('не поддерживаемый тип приоритета')
+  reportEnumDrift('priority', priority, TASK_PRIORITY_FALLBACK)
+  return TASK_PRIORITY_FALLBACK
 }
 
-function castTaskType(taskType?: string) {
+function castTaskType(taskType?: string): TaskType {
   if (taskType && TASK_TYPE_TUPPLE.includes(taskType as TaskType)) {
     return taskType as TaskType
   }
 
-  throw new Error('не поддерживаемый тип задачи')
+  reportEnumDrift('taskType', taskType, TASK_TYPE_FALLBACK)
+  return TASK_TYPE_FALLBACK
 }

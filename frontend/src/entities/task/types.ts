@@ -1,12 +1,20 @@
 import type { UserWithAvatar, UserWithEmail } from '@/entities/user/types'
 
-export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH'
+/**
+ * Приоритеты и типы задач — ПОЛНЫЙ набор значений бэкенда
+ * (`models/enums/Priority.java`, `models/enums/TaskType.java`). Источник
+ * истины — бэкенд: он принимает и отдаёт эти значения, поэтому фронт обязан
+ * их отображать. Неполный набор уже приводил к инциденту 2026-07-28 (задача
+ * с типом RESEARCH обнуляла «Список задач», см. `.ai/POSTMORTEM_TEMPLATE.md`).
+ * Порядок в кортежах — порядок отображения в UI.
+ */
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'BLOCKER'
 
-export type TaskType = 'TASK' | 'BUG'
+export type TaskType = 'TASK' | 'BUG' | 'RESEARCH' | 'STORY'
 
-export const TASK_PRIORITY_TUPPLE = ['LOW', 'MEDIUM', 'HIGH'] as const
+export const TASK_PRIORITY_TUPPLE = ['LOW', 'MEDIUM', 'HIGH', 'BLOCKER'] as const
 
-export const TASK_TYPE_TUPPLE = ['TASK', 'BUG'] as const
+export const TASK_TYPE_TUPPLE = ['TASK', 'BUG', 'RESEARCH', 'STORY'] as const
 
 export type ITaskCard = {
   id: string

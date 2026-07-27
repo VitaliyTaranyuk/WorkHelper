@@ -7,26 +7,27 @@ import { getFullName } from '@/entities/user/utils'
 import { sprintDisplayLabel } from '@/entities/sprint/label'
 import { NOT_ASSIGNED_OPTION, type FormValues } from './TaskForm/useTaskForm'
 import { TASK_PRIORITY_OPTIONS, PRIORITY_COLOR } from './TaskForm/contants'
-import BugIcon from '@/shared/assets/icons/task-type-bug.svg?react'
-import TaskIcon from '@/shared/assets/icons/task-type-task.svg?react'
+import { TASK_TYPE_META, TASK_TYPE_ORDER } from '@/entities/task/typeMeta'
 import type { User } from '@/entities/user/types'
 import type { SprintMin } from '@/entities/sprint/type'
 
-// ТП-82: сегментированные переключатели типа и приоритета — единый паттерн с
-// переключателем вида календаря (MUI ToggleButtonGroup). Один клик, без меню;
-// активный вариант визуально выделен. Тип — иконки задача/баг; приоритет —
-// подсвечен своим цветом (PRIORITY_COLOR: зелёный/жёлтый/красный).
-const TYPE_OPTIONS = [
-  { value: 'TASK', label: 'Задача', Icon: TaskIcon },
-  { value: 'BUG', label: 'Баг', Icon: BugIcon },
-] as const
-
+// ТП-82: приоритет — сегментированный переключатель (MUI ToggleButtonGroup),
+// активный вариант подсвечен своим цветом (PRIORITY_COLOR). Четыре значения
+// бэкенда (низкий/средний/высокий/блокер) в 268px правой панели помещаются
+// только компактно — отсюда уменьшенный шрифт и минимальные отступы.
+//
+// Тип задачи с четырьмя значениями (задача/баг/исследование/история) в
+// сегменты уже не помещается («Исследование» шире целого сегмента), поэтому
+// он остался выпадающим списком — как «Спринт», «Исполнитель» и «Статус»
+// в той же панели (паттрен Jira: тип задачи выбирается списком с иконками).
 const segmentSx = {
   textTransform: 'none' as const,
-  fontSize: 13,
+  fontSize: 12,
   fontWeight: 500,
-  gap: 0.75,
+  gap: 0.5,
+  px: 0.5,
   py: 0.75,
+  whiteSpace: 'nowrap' as const,
   '& svg': { width: 16, height: 16 },
 }
 
@@ -130,26 +131,30 @@ export function TaskFormFields({ form, projectUsers, sprints }: Props) {
 
       <Stack gap={0.5}>
         <FormCaption>Тип</FormCaption>
-        <Controller
-          control={form.control}
-          name="type"
-          render={({ field }) => (
-            <ToggleButtonGroup
-              exclusive
-              fullWidth
-              size="small"
-              value={field.value}
-              onChange={(_, v: string | null) => v && field.onChange(v)}
-            >
-              {TYPE_OPTIONS.map(({ value, label, Icon }) => (
-                <ToggleButton key={value} value={value} sx={segmentSx}>
-                  <Icon />
-                  {label}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-          )}
-        />
+        <FormControl fullWidth size="small">
+          <Controller
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onChange={(e) => field.onChange(e.target.value)}
+              >
+                {TASK_TYPE_ORDER.map((type) => {
+                  const { label, Icon } = TASK_TYPE_META[type]
+                  return (
+                    <MenuItem key={type} value={type}>
+                      <Stack direction="row" alignItems="center" gap={1}>
+                        <Icon style={{ width: 16, height: 16 }} />
+                        {label}
+                      </Stack>
+                    </MenuItem>
+                  )
+                })}
+              </Select>
+            )}
+          />
+        </FormControl>
       </Stack>
     </>
   )
