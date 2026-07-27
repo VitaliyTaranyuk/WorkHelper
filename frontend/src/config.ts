@@ -1,4 +1,14 @@
-export const WORKTECH_API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? 'http://91.211.249.37/test'
+/**
+ * Базовый адрес API. Пусто = тот же origin, откуда загружен фронтенд
+ * (запросы уходят относительными путями `/work-task/api/...`, их проксирует
+ * nginx).
+ *
+ * TD-024: раньше дефолтом был конкретный чужой хост `http://91.211.249.37/test`.
+ * Забытая при сборке переменная означала прод-бандл, который молча ходит в
+ * ЧУЖОЙ backend — поломка без единой ошибки в консоли. Относительный дефолт
+ * такого класса ошибок не допускает: в худшем случае фронт обратится сам к
+ * себе. Для локальной разработки адрес задаётся явно (см. .claude/launch.json).
+ */
+export const WORKTECH_API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 export const WORKTECH_API_VERSION = 'v1'
 export const WORKTECH_API_PREFIX = 'work-task/api'

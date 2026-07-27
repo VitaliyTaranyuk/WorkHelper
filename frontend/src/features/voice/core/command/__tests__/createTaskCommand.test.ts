@@ -1,7 +1,16 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { createTaskCommand } from '../commands/createTaskCommand'
 import type { CreatedTask } from '../types'
 import { makeContext, makeCommandContext } from './fixtures'
+
+// ТП-212: run() улучшает черновик через backend-прокси DeepSeek. В юнит-тесте
+// сеть не нужна — мокаем шов и заодно фиксируем контракт «при недоступности
+// остаётся локальный черновик» (enhanceTaskDraftSafe всегда резолвится).
+vi.mock('@/shared/text/enhanceText', () => ({
+  enhanceTaskDraftSafe: vi.fn((_source: string, fallback: unknown) =>
+    Promise.resolve(fallback),
+  ),
+}))
 
 function servicesWith(created: CreatedTask) {
   const bundle = makeCommandContext()
