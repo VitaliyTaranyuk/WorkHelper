@@ -2,7 +2,10 @@ version: '3'
 
 services:
   postgres:
-    image: postgres:latest
+    # TD-020: тег зафиксирован. `postgres:latest` теперь резолвится в 18+,
+    # где раскладка каталога данных несовместима с уже созданным volume —
+    # локальное окружение переставало подниматься на новых машинах.
+    image: postgres:16
     container_name: postgres-container
     restart: always
     ports:

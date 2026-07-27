@@ -52,6 +52,13 @@ public class SecurityConfig {
     // ТП-175: вебхук алертов мониторинга приходит от GlitchTip без JWT;
     // аутентификация — общий секрет в query, проверяется MonitoringAlertService.
     private static final String[] MONITORING_URLS = {"/work-task/api/v1/monitoring/alert"};
+    // TD-022: несуществующий путь Spring форвардит на /error. Пока /error был
+    // закрыт общим правилом, ЛЮБАЯ опечатка в URL и любой неподдерживаемый
+    // метод возвращали 401 — «эндпоинта нет» и «нет прав» становились
+    // неотличимы. Это уже стоило времени при диагностике ТП-212 (казалось, что
+    // не работает авторизация, хотя на сервере просто не было маппинга).
+    // Сам /error не раскрывает данных: тело ответа формирует общий обработчик.
+    private static final String[] ERROR_URLS = {"/error"};
 
     @Value("${spring.cors.allowed.origins}")
     private String allowedOrigins;
@@ -86,6 +93,7 @@ public class SecurityConfig {
                         .requestMatchers(SWAGGER_URLS).permitAll()
                         .requestMatchers(WS_URLS).permitAll()
                         .requestMatchers(MONITORING_URLS).permitAll()
+                        .requestMatchers(ERROR_URLS).permitAll()
                         .anyRequest().authenticated());
         http.sessionManagement(
                 session ->
