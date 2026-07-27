@@ -1,0 +1,123 @@
+name: Deploy to VDS
+
+# TD-021: до этого деплой был полностью ручным, а README описывал workflow,
+# которых в репозитории никогда не существовало. Из-за этого смерженная задача
+# могла неделями считаться развёрнутой, не работая у пользователя (так вышло с
+# ТП-208). Запуск ТОЛЬКО ручной: выкладка на прод не должна происходить сама по
+# себе от каждого коммита в main.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Что выкатываем
+        type: choice
+        required: true
+        default: both
+        options: [both, backend, frontend]
+
+concurrency:
+  # Два одновременных деплоя на один сервер — гарантированный конфликт.
+  group: deploy-vds
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Проверить наличие секретов
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          missing=""
+          [ -z "$SERVER_IP" ] && missing="$missing SERVER_IP"
+          [ -z "$SERVER_USER" ] && missing="$missing SERVER_USER"
+          [ -z "$SSH_PRIVATE_KEY" ] && missing="$missing SSH_PRIVATE_KEY"
+          if [ -n "$missing" ]; then
+            echo "Не заданы секреты репозитория:$missing"
+            echo "Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+
+      - name: Настроить SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "${{ secrets.SERVER_IP }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      # Бэкенд собирается ВНУТРИ образа (многоэтапный backend/Dockerfile,
+      # TD-023), поэтому здесь достаточно обновить код и пересобрать образ.
+      - name: Выкатить backend
+        if: ${{ inputs.target == 'both' || inputs.target == 'backend' }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}" \
+            'cd ${{ vars.DEPLOY_DIR || '/opt/workhelper' }} \
+             && git fetch origin main && git checkout main && git pull --ff-only \
+             && docker compose -f docker-compose.vds.yml up -d --build backend'
+
+      - name: Дождаться готовности backend
+        if: ${{ inputs.target == 'both' || inputs.target == 'backend' }}
+        run: |
+          for i in $(seq 1 40); do
+            status=$(ssh -i ~/.ssh/id_deploy -o BatchMode=yes \
+              "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}" \
+              "docker ps --filter name=workhelper-backend-1 --format '{{.Status}}'")
+            echo "$status"
+            case "$status" in *healthy*) exit 0 ;; esac
+            sleep 15
+          done
+          echo "Контейнер не стал healthy — проверьте логи на сервере"
+          exit 1
+
+      - name: Set up Node
+        if: ${{ inputs.target == 'both' || inputs.target == 'frontend' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # VITE_API_BASE_URL намеренно НЕ задаётся: дефолт относительный, фронтенд
+      # ходит на тот же origin (TD-024). VITE_SENTRY_DSN — публичный ключ
+      # GlitchTip, обязательно БЕЗ дефисов (TD-025), хранится в variables.
+      - name: Собрать frontend
+        if: ${{ inputs.target == 'both' || inputs.target == 'frontend' }}
+        working-directory: frontend
+        env:
+          VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+        run: |
+          npm ci
+          npm run build
+
+      - name: Выложить frontend
+        if: ${{ inputs.target == 'both' || inputs.target == 'frontend' }}
+        run: |
+          tar -czf dist.tar.gz -C frontend/dist .
+          scp -i ~/.ssh/id_deploy -o BatchMode=yes dist.tar.gz \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/wt-dist.tar.gz"
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}" \
+            'set -e
+             root=${{ vars.WEB_ROOT || '/var/www/workhelper' }}
+             tmp=$(mktemp -d)
+             tar -xzf /tmp/wt-dist.tar.gz -C "$tmp"
+             # Распаковка во временный каталог и подмена: сайт не остаётся
+             # пустым, если распаковка оборвётся на полпути.
+             rm -rf "$root".old && cp -r "$root" "$root".old
+             rm -rf "$root"/* && cp -r "$tmp"/. "$root"/
+             rm -rf "$tmp" /tmp/wt-dist.tar.gz'
+
+      - name: Проверить, что сайт отвечает
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' "https://${{ vars.PUBLIC_URL || 'wowoffcata.hlab.kz' }}/")
+          echo "HTTP $code"
+          [ "$code" = "200" ]
+
+      - name: Убрать ключ
+        if: always()
+        run: rm -f ~/.ssh/id_deploy
