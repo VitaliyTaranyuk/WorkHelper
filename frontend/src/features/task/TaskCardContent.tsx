@@ -136,7 +136,28 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
   const selectedSprintId = form.watch('sprint')
   const statusApplicable = isBoardSprintId(sortedSprints, selectedSprintId)
 
-  const isStatusDirty = statusApplicable && statusId !== baselineStatusId
+  // Завершающая колонка — тот же источник, что у бэкенда (completedBoardStatus)
+  // и у выборки «Завершённых», чтобы «завершил» и «попало в завершённые» не
+  // могли разойтись.
+  const completedStatus = activeProject?.resolveStatus
+
+  // ТП-74 + ТП-49: вне доски промежуточные колонки бессмысленны, но «завершено» —
+  // не позиция на доске, а факт. Поэтому вне доски оставляем ровно два варианта:
+  // текущий статус и завершающий. Иначе закрыть задачу бэклога можно было только
+  // протащив её через активный спринт, что искажает историю спринта.
+  const statusOptions = useMemo(
+    () =>
+      statusApplicable
+        ? projectStatuses
+        : projectStatuses.filter(
+            (s) => s.id === baselineStatusId || s.id === completedStatus?.id,
+          ),
+    [statusApplicable, projectStatuses, baselineStatusId, completedStatus?.id],
+  )
+
+  const statusEditable = statusApplicable || Boolean(completedStatus)
+
+  const isStatusDirty = statusEditable && statusId !== baselineStatusId
   const isFormDirty = Object.keys(form.formState.dirtyFields).length > 0
 
   /**
@@ -335,8 +356,8 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
           alignSelf: 'flex-start',
         }}
       >
-        {/* ТП-74: «Статус» — только для задачи активного (доскового) спринта. */}
-        {statusApplicable ? (
+        {/* ТП-74: на доске доступны все колонки; вне доски — только завершение. */}
+        {statusEditable ? (
           <Stack gap={0.5}>
             <FormCaption>Статус</FormCaption>
             <FormControl fullWidth size="small">
@@ -346,7 +367,7 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
                 value={statusId}
                 onChange={(e) => setStatusId(Number(e.target.value))}
               >
-                {projectStatuses.map((s) => (
+                {statusOptions.map((s) => (
                   <MenuItem key={s.id} value={s.id}>
                     {/* code — единое отображаемое имя колонки, заданное
                         пользователем. Никаких подмен на description / переводов. */}
@@ -355,6 +376,11 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
                 ))}
               </Select>
             </FormControl>
+            {!statusApplicable && (
+              <FormCaption>
+                Вне активного спринта задачу можно только завершить
+              </FormCaption>
+            )}
           </Stack>
         ) : (
           <FormCaption>
