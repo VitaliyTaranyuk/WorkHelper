@@ -289,19 +289,69 @@ class TaskServiceTest {
     }
 
     @Test
-    void updateTaskStatus_shouldReject_whenTaskNotOnBoard() throws Exception {
+    void updateTaskStatus_shouldReject_whenTaskNotOnBoardAndStatusIsIntermediate() throws Exception {
         UpdateStatusRequestDTO dto = new UpdateStatusRequestDTO();
         dto.setProjectId("project-1");
         dto.setId("task-1");
-        dto.setStatus(2L);
+        dto.setStatus(2L); // промежуточная колонка, не завершающая
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        TaskStatus completed = mock(TaskStatus.class);
+        when(completed.getId()).thenReturn(4L);
+
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(taskRepository.findTaskModelByIdAndProjectForUpdate("task-1", "project-1"))
+                .thenReturn(Optional.of(task));
+        when(taskPlacementService.isOnBoard(project, sprint)).thenReturn(false);
+        when(taskPlacementService.completedBoardStatus(project)).thenReturn(Optional.of(completed));
+
+        // ТП-74: вне доски промежуточные колонки по-прежнему запрещены
+        assertThatThrownBy(() -> taskService.updateTaskStatus(dto))
+                .isInstanceOf(BadRequestException.class);
+        verify(taskHistorySaverService, never())
+                .saveTaskModelChanges(any(), any(UpdateStatusRequestDTO.class), any(), any());
+    }
+
+    @Test
+    void updateTaskStatus_shouldAllowCompletion_whenTaskNotOnBoard() throws Exception {
+        UpdateStatusRequestDTO dto = new UpdateStatusRequestDTO();
+        dto.setProjectId("project-1");
+        dto.setId("task-1");
+        dto.setStatus(4L); // завершающая колонка
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        TaskStatus completed = mock(TaskStatus.class);
+        when(completed.getId()).thenReturn(4L);
+
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(taskRepository.findTaskModelByIdAndProjectForUpdate("task-1", "project-1"))
+                .thenReturn(Optional.of(task));
+        when(taskPlacementService.isOnBoard(project, sprint)).thenReturn(false);
+        when(taskPlacementService.completedBoardStatus(project)).thenReturn(Optional.of(completed));
+        when(taskRepository.findById("task-1")).thenReturn(Optional.of(task));
+        when(taskMapper.toDo(any(TaskModel.class))).thenReturn(mock(TaskDataDto.class));
+
+        taskService.updateTaskStatus(dto);
+
+        // Задачу бэклога можно ЗАВЕРШИТЬ, не протаскивая её через активный спринт:
+        // «завершено» — не позиция на доске, а факт (восстановление независимости
+        // осей ТП-49 там, где она осмысленна).
+        verify(taskHistorySaverService).saveTaskModelChanges(eq(task), eq(dto), eq(project), eq(creator));
+    }
+
+    @Test
+    void updateTaskStatus_shouldReject_whenTaskNotOnBoardAndProjectHasNoCompletedColumn() throws Exception {
+        UpdateStatusRequestDTO dto = new UpdateStatusRequestDTO();
+        dto.setProjectId("project-1");
+        dto.setId("task-1");
+        dto.setStatus(4L);
         UserAndProjectData data = new UserAndProjectData(project, creator);
 
         when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
         when(taskRepository.findTaskModelByIdAndProjectForUpdate("task-1", "project-1"))
                 .thenReturn(Optional.of(task));
         when(taskPlacementService.isOnBoard(project, sprint)).thenReturn(false);
+        when(taskPlacementService.completedBoardStatus(project)).thenReturn(Optional.empty());
 
-        // ТП-74: у задачи бэклога/неактивного спринта статус менять нельзя
+        // Нет завершающей колонки — завершать нечем; молча пропускать нельзя
         assertThatThrownBy(() -> taskService.updateTaskStatus(dto))
                 .isInstanceOf(BadRequestException.class);
         verify(taskHistorySaverService, never())

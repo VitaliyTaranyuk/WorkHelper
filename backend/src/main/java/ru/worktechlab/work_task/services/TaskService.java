@@ -203,15 +203,35 @@ public class TaskService {
         log.debug("Обновить статус задачи");
         UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(requestDto.getProjectId(), false, false);
         TaskModel task = findTaskByIdAndProjectForUpdate(requestDto.getId(), data.getProject());
-        // ТП-74: статус-колонка доски осмыслена только для задач доскового
-        // спринта. У бэклога/неактивного спринта колонок нет — менять статус
-        // нельзя (серверная защита от обхода ограничения через API).
-        if (!taskPlacementService.isOnBoard(data.getProject(), task.getSprint()))
+        // ТП-74: промежуточные колонки доски осмыслены только для задач доскового
+        // спринта — у бэклога и неактивного спринта доски нет.
+        // Исключение — ЗАВЕРШАЮЩАЯ колонка: «завершено» это не позиция на доске, а
+        // факт, и он осмыслен для любой задачи. Без этого исключения закрыть задачу
+        // бэклога можно было только протащив её через активный спринт, что искажает
+        // историю спринта (задача в нём не выполнялась). Восстанавливает независимость
+        // осей «спринт» и «статус», заявленную ТП-49, там где она осмысленна.
+        // Серверная защита от обхода через API сохраняется: любой другой статус
+        // вне доски по-прежнему отвергается.
+        if (!taskPlacementService.isOnBoard(data.getProject(), task.getSprint())
+                && !isCompletedStatus(data.getProject(), requestDto.getStatus()))
             throw new BadRequestException(
-                    "Статус можно задать только для задачи активного спринта — она отображается на доске");
+                    "Задачу вне активного спринта можно только завершить — промежуточные "
+                            + "колонки доступны на доске");
         taskHistorySaverService.saveTaskModelChanges(task, requestDto, data.getProject(), data.getUser());
         taskRepository.flush();
         return taskMapper.toDo(findTaskByIdOrThrow(task.getId()));
+    }
+
+    /**
+     * Завершающая ли это колонка проекта. Источник тот же, что у выборки
+     * «Завершённых» ({@link #getCompletedTasks}) — {@code completedBoardStatus},
+     * чтобы «завершил» и «попало в завершённые» не могли разойтись.
+     */
+    private boolean isCompletedStatus(Project project, Long statusId) {
+        if (statusId == null) return false;
+        return taskPlacementService.completedBoardStatus(project)
+                .map(status -> statusId.equals(status.getId()))
+                .orElse(false);
     }
 
     private Comment convertToEntity(CommentDto dto, User user, TaskModel task) {
