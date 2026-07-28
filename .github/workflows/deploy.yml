@@ -69,10 +69,21 @@ jobs:
           else
             sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
             echo "Доступ по паролю"
+            # Пароль, вставленный в интерактивный запрос `gh secret set`,
+            # почти всегда приезжает с хвостовым переводом строки, и сервер
+            # такой пароль отвергает (`Permission denied`, sshpass exit 5) —
+            # диагностировать это по логу невозможно, значение маскировано.
+            # Обёртка нормализует пароль в момент запуска, не копируя его
+            # в GITHUB_ENV и не подставляя в argv (там его видно в `ps`).
+            printf '%s\n' \
+              '#!/usr/bin/env bash' \
+              'export SSHPASS="$(printf %s "$SSHPASS" | tr -d "\r\n")"' \
+              'exec sshpass -e "$@"' > "$HOME/.ssh/wrap"
+            chmod +x "$HOME/.ssh/wrap"
             # PubkeyAuthentication=no — иначе ssh сначала перебирает ключи
             # раннера и может упереться в лимит попыток до пароля.
-            echo "SSH=sshpass -e ssh -o PubkeyAuthentication=no -o PreferredAuthentications=password" >> "$GITHUB_ENV"
-            echo "SCP=sshpass -e scp -o PubkeyAuthentication=no -o PreferredAuthentications=password" >> "$GITHUB_ENV"
+            echo "SSH=$HOME/.ssh/wrap ssh -o PubkeyAuthentication=no -o PreferredAuthentications=password" >> "$GITHUB_ENV"
+            echo "SCP=$HOME/.ssh/wrap scp -o PubkeyAuthentication=no -o PreferredAuthentications=password" >> "$GITHUB_ENV"
           fi
 
       # Бэкенд собирается ВНУТРИ образа (многоэтапный backend/Dockerfile,
