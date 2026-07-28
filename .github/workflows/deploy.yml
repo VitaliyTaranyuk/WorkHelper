@@ -82,8 +82,13 @@ jobs:
             chmod +x "$HOME/.ssh/wrap"
             # PubkeyAuthentication=no — иначе ssh сначала перебирает ключи
             # раннера и может упереться в лимит попыток до пароля.
-            echo "SSH=$HOME/.ssh/wrap ssh -o PubkeyAuthentication=no -o PreferredAuthentications=password" >> "$GITHUB_ENV"
-            echo "SCP=$HOME/.ssh/wrap scp -o PubkeyAuthentication=no -o PreferredAuthentications=password" >> "$GITHUB_ENV"
+            # keyboard-interactive обязателен: многие серверы (в т.ч. дефолт
+            # Ubuntu с PAM) принимают пароль ТОЛЬКО этим методом, и запрос
+            # с одним `password` отклоняется — хотя тот же пароль руками
+            # проходит. Симптом неотличим от неверного пароля.
+            AUTH="-o PubkeyAuthentication=no -o PreferredAuthentications=keyboard-interactive,password -o NumberOfPasswordPrompts=1"
+            echo "SSH=$HOME/.ssh/wrap ssh $AUTH" >> "$GITHUB_ENV"
+            echo "SCP=$HOME/.ssh/wrap scp $AUTH" >> "$GITHUB_ENV"
           fi
 
       # Бэкенд собирается ВНУТРИ образа (многоэтапный backend/Dockerfile,
