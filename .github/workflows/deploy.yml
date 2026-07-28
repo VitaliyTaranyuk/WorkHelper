@@ -23,39 +23,64 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      SERVER_IP: ${{ secrets.SERVER_IP }}
+      SERVER_USER: ${{ secrets.SERVER_USER }}
+      # sshpass читает пароль из этой переменной — он не попадает ни в
+      # командную строку (её видно в `ps` на раннере), ни в лог (GitHub
+      # маскирует значения секретов).
+      SSHPASS: ${{ secrets.SERVER_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Проверить наличие секретов
+      # Доступ к серверу — ключом ИЛИ паролем. Ключ предпочтительнее: его
+      # отзывают удалением строки в authorized_keys, не трогая учётную запись.
+      # Пароль поддержан как рабочий путь для тех, у кого ключа нет.
+      - name: Проверить наличие доступа
         env:
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           missing=""
           [ -z "$SERVER_IP" ] && missing="$missing SERVER_IP"
           [ -z "$SERVER_USER" ] && missing="$missing SERVER_USER"
-          [ -z "$SSH_PRIVATE_KEY" ] && missing="$missing SSH_PRIVATE_KEY"
+          if [ -z "$SSH_PRIVATE_KEY" ] && [ -z "$SSHPASS" ]; then
+            missing="$missing (SSH_PRIVATE_KEY или SERVER_PASSWORD)"
+          fi
           if [ -n "$missing" ]; then
             echo "Не заданы секреты репозитория:$missing"
             echo "Settings → Secrets and variables → Actions"
             exit 1
           fi
 
-      - name: Настроить SSH
+      # Способ подключения выбирается один раз и дальше используется всеми
+      # шагами через $SSH/$SCP — иначе ветвление размазалось бы по каждому.
+      - name: Настроить доступ к серверу
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-          ssh-keyscan -H "${{ secrets.SERVER_IP }}" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null
+          if [ -n "$SSH_PRIVATE_KEY" ]; then
+            printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+            chmod 600 ~/.ssh/id_deploy
+            echo "Доступ по ключу"
+            echo "SSH=ssh -i $HOME/.ssh/id_deploy -o BatchMode=yes" >> "$GITHUB_ENV"
+            echo "SCP=scp -i $HOME/.ssh/id_deploy -o BatchMode=yes" >> "$GITHUB_ENV"
+          else
+            sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+            echo "Доступ по паролю"
+            # PubkeyAuthentication=no — иначе ssh сначала перебирает ключи
+            # раннера и может упереться в лимит попыток до пароля.
+            echo "SSH=sshpass -e ssh -o PubkeyAuthentication=no -o PreferredAuthentications=password" >> "$GITHUB_ENV"
+            echo "SCP=sshpass -e scp -o PubkeyAuthentication=no -o PreferredAuthentications=password" >> "$GITHUB_ENV"
+          fi
 
       # Бэкенд собирается ВНУТРИ образа (многоэтапный backend/Dockerfile,
       # TD-023), поэтому здесь достаточно обновить код и пересобрать образ.
       - name: Выкатить backend
         if: ${{ inputs.target == 'both' || inputs.target == 'backend' }}
         run: |
-          ssh -i ~/.ssh/id_deploy -o BatchMode=yes \
-            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}" \
+          $SSH "$SERVER_USER@$SERVER_IP" \
             'cd ${{ vars.DEPLOY_DIR || '/opt/workhelper' }} \
              && git fetch origin main && git checkout main && git pull --ff-only \
              && docker compose -f docker-compose.vds.yml up -d --build backend'
@@ -64,8 +89,7 @@ jobs:
         if: ${{ inputs.target == 'both' || inputs.target == 'backend' }}
         run: |
           for i in $(seq 1 40); do
-            status=$(ssh -i ~/.ssh/id_deploy -o BatchMode=yes \
-              "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}" \
+            status=$($SSH "$SERVER_USER@$SERVER_IP" \
               "docker ps --filter name=workhelper-backend-1 --format '{{.Status}}'")
             echo "$status"
             case "$status" in *healthy*) exit 0 ;; esac
@@ -98,10 +122,8 @@ jobs:
         if: ${{ inputs.target == 'both' || inputs.target == 'frontend' }}
         run: |
           tar -czf dist.tar.gz -C frontend/dist .
-          scp -i ~/.ssh/id_deploy -o BatchMode=yes dist.tar.gz \
-            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/wt-dist.tar.gz"
-          ssh -i ~/.ssh/id_deploy -o BatchMode=yes \
-            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}" \
+          $SCP dist.tar.gz "$SERVER_USER@$SERVER_IP:/tmp/wt-dist.tar.gz"
+          $SSH "$SERVER_USER@$SERVER_IP" \
             'set -e
              root=${{ vars.WEB_ROOT || '/var/www/workhelper' }}
              tmp=$(mktemp -d)
