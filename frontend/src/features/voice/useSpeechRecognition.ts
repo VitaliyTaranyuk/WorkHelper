@@ -12,6 +12,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  *    паузах распознавание перезапускается, накопленный текст НЕ теряется;
  *    завершение — по стоп-фразе (например «работаем») или кнопкой `stop()`.
  *    Анализ намерения выполняется ТОЛЬКО после завершения (один раз, весь текст).
+ *  - с `keepAlive` (сессия live-диктовки, ТП-241): тоже непрерывно, но без
+ *    стоп-фразы — сессию заканчивает только человек (`finish`/`cancel`).
+ *    Пауза на обдумывание больше не обрывает диктовку.
  */
 
 export const DEFAULT_STOP_PHRASE = 'работаем'
@@ -96,11 +99,14 @@ const ERROR_MESSAGES: Record<string, string> = {
 export function useSpeechRecognition({
   onFinish,
   stopPhrase,
+  keepAlive = false,
 }: {
   /** Вызывается с полным текстом при завершении распознавания. */
   onFinish: (transcript: string) => void
   /** Стоп-фраза (ТП-111): включает непрерывный режим + завершение по фразе. */
   stopPhrase?: string
+  /** ТП-241: сессия живёт до явного `finish`/`cancel`, паузы её не обрывают. */
+  keepAlive?: boolean
 }) {
   const supported = getSpeechRecognition() !== null
 
@@ -119,6 +125,14 @@ export function useSpeechRecognition({
   onFinishRef.current = onFinish
   const stopPhraseRef = useRef(stopPhrase)
   stopPhraseRef.current = stopPhrase
+  const keepAliveRef = useRef(keepAlive)
+  keepAliveRef.current = keepAlive
+  // ТП-241: текст уже отдан пользователем явно (finish) — onend не должен
+  // отдать его второй раз.
+  const deliveredRef = useRef(false)
+  // Текущий незавершённый фрагмент: при явном finish он идёт в результат,
+  // иначе «хвост» последней фразы терялся бы.
+  const interimRef = useRef('')
 
   // Создаёт и запускает новый экземпляр распознавания (finalRef сохраняется —
   // нужен для перезапуска на паузе в непрерывном режиме).
@@ -155,6 +169,7 @@ export function useSpeechRecognition({
           return
         }
       }
+      interimRef.current = interimText
       setTranscript(finalRef.current)
       setInterim(interimText)
     }
@@ -174,18 +189,20 @@ export function useSpeechRecognition({
       // частичную фразу НЕ отдаём — исполнять оборванную команду после сбоя
       // опаснее, чем повторить её целиком.
       const accumulated = finalRef.current.trim()
-      if (!stopPhraseRef.current && accumulated) {
+      if (!stopPhraseRef.current && accumulated && !deliveredRef.current) {
+        deliveredRef.current = true
         onFinishRef.current(accumulated)
       }
     }
 
     recognition.onend = () => {
       recognitionRef.current = null
+      interimRef.current = ''
       setInterim('')
       if (cancelledRef.current) return
       // Непрерывный режим: авто-остановка по тишине (не стоп/не фраза) →
       // перезапускаем, чтобы не потерять длинную диктовку.
-      if (stopPhraseRef.current && !finishingRef.current) {
+      if ((stopPhraseRef.current || keepAliveRef.current) && !finishingRef.current) {
         try {
           spawn()
           return
@@ -194,6 +211,8 @@ export function useSpeechRecognition({
         }
       }
       setStatus('idle')
+      if (deliveredRef.current) return
+      deliveredRef.current = true
       onFinishRef.current(finalRef.current.trim())
     }
 
@@ -206,8 +225,10 @@ export function useSpeechRecognition({
     if (!getSpeechRecognition()) return
     if (recognitionRef.current) return
     finalRef.current = ''
+    interimRef.current = ''
     cancelledRef.current = false
     finishingRef.current = false
+    deliveredRef.current = false
     setTranscript('')
     setInterim('')
     setError(null)
@@ -220,11 +241,35 @@ export function useSpeechRecognition({
     recognitionRef.current?.stop()
   }, [])
 
+  /**
+   * ТП-241: завершение сессии человеком (Enter, кнопка, отправка формы).
+   * В отличие от {@link stop} результат отдаётся СРАЗУ и синхронно — вызывающий
+   * (например обработчик «Создать») обязан увидеть текст в поле немедленно, а
+   * не через несколько сотен миллисекунд, когда браузер пришлёт `onend`.
+   * Незавершённый фрагмент (`interim`) входит в результат: он уже произнесён,
+   * терять его нельзя. Возвращает отданный текст.
+   */
+  const finish = useCallback(() => {
+    const text = `${finalRef.current} ${interimRef.current}`.trim()
+    finishingRef.current = true
+    if (!deliveredRef.current) {
+      deliveredRef.current = true
+      finalRef.current = text
+      setTranscript(text)
+      setInterim('')
+      onFinishRef.current(text)
+    }
+    recognitionRef.current?.stop()
+    return text
+  }, [])
+
   /** Отмена: результат отбрасывается. */
   const cancel = useCallback(() => {
     cancelledRef.current = true
+    deliveredRef.current = true
     recognitionRef.current?.abort()
     recognitionRef.current = null
+    interimRef.current = ''
     setStatus('idle')
     setTranscript('')
     setInterim('')
@@ -239,5 +284,5 @@ export function useSpeechRecognition({
     }
   }, [])
 
-  return { supported, status, transcript, interim, error, start, stop, cancel }
+  return { supported, status, transcript, interim, error, start, stop, finish, cancel }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type SyntheticEvent } from 'react'
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
 import {
   Dialog,
@@ -17,6 +17,7 @@ import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { useCreateTask } from '@/features/task/mutation/useCreateTask'
 import { buildCreateTaskPayload } from '@/features/task/prepareTaskCard'
+import { finalizeActiveDictation } from '@/features/voice/activeDictation'
 import { uploadPendingAttachments } from '@/features/task/uploadPendingAttachments'
 import { Loader } from '@/shared/ui/components/Loader'
 
@@ -86,7 +87,7 @@ function CreateTaskModalInner({
     modal.hide()
   }
 
-  const onSubmit = form.handleSubmit(async (formValues) => {
+  const submitValues = form.handleSubmit(async (formValues) => {
     // ТП-147: единая подготовка карточки (авто-название из описания) и
     // сборка payload — общий сервис всех точек создания. ТП-239: подготовка
     // синхронная, улучшение названия ушло в фон после создания.
@@ -104,6 +105,19 @@ function CreateTaskModalInner({
     modal.resolve()
     modal.hide()
   })
+
+  /**
+   * ТП-241: «Создать» прямо во время диктовки — не заставляем сначала жать
+   * «Остановить запись». Сессия закрывается ДО чтения значений формы, иначе
+   * последняя фраза не попала бы в задачу.
+   */
+  const onSubmit = async (e?: SyntheticEvent) => {
+    // Enter в однострочном поле «Название» отправляет форму нативно — гасим,
+    // иначе страница перезагрузится (раньше это делал сам handleSubmit).
+    e?.preventDefault()
+    await finalizeActiveDictation()
+    await submitValues()
+  }
 
   return (
     <Dialog

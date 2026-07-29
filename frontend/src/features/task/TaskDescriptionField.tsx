@@ -1,9 +1,13 @@
+import { useEffect } from 'react'
 import { Stack, Typography } from '@mui/material'
 import type { UseFormReturn } from 'react-hook-form'
 import { TextField } from '@/shared/ui/mui/TextFileld'
 import { FormCaption } from '@/shared/ui/components/FormCaption'
-import { DictationButton } from '@/features/voice/DictationButton'
+import { DictationIconButton } from '@/features/voice/DictationIconButton'
+import { DictationLivePanel } from '@/features/voice/DictationLivePanel'
+import { useLiveDictation } from '@/features/voice/useLiveDictation'
 import { applyDictation } from '@/shared/text/applyDictation'
+import { notify as toast } from '@/shared/ui/notify'
 import type { FormValues } from './TaskForm/useTaskForm'
 
 
@@ -16,7 +20,9 @@ import type { FormValues } from './TaskForm/useTaskForm'
  * панель инструментов, где слева диктовка (голосовой ввод описания), справа —
  * счётчик символов. Диктовка убрана из области названия: голосом вводится
  * содержательный текст (описание/комментарии), а не короткий заголовок.
- * Бизнес-логика диктовки не меняется — только расположение и стиль.
+ *
+ * ТП-241: диктовка стала сессией с живой расшифровкой — между полем и панелью
+ * инструментов во время записи появляется {@link DictationLivePanel}.
  */
 export function TaskDescriptionField({
   form,
@@ -34,6 +40,13 @@ export function TaskDescriptionField({
     if (next === current) return
     form.setValue('description', next, { shouldDirty: true })
   }
+
+  const dictation = useLiveDictation({ onText: appendDictation })
+
+  // Ошибки распознавания (нет доступа к микрофону и т.п.) — тостом.
+  useEffect(() => {
+    if (dictation.status === 'error' && dictation.error) toast.error(dictation.error)
+  }, [dictation.status, dictation.error])
 
   return (
     <Stack gap={0.5}>
@@ -65,10 +78,29 @@ export function TaskDescriptionField({
         {...form.register('description')}
         placeholder="Опишите задачу — поддерживаются длинные тексты и переносы строк"
       />
+      {/* ТП-241: живая расшифровка — прямо под полем, чтобы читалась как его
+          продолжение. Видна только во время записи. */}
+      {dictation.listening && (
+        <DictationLivePanel
+          final={dictation.liveFinal}
+          interim={dictation.liveInterim}
+          onFinish={dictation.finish}
+          onCancel={dictation.cancel}
+        />
+      )}
       {/* Панель инструментов поля: слева диктовка, справа счётчик символов —
           информационный, без потолка (лимит снят в ТП-187, как в Jira/Linear). */}
       <Stack direction="row" alignItems="center" gap={1}>
-        <DictationButton targetLabel="описание" onText={appendDictation} />
+        {dictation.supported && (
+          <DictationIconButton
+            listening={dictation.listening}
+            processing={dictation.enhancing}
+            targetLabel="описание"
+            onClick={() =>
+              dictation.listening ? dictation.finish() : dictation.start()
+            }
+          />
+        )}
         {value.length > 0 && (
           <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
             {value.length.toLocaleString('ru-RU')} символов
