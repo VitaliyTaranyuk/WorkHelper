@@ -22,6 +22,7 @@ import { isBoardSprintId } from '@/entities/sprint/board'
 import { useEditTaskForm } from './TaskForm/useTaskForm'
 import { useEditTask } from './mutation/useEditTask'
 import { useDeleteTask } from './mutation/useDeleteTask'
+import { finalizeActiveDictation } from '@/features/voice/activeDictation'
 import { useUpdateTaskStatus } from './mutation/useUpdateTaskStatus'
 import { TaskComments } from './TaskComments'
 import { TaskHistory } from './TaskHistory'
@@ -219,13 +220,19 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
     }
   }
 
-  const onSubmit = form.handleSubmit(async (formValues) => {
-    await saveAll(formValues)
-  })
+  // ТП-241: «Сохранить» во время диктовки сначала закрывает сессию — иначе
+  // последняя фраза не попала бы в задачу (та же логика, что у «Создать»).
+  const onSubmit = async () => {
+    await finalizeActiveDictation()
+    await form.handleSubmit(async (formValues) => {
+      await saveAll(formValues)
+    })()
+  }
 
   /** Сохранение для guard-а закрытия: прогоняет валидацию и возвращает успех. */
   const saveForGuard = async () => {
     let ok = false
+    await finalizeActiveDictation()
     await form.handleSubmit(async (formValues) => {
       ok = await saveAll(formValues)
     })()

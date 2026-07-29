@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type SyntheticEvent } from 'react'
 import { Box, Stack } from '@mui/material'
 import { CreateTaskContent } from '@/features/task/CreateTaskContent'
 import { useCreateTaskForm } from '@/features/task/TaskForm/useTaskForm'
@@ -6,6 +6,7 @@ import { MUIPrimaryButton } from '@/shared/ui/Button'
 import { useCreateTask } from '@/features/task/mutation/useCreateTask'
 import { buildCreateTaskPayload } from '@/features/task/prepareTaskCard'
 import { uploadPendingAttachments } from '@/features/task/uploadPendingAttachments'
+import { finalizeActiveDictation } from '@/features/voice/activeDictation'
 
 type CreateTaskDetailsProps = {
   projectId: string
@@ -29,7 +30,7 @@ export function CreateTaskDetails({
   // Отложенные вложения (ТП-30): грузятся к задаче сразу после создания.
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
 
-  const onSubmit = form.handleSubmit(async (formValues) => {
+  const submitValues = form.handleSubmit(async (formValues) => {
     try {
       // ТП-147: единая подготовка карточки (авто-название из описания) и
       // сборка payload — общий сервис всех точек создания. ТП-239: подготовка
@@ -46,6 +47,16 @@ export function CreateTaskDetails({
       // toast already shown by useCreateTask onError
     }
   })
+
+  // ТП-241: «Создать» во время диктовки сначала закрывает сессию — иначе
+  // последняя фраза не попала бы в задачу.
+  const onSubmit = async (e?: SyntheticEvent) => {
+    // Enter в однострочном поле «Название» отправляет форму нативно — гасим,
+    // иначе страница перезагрузится (раньше это делал сам handleSubmit).
+    e?.preventDefault()
+    await finalizeActiveDictation()
+    await submitValues()
+  }
 
   return (
     <Stack maxWidth={960}>

@@ -32,11 +32,14 @@ export function useVoiceInput({
   context,
   handlers,
   onEmpty,
+  keepAlive = false,
 }: {
   context: VoiceContext
   handlers: VoiceActionHandlers
   /** Ничего не распознано — для сообщения пользователю. */
   onEmpty?: () => void
+  /** ТП-241: сессия живёт до явного завершения, паузы её не обрывают. */
+  keepAlive?: boolean
 }) {
   const [enhancing, setEnhancing] = useState(false)
 
@@ -57,6 +60,6 @@ export function useVoiceInput({
     }
   }
 
-  const speech = useSpeechRecognition({ onFinish })
+  const speech = useSpeechRecognition({ onFinish, keepAlive })
   return { ...speech, enhancing }
 }

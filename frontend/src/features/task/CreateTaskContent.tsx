@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, type SyntheticEvent } from 'react'
 import { Divider, FormControl, Stack } from '@mui/material'
 import { Controller, type UseFormReturn } from 'react-hook-form'
 import { orderBy } from 'lodash'
@@ -17,7 +17,8 @@ import type { User } from '@/entities/user/types'
 
 type CreateTaskContentProps = {
   form: UseFormReturn<FormValues>
-  onSubmit?: () => void
+  /** Событие приходит при нативной отправке формы (Enter в «Названии»). */
+  onSubmit?: (e?: SyntheticEvent) => void
   /** Отложенные вложения (ТП-30): загружаются к задаче после создания. */
   pendingFiles?: File[]
   onPendingFilesChange?: (files: File[]) => void

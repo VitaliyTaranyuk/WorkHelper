@@ -1,11 +1,7 @@
 import { useEffect } from 'react'
-import IconButton from '@mui/material/IconButton'
-import Tooltip from '@mui/material/Tooltip'
-import CircularProgress from '@mui/material/CircularProgress'
-import MicNoneOutlinedIcon from '@mui/icons-material/MicNoneOutlined'
-import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined'
 import { notify as toast } from '@/shared/ui/notify'
 import { useVoiceInput } from './useVoiceInput'
+import { DictationIconButton } from './DictationIconButton'
 import type { VoiceField } from './core/intentAnalyzer'
 
 type Props = {
@@ -24,11 +20,15 @@ type Props = {
 }
 
 /**
- * Кнопка диктовки в поле формы (ТП-58, переработана в ТП-88 под единый конвейер
- * голосового ввода). Клик — запись (иконка «стоп», подсветка), повторный клик
- * или тишина — окончание; распознанный текст проходит конвейер
+ * Кнопка диктовки в короткое поле (ТП-58 → ТП-88): комментарий. Клик — запись,
+ * повторный клик или тишина — окончание; распознанный текст проходит конвейер
  * (SpeechRecognition → IntentAnalyzer-заглушка → TextFormatter → Executor) и
- * уходит в onText. Намерение — DICTATE_FIELD (вставка в поле), задаётся `field`.
+ * уходит в onText одним куском.
+ *
+ * ТП-241: у описания диктовка другая — с живой расшифровкой и явной сессией
+ * ({@link useLiveDictation}). Комментарий оставлен на этом простом варианте
+ * осознанно: реплика короткая, отдельная панель расшифровки под ней была бы
+ * тяжелее самой реплики.
  */
 export function DictationButton({
   onText,
@@ -55,31 +55,11 @@ export function DictationButton({
   if (!speech.supported) return null
 
   return (
-    <Tooltip
-      title={
-        listening
-          ? 'Идёт запись — нажмите, чтобы закончить'
-          : processing
-            ? 'Текст уже в поле — улучшаем формулировку…'
-            : `Надиктовать ${targetLabel} голосом`
-      }
-    >
-      <span>
-        <IconButton
-          size="small"
-          aria-label={listening ? 'Закончить диктовку' : 'Надиктовать голосом'}
-          onClick={() => (listening ? speech.stop() : speech.start())}
-          sx={listening ? { color: 'error.main' } : undefined}
-        >
-          {listening ? (
-            <StopCircleOutlinedIcon fontSize="small" />
-          ) : processing ? (
-            <CircularProgress size={16} thickness={5} />
-          ) : (
-            <MicNoneOutlinedIcon fontSize="small" />
-          )}
-        </IconButton>
-      </span>
-    </Tooltip>
+    <DictationIconButton
+      listening={listening}
+      processing={processing}
+      targetLabel={targetLabel}
+      onClick={() => (listening ? speech.stop() : speech.start())}
+    />
   )
 }
