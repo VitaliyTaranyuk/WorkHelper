@@ -67,6 +67,15 @@ public class InAppNotificationService {
         for (String username : usernames) {
             userRepository.findByUsername(username).ifPresent(recipient -> {
                 if (recipient.getId().equals(actor.getId())) return;
+                // TD-028: упомянуть можно только участника проекта задачи.
+                // Иначе постороннему прилетало уведомление с кодом чужой
+                // задачи и ссылкой, которая открыться у него не может, —
+                // picker таких больше не предлагает, но @username пишут и
+                // руками.
+                if (!isProjectMember(recipient, task)) {
+                    log.debug("MENTION пропущено: {} не участник проекта задачи {}", username, task.getCode());
+                    return;
+                }
                 // ТП-65: получатель мог отключить уведомления об упоминаниях
                 if (!userSettingsService.effectiveFor(recipient.getId()).isNotifyMentions()) return;
                 // ТП-72: сообщение — только содержание события; тип («Упоминание»)
@@ -168,6 +177,13 @@ public class InAppNotificationService {
         while (matcher.find())
             usernames.add(matcher.group(1).toLowerCase());
         return usernames;
+    }
+
+    /** TD-028: участие проверяется по проекту задачи, а не по «текущему» проекту автора. */
+    private boolean isProjectMember(User user, TaskModel task) {
+        if (task.getProject() == null) return false;
+        return task.getProject().getUsers().stream()
+                .anyMatch(member -> member.getId().equals(user.getId()));
     }
 
     private String actorName(User user) {

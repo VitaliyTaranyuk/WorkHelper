@@ -24,7 +24,11 @@ import ru.worktechlab.work_task.models.enums.Gender;
 import ru.worktechlab.work_task.models.tables.RoleModel;
 import ru.worktechlab.work_task.models.tables.User;
 import ru.worktechlab.work_task.repositories.UserRepository;
+import ru.worktechlab.work_task.utils.CheckerUtil;
 import ru.worktechlab.work_task.utils.UserContext;
+import ru.worktechlab.work_task.dto.UserAndProjectData;
+import ru.worktechlab.work_task.dto.users.UserLookupDto;
+import ru.worktechlab.work_task.models.tables.Project;
 
 import java.time.LocalDate;
 import java.util.Collections;
@@ -46,6 +50,7 @@ class UserServiceTest {
     @Mock private NotificationService notificationService;
     @Mock private MailParams mailParams;
     @Mock private UserContext userContext;
+    @Mock private CheckerUtil checkerUtil;
 
     @InjectMocks
     private UserService userService;
@@ -228,18 +233,89 @@ class UserServiceTest {
     }
 
     @Test
-    void pickerSearch_excludesSystemInactiveAndUsernamelessAccounts() {
+    void pickerSearch_excludesSystemInactiveAndUsernamelessAccounts() throws NotFoundException {
         User real = pickerUser("ivanov", true, false);
         User systemAcc = pickerUser("admin", true, true);   // технический
         User noUsername = pickerUser(null, true, false);    // «неизвестный»
         User inactive = pickerUser("petrov", false, false); // неактивный
-        when(userRepository.getUsers())
-                .thenReturn(List.of(real, systemAcc, noUsername, inactive));
+        projectWithMembers(real, systemAcc, noUsername, inactive);
 
-        List<UserPickerDto> result = userService.pickerSearch("", 20);
+        List<UserPickerDto> result = userService.pickerSearch("project-1", "", 20);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getUsername()).isEqualTo("ivanov");
+    }
+
+    /**
+     * TD-028: главный дефект — picker отдавал ВСЮ базу пользователей вместе с
+     * email любому участнику любого проекта (K-36) и предлагал упомянуть тех,
+     * кому проект недоступен.
+     */
+    @Test
+    void pickerSearch_returnsOnlyProjectMembers() throws NotFoundException {
+        User member = pickerUser("ivanov", true, false);
+        projectWithMembers(member);
+
+        List<UserPickerDto> result = userService.pickerSearch("project-1", "", 20);
+
+        assertThat(result).extracting(UserPickerDto::getUsername).containsExactly("ivanov");
+        verify(userRepository, never()).getUsers();
+    }
+
+    @Test
+    void pickerSearch_requiresProjectMembershipOfCaller() throws NotFoundException {
+        when(checkerUtil.findAndCheckProjectUserData("foreign-project", false, false))
+                .thenThrow(new NotFoundException("Вам не доступен проект"));
+
+        assertThatThrownBy(() -> userService.pickerSearch("foreign-project", "", 20))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void lookupForInvite_findsUserByExactUsernameWithoutEmail() throws NotFoundException {
+        User candidate = pickerUser("ivanov", true, false);
+        projectWithMembers();
+        when(userRepository.findByUsername("ivanov")).thenReturn(Optional.of(candidate));
+
+        List<UserLookupDto> result = userService.lookupForInvite("project-1", "@ivanov");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getUsername()).isEqualTo("ivanov");
+    }
+
+    /** Подстрока не ищется: иначе каталог пользователей перебирается по буквам. */
+    @Test
+    void lookupForInvite_ignoresPartialMatch() throws NotFoundException {
+        projectWithMembers();
+        when(userRepository.findByUsername("ivan")).thenReturn(Optional.empty());
+        when(userRepository.findActiveUserByEmail("ivan")).thenReturn(Optional.empty());
+
+        assertThat(userService.lookupForInvite("project-1", "ivan")).isEmpty();
+    }
+
+    @Test
+    void lookupForInvite_skipsUsersAlreadyInProject() throws NotFoundException {
+        User member = pickerUser("ivanov", true, false);
+        projectWithMembers(member);
+        when(userRepository.findByUsername("ivanov")).thenReturn(Optional.of(member));
+
+        assertThat(userService.lookupForInvite("project-1", "ivanov")).isEmpty();
+    }
+
+    @Test
+    void lookupForInvite_ignoresTooShortQuery() throws NotFoundException {
+        projectWithMembers();
+
+        assertThat(userService.lookupForInvite("project-1", "и")).isEmpty();
+        verifyNoInteractions(userRepository);
+    }
+
+    private Project projectWithMembers(User... members) throws NotFoundException {
+        Project project = TestFixtures.project("project-1", testUser);
+        project.getUsers().addAll(List.of(members));
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false))
+                .thenReturn(new UserAndProjectData(project, testUser));
+        return project;
     }
 
     private User pickerUser(String username, boolean active, boolean system) {

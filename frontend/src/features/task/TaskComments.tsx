@@ -69,6 +69,7 @@ export function TaskComments({ projectId, taskId }: Props) {
       <Stack gap={1}>
         <Stack direction="row" gap={1} alignItems="flex-start">
           <MentionTextField
+            projectId={projectId}
             size="small"
             fullWidth
             placeholder="Добавить комментарий — введите @ для упоминания"

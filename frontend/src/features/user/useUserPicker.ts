@@ -11,19 +11,24 @@ export type UserPickerItem = {
 }
 
 /**
- * Единый источник для assignee picker / @mention / комментариев.
- * Идёт в backend GET /users/picker — доступен всем участникам проекта
- * (PROJECT_MEMBER+), отдаёт только активных, поиск по любому полю имени/login/email.
+ * Участники проекта для @mention в комментариях.
+ *
+ * TD-028: раньше хук ходил в `/users/picker` без проекта и получал ВСЕХ
+ * пользователей системы вместе с email — то есть предлагал упомянуть тех,
+ * кому проект недоступен, и заодно раздавал чужие ПДн. Проект теперь
+ * обязателен; пока он неизвестен, запрос не уходит вовсе (`enabled`), а не
+ * летит с пустым параметром.
  */
-export function useUserPicker(query: string) {
+export function useUserPicker(query: string, projectId: string | undefined) {
   const q = (query ?? '').trim()
   return useQuery<UserPickerItem[]>({
-    queryKey: ['userPicker', q],
+    queryKey: ['userPicker', projectId, q],
     queryFn: () =>
       workTechApiClient<UserPickerItem[]>({
         method: 'GET',
-        url: `/users/picker?q=${encodeURIComponent(q)}&limit=20`,
+        url: `/users/picker?projectId=${encodeURIComponent(projectId ?? '')}&q=${encodeURIComponent(q)}&limit=20`,
       }).then((r) => r.data ?? []),
+    enabled: Boolean(projectId),
     staleTime: 30_000,
   })
 }

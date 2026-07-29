@@ -16,9 +16,11 @@ import ru.worktechlab.work_task.exceptions.BadRequestException;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.mappers.UserMapper;
 import ru.worktechlab.work_task.models.enums.Gender;
+import ru.worktechlab.work_task.models.tables.Project;
 import ru.worktechlab.work_task.models.tables.RoleModel;
 import ru.worktechlab.work_task.models.tables.User;
 import ru.worktechlab.work_task.repositories.UserRepository;
+import ru.worktechlab.work_task.utils.CheckerUtil;
 import ru.worktechlab.work_task.utils.UserContext;
 
 import java.time.LocalDateTime;
@@ -29,6 +31,13 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
+    /**
+     * Короче двух символов поиск для приглашения не выполняется: одиночный
+     * символ не может быть точным username или email (TD-028).
+     */
+    private static final int MIN_LOOKUP_LENGTH = 2;
+
     private final UserRepository userRepository;
     private final RoleService roleService;
     private final UserMapper userMapper;
@@ -36,6 +45,7 @@ public class UserService {
     private final NotificationService notificationService;
     private final MailParams mailParams;
     private final UserContext userContext;
+    private final CheckerUtil checkerUtil;
 
     @TransactionRequired
     public void registerUser(RegisterDTO registerDto) {
@@ -151,16 +161,24 @@ public class UserService {
     }
 
     /**
-     * Единый picker пользователей для assignee / @mention / коммент-автокомплита.
-     * Доступен всем участникам проекта (PROJECT_MEMBER+), в отличие от
-     * GET /users (только админ). Возвращает только активных и подтверждённых.
-     * Фильтр q работает по firstName/lastName/displayName/username/email.
+     * Единый picker пользователей для @mention / коммент-автокомплита —
+     * **участники указанного проекта**, и только они.
+     *
+     * <p>TD-028: раньше выборка бралась из {@code userRepository.getUsers()},
+     * то есть любой участник любого проекта получал имена и email ВСЕХ
+     * пользователей системы (K-36), а упомянуть мог человека, которому проект
+     * недоступен. Проект теперь обязателен, членство вызывающего проверяется
+     * тем же механизмом, что и в остальных запросах (`CheckerUtil`).
+     *
+     * <p>Возвращает только активных и подтверждённых; фильтр q работает по
+     * firstName/lastName/displayName/username/email.
      */
     @TransactionRequired
-    public List<UserPickerDto> pickerSearch(String q, int limit) {
+    public List<UserPickerDto> pickerSearch(String projectId, String q, int limit) throws NotFoundException {
+        Project project = checkerUtil.findAndCheckProjectUserData(projectId, false, false).getProject();
         String needle = q == null ? "" : q.trim().toLowerCase();
         int cap = Math.max(1, Math.min(limit, 50));
-        return userRepository.getUsers().stream()
+        return project.getUsers().stream()
                 .filter(User::isActive)
                 // ТП-114: только реальные пользовательские аккаунты — исключаем
                 // технические/служебные (is_system) и незавершённые/«неизвестные»
@@ -174,6 +192,49 @@ public class UserService {
                 .limit(cap)
                 .map(this::toPickerDto)
                 .toList();
+    }
+
+    /**
+     * Поиск пользователя для приглашения в проект (TD-028) — по **точному**
+     * username или email, а не по подстроке.
+     *
+     * <p>Почему точное совпадение, а не «поиск как в picker'е»: приглашать
+     * нужно тех, кого в проекте ещё нет, то есть выборка по определению шире
+     * проекта. Подстроковый поиск по всей базе — это перечисляемый каталог
+     * пользователей с email, и ролью его не закрыть: создать проект и стать
+     * его владельцем может любой участник (`POST /projects/create`,
+     * PROJECT_MEMBER+). Точное совпадение даёт ровно ту же работу («пригласить
+     * известного человека»), но не позволяет перебирать чужие учётки — так же
+     * устроено приглашение в Slack, Notion и Jira. Кого не знаешь по имени —
+     * приглашается ссылкой (ТП-35), этот путь остался прежним.
+     *
+     * <p>Email в ответ не попадает: его и так ввели в запросе (K-36).
+     */
+    @TransactionRequired
+    public List<UserLookupDto> lookupForInvite(String projectId, String q) throws NotFoundException {
+        Project project = checkerUtil.findAndCheckProjectUserData(projectId, false, false).getProject();
+        String needle = q == null ? "" : q.trim();
+        if (needle.startsWith("@")) needle = needle.substring(1);
+        if (needle.length() < MIN_LOOKUP_LENGTH) return List.of();
+
+        String exact = needle;
+        return userRepository.findByUsername(exact)
+                .or(() -> userRepository.findActiveUserByEmail(exact.toLowerCase()))
+                .filter(User::isActive)
+                .filter(u -> !u.isSystem())
+                .filter(u -> !isProjectMember(project, u))
+                .map(u -> List.of(new UserLookupDto(
+                        u.getId(),
+                        nullToEmpty(u.getFirstName()),
+                        nullToEmpty(u.getLastName()),
+                        nullToEmpty(u.getDisplayName()),
+                        nullToEmpty(u.getUsername()))))
+                .orElseGet(List::of);
+    }
+
+    private boolean isProjectMember(Project project, User user) {
+        return project.getUsers().stream()
+                .anyMatch(member -> Objects.equals(member.getId(), user.getId()));
     }
 
     private boolean matchesQuery(User u, String needle) {

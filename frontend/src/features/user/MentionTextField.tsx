@@ -16,6 +16,8 @@ import { formatUserName } from '@/entities/user/utils'
 type Props = Omit<TextFieldProps, 'onChange' | 'value' | 'inputRef'> & {
   value: string
   onChange: (next: string) => void
+  /** Проект, участников которого можно упомянуть (TD-028). */
+  projectId: string
 }
 
 /**
@@ -23,16 +25,16 @@ type Props = Omit<TextFieldProps, 'onChange' | 'value' | 'inputRef'> & {
  *
  * UX по образцу Linear/Slack/Jira:
  *  - ввод "@" открывает popover рядом с курсором;
- *  - сразу подгружается список пользователей через useUserPicker (единый
- *    backend-источник /users/picker — те же активные пользователи, что в
- *    assignee picker, без отдельных копий/моков);
+ *  - сразу подгружается список через useUserPicker (backend-источник
+ *    /users/picker — активные участники ЭТОГО проекта; упомянуть того, кому
+ *    проект недоступен, нельзя — TD-028);
  *  - дальнейшие символы фильтруют список (debounce 150 ms, backend-side
  *    поиск по firstName/lastName/displayName/username/email);
  *  - выбор мышью или клавиатурой (↑/↓/Enter), Escape закрывает;
  *  - вставляется "@username " вместо "@мак" — backend парсит regex и
  *    создаёт MENTION-уведомление по username.
  */
-export function MentionTextField({ value, onChange, ...rest }: Props) {
+export function MentionTextField({ value, onChange, projectId, ...rest }: Props) {
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null)
   const anchorRef = useRef<HTMLDivElement | null>(null)
   const [mention, setMention] = useState<{
@@ -42,7 +44,7 @@ export function MentionTextField({ value, onChange, ...rest }: Props) {
   const [highlight, setHighlight] = useState(0)
 
   const debouncedQuery = useDebouncedValue(mention?.query ?? '', 150)
-  const { data: users } = useUserPicker(mention ? debouncedQuery : '')
+  const { data: users } = useUserPicker(mention ? debouncedQuery : '', projectId)
   const items = useMemo(() => users ?? [], [users])
 
   // Сброс highlight при изменении списка

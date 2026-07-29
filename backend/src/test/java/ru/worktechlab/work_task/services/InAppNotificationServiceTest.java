@@ -41,6 +41,7 @@ class InAppNotificationServiceTest {
 
     private User actor;
     private User mentioned;
+    private Project project;
     private TaskModel task;
 
     @BeforeEach
@@ -49,7 +50,11 @@ class InAppNotificationServiceTest {
         ReflectionTestUtils.setField(actor, "username", "ivanov");
         mentioned = TestFixtures.user("user-2", "petrov@test.com");
         ReflectionTestUtils.setField(mentioned, "username", "petrov");
-        Project project = TestFixtures.project("project-1", actor);
+        project = TestFixtures.project("project-1", actor);
+        // TD-028: упоминание работает только внутри проекта, поэтому оба
+        // участника заведомо в нём состоят — иначе тесты проверяли бы
+        // сценарий, которого больше нет.
+        project.getUsers().addAll(List.of(actor, mentioned));
         task = TestFixtures.task("task-1", actor, project,
                 TestFixtures.sprint("sprint-1", project, actor), TestFixtures.defaultStatus(project));
     }
@@ -69,6 +74,24 @@ class InAppNotificationServiceTest {
         assertThat(n.getActor()).isEqualTo(actor);
         assertThat(n.getType()).isEqualTo(InAppNotificationService.TYPE_MENTION);
         assertThat(n.getTaskId()).isEqualTo("task-1");
+    }
+
+    /**
+     * TD-028: до фикса упомянуть можно было любого пользователя системы —
+     * посторонний получал уведомление с кодом чужой задачи и ссылкой, которая
+     * у него открыться не может (проект недоступен). Picker таких больше не
+     * предлагает, но `@username` пишут и руками.
+     */
+    @Test
+    void createMentionNotifications_shouldNotNotifyUserOutsideProject() {
+        User stranger = TestFixtures.user("user-3", "stranger@test.com");
+        ReflectionTestUtils.setField(stranger, "username", "stranger");
+        when(userRepository.findByUsername("stranger")).thenReturn(Optional.of(stranger));
+
+        service.createMentionNotifications("эй @stranger глянь", actor, task, "comment-1");
+
+        verify(notificationRepository, never()).save(any());
+        verifyNoInteractions(userSettingsService);
     }
 
     @Test
