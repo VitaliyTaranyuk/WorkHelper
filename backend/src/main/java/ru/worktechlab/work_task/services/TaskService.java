@@ -19,6 +19,7 @@ import ru.worktechlab.work_task.dto.task_link.LinkDto;
 import ru.worktechlab.work_task.dto.task_link.LinkResponseDto;
 import ru.worktechlab.work_task.dto.tasks.TaskDataDto;
 import ru.worktechlab.work_task.dto.tasks.TaskModelDTO;
+import ru.worktechlab.work_task.dto.tasks.AutoDescriptionRequestDto;
 import ru.worktechlab.work_task.dto.tasks.AutoTitleRequestDto;
 import ru.worktechlab.work_task.dto.tasks.BulkTaskRequestDTO;
 import ru.worktechlab.work_task.dto.tasks.ReorderColumnDTO;
@@ -389,6 +390,31 @@ public class TaskService {
             return taskMapper.toDo(task);
         }
         task.setTitle(dto.getTitle());
+        task.touch();
+        taskHistorySaverService.saveTaskChanges(task, data.getUser());
+        taskRepository.flush();
+        return taskMapper.toDo(findTaskByIdOrThrow(task.getId()));
+    }
+
+    /**
+     * Заменить надиктованное описание вычищенным (ТП-241).
+     *
+     * Симметрично {@link #applyAutoTitle}: диктовка попадает в задачу локально
+     * отформатированной сразу (её нельзя заставлять ждать сеть), а вычищенный
+     * моделью вариант доезжает фоном через несколько секунд — карточка к тому
+     * моменту уже закрыта. Замена условная (compare-and-set): описание успели
+     * поправить руками — запрос становится no-op.
+     */
+    @TransactionRequired
+    public TaskDataDto applyAutoDescription(String projectId, String taskId, AutoDescriptionRequestDto dto)
+            throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        TaskModel task = findTaskByIdAndProjectForUpdate(taskId, data.getProject());
+        if (!dto.getExpectedDescription().equals(task.getDescription())) {
+            log.debug("Автоописание для {} не применено: описание изменилось после создания", task.getCode());
+            return taskMapper.toDo(task);
+        }
+        task.setDescription(dto.getDescription());
         task.touch();
         taskHistorySaverService.saveTaskChanges(task, data.getUser());
         taskRepository.flush();

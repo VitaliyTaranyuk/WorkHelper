@@ -11,6 +11,7 @@ import ru.worktechlab.work_task.TestFixtures;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 import ru.worktechlab.work_task.dto.UserAndProjectData;
+import ru.worktechlab.work_task.dto.tasks.AutoDescriptionRequestDto;
 import ru.worktechlab.work_task.dto.tasks.AutoTitleRequestDto;
 import ru.worktechlab.work_task.dto.tasks.BulkTaskRequestDTO;
 import ru.worktechlab.work_task.dto.task_comment.CommentDto;
@@ -376,6 +377,46 @@ class TaskServiceTest {
         // Название успели поменять руками — фоновое улучшение опоздало и молчит,
         // а не затирает правку (compare-and-set)
         assertThat(task.getTitle()).isEqualTo("Название, которое задал человек");
+        verify(taskHistorySaverService, never()).saveTaskChanges(any(), any());
+        verify(taskRepository, never()).flush();
+    }
+
+    @Test
+    void applyAutoDescription_shouldReplaceDescription_whenItIsStillTheDictatedOne() throws Exception {
+        AutoDescriptionRequestDto dto = new AutoDescriptionRequestDto();
+        dto.setExpectedDescription("Description");
+        dto.setDescription("Описание с пунктуацией и заглавными буквами.");
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(taskRepository.findTaskModelByIdAndProjectForUpdate("task-1", "project-1"))
+                .thenReturn(Optional.of(task));
+        when(taskRepository.findById("task-1")).thenReturn(Optional.of(task));
+        when(taskMapper.toDo(any(TaskModel.class))).thenReturn(mock(TaskDataDto.class));
+
+        taskService.applyAutoDescription("project-1", "task-1", dto);
+
+        // ТП-241: вычищенная диктовка доезжает фоном, когда карточка уже закрыта
+        assertThat(task.getDescription()).isEqualTo("Описание с пунктуацией и заглавными буквами.");
+        verify(taskHistorySaverService).saveTaskChanges(task, creator);
+    }
+
+    @Test
+    void applyAutoDescription_shouldBeNoOp_whenDescriptionAlreadyChanged() throws Exception {
+        AutoDescriptionRequestDto dto = new AutoDescriptionRequestDto();
+        dto.setExpectedDescription("Description");
+        dto.setDescription("Вариант от модели");
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        task.setDescription("Описание, которое поправил человек");
+
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(taskRepository.findTaskModelByIdAndProjectForUpdate("task-1", "project-1"))
+                .thenReturn(Optional.of(task));
+        when(taskMapper.toDo(any(TaskModel.class))).thenReturn(mock(TaskDataDto.class));
+
+        taskService.applyAutoDescription("project-1", "task-1", dto);
+
+        assertThat(task.getDescription()).isEqualTo("Описание, которое поправил человек");
         verify(taskHistorySaverService, never()).saveTaskChanges(any(), any());
         verify(taskRepository, never()).flush();
     }

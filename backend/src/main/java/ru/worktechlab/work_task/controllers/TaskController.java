@@ -19,6 +19,7 @@ import ru.worktechlab.work_task.dto.task_comment.UpdateCommentDto;
 import ru.worktechlab.work_task.dto.task_history.TaskHistoryResponseDto;
 import ru.worktechlab.work_task.dto.task_link.LinkDto;
 import ru.worktechlab.work_task.dto.task_link.LinkResponseDto;
+import ru.worktechlab.work_task.dto.tasks.AutoDescriptionRequestDto;
 import ru.worktechlab.work_task.dto.tasks.AutoTitleRequestDto;
 import ru.worktechlab.work_task.dto.tasks.BulkTaskRequestDTO;
 import ru.worktechlab.work_task.dto.tasks.ReorderColumnDTO;
@@ -245,6 +246,16 @@ public class TaskController {
                                       @PathVariable String taskId,
                                       @Valid @RequestBody AutoTitleRequestDto dto) throws NotFoundException {
         return taskService.applyAutoTitle(projectId, taskId, dto);
+    }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @PutMapping("/{projectId}/{taskId}/auto-description")
+    @Operation(summary = "Заменить надиктованное описание вычищенным (фоновое улучшение, ТП-241)")
+    public TaskDataDto applyAutoDescription(@PathVariable String projectId,
+                                            @PathVariable String taskId,
+                                            @Valid @RequestBody AutoDescriptionRequestDto dto)
+            throws NotFoundException {
+        return taskService.applyAutoDescription(projectId, taskId, dto);
     }
 
     @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})

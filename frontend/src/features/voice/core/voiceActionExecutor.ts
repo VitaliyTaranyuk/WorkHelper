@@ -30,6 +30,14 @@ export type VoiceActionHandlers = {
    * обязан ничего не делать, чтобы не затирать правки.
    */
   onFieldText?: (field: VoiceField, text: string, replaces?: string) => void
+  /**
+   * ТП-241: улучшение диктовки ЗАПУЩЕНО — наружу отдаётся и вставленный
+   * локальный текст, и сам промис. Нужно там, где форма может закрыться раньше
+   * ответа модели: «Создать» во время диктовки создаёт задачу с локальным
+   * текстом, а вычищенный вариант дописывается уже созданной задаче. Второй
+   * запрос к модели ради этого не делается — используется этот же промис.
+   */
+  onFieldEnhancement?: (local: string, enhanced: Promise<string>) => void
 }
 
 export async function executeVoiceAction(
@@ -51,7 +59,9 @@ export async function executeVoiceAction(
 
   const local = formatter.formatDictation(rawText)
   handlers.onFieldText?.(intent.field, local)
-  const enhanced = await enhanceTextSafe(local, 'DICTATION')
+  const pending = enhanceTextSafe(local, 'DICTATION')
+  handlers.onFieldEnhancement?.(local, pending)
+  const enhanced = await pending
   if (enhanced !== local) {
     handlers.onFieldText?.(intent.field, enhanced, local)
   }

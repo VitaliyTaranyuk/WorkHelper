@@ -118,6 +118,10 @@ export const API_ENDPOINT_PATH = {
     AUTO_TITLE: ({ projectId, taskId }: ProjectId & TaskId) =>
       `/tasks/${projectId}/${taskId}/auto-title`,
 
+    // ТП-241: фоновая замена надиктованного описания вычищенным
+    AUTO_DESCRIPTION: ({ projectId, taskId }: ProjectId & TaskId) =>
+      `/tasks/${projectId}/${taskId}/auto-description`,
+
     DELETE: ({ projectId, taskId }: ProjectId & TaskId) =>
       `/tasks/${projectId}/${taskId}`,
 

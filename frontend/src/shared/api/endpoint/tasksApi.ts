@@ -182,6 +182,33 @@ export function applyAutoTitle({
 }
 
 /**
+ * @name ApplyAutoDescription
+ * @summary Заменить надиктованное описание вычищенным (ТП-241)
+ * @request PUT:/tasks/{projectId}/{taskId}/auto-description
+ *
+ * Симметрично `applyAutoTitle`: точечная замена одного поля с проверкой, что
+ * у задачи всё ещё стоит `expectedDescription`.
+ */
+export function applyAutoDescription({
+  projectId,
+  taskId,
+  data,
+  otherParams = {},
+}: {
+  projectId: string
+  taskId: string
+  data: { description: string; expectedDescription: string }
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<TaskDataDto>({
+    method: 'PUT',
+    url: API_ENDPOINT_PATH.TASKS.AUTO_DESCRIPTION({ projectId, taskId }),
+    data,
+    ...otherParams,
+  })
+}
+
+/**
  * @name UpdateTaskStatus
  * @summary Обновить статус задачи
  * @request PUT:/tasks/update-status

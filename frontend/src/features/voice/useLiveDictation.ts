@@ -5,6 +5,7 @@ import type { VoiceField } from './core/intentAnalyzer'
 import {
   clearActiveDictation,
   setActiveDictation,
+  setPendingDictation,
 } from './activeDictation'
 
 /**
@@ -41,7 +42,15 @@ export function useLiveDictation({
 }) {
   const speech = useVoiceInput({
     context: { intent: { type: 'DICTATE_FIELD', field } },
-    handlers: { onFieldText: (_field, text, replaces) => onText(text, replaces) },
+    handlers: {
+      onFieldText: (_field, text, replaces) => onText(text, replaces),
+      // ТП-241: только описание. Комментарий отправляется своей кнопкой и
+      // к создаваемой задаче отношения не имеет — приписывать его диктовку
+      // случайной последующей задаче нельзя.
+      ...(field === 'description'
+        ? { onFieldEnhancement: setPendingDictation }
+        : {}),
+    },
     onEmpty: () => toast.error('Ничего не удалось расслышать — попробуйте ещё раз'),
     keepAlive: true,
   })
