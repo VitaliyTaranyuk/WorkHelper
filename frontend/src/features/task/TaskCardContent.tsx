@@ -239,6 +239,17 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
     guardRef.current = { isDirty, save: saveForGuard }
   }
 
+  // ТП-240: улучшенное название приезжает фоном через несколько секунд после
+  // создания — карточка могла быть уже открыта (кнопка «Открыть» в тосте).
+  // Подхватываем серверное значение, ПОКА пользователь не трогал поле сам:
+  // иначе он сохранил бы карточку со старым названием и откатил улучшение.
+  // `setValue` без shouldDirty — форма не становится «изменённой».
+  useEffect(() => {
+    if (form.getFieldState('taskTitle').isDirty) return
+    form.setValue('taskTitle', task.title)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task.title])
+
   // Страховка от потери при закрытии вкладки/перезагрузке (как в Jira/Linear).
   useEffect(() => {
     if (!isDirty) return
@@ -435,12 +446,14 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
           </MUIPrimaryButton>
           {/* ТП-178: кнопка «Обсудить во встрече» удалена по решению
               владельца — встречи создаются из календаря. */}
+          {/* ТП-239: пока идёт запрос — спиннер (кнопка блокируется сама).
+              Молчаливая серая кнопка читалась как «ничего не происходит». */}
           <Button
             variant="outlined"
             color="error"
             fullWidth
             onClick={onDelete}
-            disabled={deleteTask.isPending}
+            loading={deleteTask.isPending}
           >
             Удалить задачу
           </Button>

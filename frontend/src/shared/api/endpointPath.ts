@@ -114,6 +114,10 @@ export const API_ENDPOINT_PATH = {
 
     UPDATE_STATUS: () => `/tasks/update-status`,
 
+    // ТП-240: фоновая замена автоматического названия улучшенным
+    AUTO_TITLE: ({ projectId, taskId }: ProjectId & TaskId) =>
+      `/tasks/${projectId}/${taskId}/auto-title`,
+
     DELETE: ({ projectId, taskId }: ProjectId & TaskId) =>
       `/tasks/${projectId}/${taskId}`,
 

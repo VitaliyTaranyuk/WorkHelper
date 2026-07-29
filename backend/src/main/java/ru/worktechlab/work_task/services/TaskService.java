@@ -19,6 +19,7 @@ import ru.worktechlab.work_task.dto.task_link.LinkDto;
 import ru.worktechlab.work_task.dto.task_link.LinkResponseDto;
 import ru.worktechlab.work_task.dto.tasks.TaskDataDto;
 import ru.worktechlab.work_task.dto.tasks.TaskModelDTO;
+import ru.worktechlab.work_task.dto.tasks.AutoTitleRequestDto;
 import ru.worktechlab.work_task.dto.tasks.BulkTaskRequestDTO;
 import ru.worktechlab.work_task.dto.tasks.ReorderColumnDTO;
 import ru.worktechlab.work_task.dto.tasks.ReorderSprintDTO;
@@ -363,6 +364,35 @@ public class TaskService {
         linkRepository.flush();
         log.info("Связь {} удалена пользователем {}", linkId, data.getUser().getId());
         return new ApiResponse("Связь удалена");
+    }
+
+    /**
+     * Заменить автоматическое название задачи улучшенным (ТП-240).
+     *
+     * Улучшение приходит ФОНОМ через несколько секунд после создания — карточка
+     * к этому моменту уже закрыта (ТП-239), а задача живёт своей жизнью. Поэтому
+     * замена условная (compare-and-set): если название уже не то, с которым
+     * задача создавалась, значит его задал человек — его слово важнее машинного,
+     * запрос становится no-op, а не затирает правку.
+     *
+     * Точечный эндпоинт, а не {@link #updateTask}: тот заменяет карточку целиком
+     * (title/description/priority/type), и фоновый вызов откатывал бы всё, что
+     * пользователь успел поменять за это время.
+     */
+    @TransactionRequired
+    public TaskDataDto applyAutoTitle(String projectId, String taskId, AutoTitleRequestDto dto)
+            throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
+        TaskModel task = findTaskByIdAndProjectForUpdate(taskId, data.getProject());
+        if (!dto.getExpectedTitle().equals(task.getTitle())) {
+            log.debug("Автоназвание для {} не применено: название изменилось после создания", task.getCode());
+            return taskMapper.toDo(task);
+        }
+        task.setTitle(dto.getTitle());
+        task.touch();
+        taskHistorySaverService.saveTaskChanges(task, data.getUser());
+        taskRepository.flush();
+        return taskMapper.toDo(findTaskByIdOrThrow(task.getId()));
     }
 
     // ===== Simplified Kanban: task lifecycle (archive / restore / delete) =====

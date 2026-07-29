@@ -76,10 +76,12 @@ describe('ТП-195: «Открыть» в тосте создания откры
     const { result } = renderHook(() => useCreateTask(), { wrapper })
 
     await result.current.mutateAsync({
-      projectId: 'p1',
-      title: 'Задача',
-      priority: 'MEDIUM',
-      taskType: 'TASK',
+      dto: {
+        projectId: 'p1',
+        title: 'Задача',
+        priority: 'MEDIUM',
+        taskType: 'TASK',
+      },
     })
 
     await waitFor(() => expect(capturedAction?.label).toBe('Открыть'))
