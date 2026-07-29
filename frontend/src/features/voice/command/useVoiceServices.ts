@@ -85,7 +85,9 @@ export function useVoiceServices(
           ...(input.statusId ? { statusId: input.statusId } : {}),
           ...(input.assignee ? { assignee: input.assignee } : {}),
         }
-        const res = await createTask.mutateAsync(dto)
+        // autoTitle не выставляется: голосовой конвейер уже сформировал
+        // название через TASK_DRAFT (ТП-212) — улучшать нечего.
+        const res = await createTask.mutateAsync({ dto })
         return { id: res.data.id, code: res.data.code, title: res.data.title }
       },
       navigate: (target) => {

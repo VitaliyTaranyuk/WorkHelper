@@ -45,6 +45,15 @@ public class TaskHistoryService {
         saveHistory(createTaskStatusHistory(oldTask, dto, project), oldTask.getId(), user);
     }
 
+    /**
+     * Записать в историю изменения, уже применённые к сущности через её сеттеры
+     * (ТП-240): вызывающий сам решил, что менять, — здесь только фиксация.
+     * Нужен для точечных изменений, у которых нет своего DTO-обновления.
+     */
+    public void saveTaskChanges(TaskModel task, User user) {
+        saveHistory(task.getChanges(), task.getId(), user);
+    }
+
     public void saveTaskCommentChanges(Comment comment,
                                        UpdateCommentDto dto,
                                        User user,

@@ -32,9 +32,10 @@ export function CreateTaskDetails({
   const onSubmit = form.handleSubmit(async (formValues) => {
     try {
       // ТП-147: единая подготовка карточки (авто-название из описания) и
-      // сборка payload — общий сервис всех точек создания.
+      // сборка payload — общий сервис всех точек создания. ТП-239: подготовка
+      // синхронная, улучшение названия ушло в фон после создания.
       const created = await createTask.mutateAsync(
-        await buildCreateTaskPayload(formValues, projectId),
+        buildCreateTaskPayload(formValues, projectId),
       )
 
       // Вложения (ТП-30): задача уже создана, ошибки загрузки не отменяют её.
@@ -56,9 +57,10 @@ export function CreateTaskDetails({
       />
       <Stack gap={'18px'} direction={'row'} width={'100%'} height={'42px'} mt={2}>
         {/* ТП-136 (F-008): не блокируем по !isValid — клик по пустой форме
-            должен показывать ошибку у поля, а не молча игнорироваться. */}
+            должен показывать ошибку у поля, а не молча игнорироваться.
+            ТП-239: во время запроса — спиннер, а не просто серая кнопка. */}
         <MUIPrimaryButton
-          disabled={form.formState.isSubmitting}
+          loading={form.formState.isSubmitting}
           variant="contained"
           onClick={onSubmit}
           fullWidth

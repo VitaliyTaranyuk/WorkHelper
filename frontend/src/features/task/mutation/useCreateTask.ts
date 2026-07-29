@@ -4,21 +4,32 @@ import { truncateText } from '@/shared/utils/text'
 import NiceModal from '@ebay/nice-modal-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { notify as toast } from '@/shared/ui/notify'
+import { upgradeAutoTitle } from '@/features/task/upgradeAutoTitle'
+
+/**
+ * ТП-239: помимо DTO мутация принимает признак `autoTitle` — название
+ * сформировано движком, а не человеком. Только такое название разрешено
+ * переписать фоновым улучшением после создания.
+ */
+export type CreateTaskVariables = {
+  dto: TaskModelDTO
+  autoTitle?: boolean
+}
 
 export function useCreateTask() {
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (taskDTO: TaskModelDTO) =>
+    mutationFn: ({ dto }: CreateTaskVariables) =>
       workTechApi.task.createTask({
-        data: taskDTO,
+        data: dto,
       }),
-    onSuccess: (response, variables) => {
+    onSuccess: (response, { dto, autoTitle }) => {
       queryClient.invalidateQueries({
-        queryKey: ['tasks', variables.projectId],
+        queryKey: ['tasks', dto.projectId],
       })
       queryClient.invalidateQueries({
-        queryKey: ['sprints', variables.projectId],
+        queryKey: ['sprints', dto.projectId],
       })
       // Создателю приходит уведомление о создании задачи (ТП-36) —
       // обновляем колокольчик сразу, не дожидаясь 30-секундного refetch.
@@ -51,6 +62,24 @@ export function useCreateTask() {
           },
         },
       })
+
+      // ТП-239/ТП-240: улучшение авто-названия — ПОСЛЕ создания и без ожидания.
+      // Форма к этому моменту уже закрыта, задача существует; название доедет
+      // через несколько секунд и обновит списки. Промис намеренно не
+      // возвращается: onSuccess, вернувший промис, задержал бы mutateAsync —
+      // ровно этим и тормозило удаление задачи (см. useDeleteTask).
+      if (autoTitle && dto.description) {
+        void upgradeAutoTitle({
+          projectId: dto.projectId,
+          taskId: created.id,
+          description: dto.description,
+          createdTitle: created.title,
+        }).then((title) => {
+          if (!title) return
+          queryClient.invalidateQueries({ queryKey: ['tasks', dto.projectId] })
+          queryClient.invalidateQueries({ queryKey: ['sprints', dto.projectId] })
+        })
+      }
     },
     // onError намеренно не показывает общий toast — формы создания задачи
     // (CreateTaskModal / CreateTaskDetails) сами ловят ошибку и подсвечивают

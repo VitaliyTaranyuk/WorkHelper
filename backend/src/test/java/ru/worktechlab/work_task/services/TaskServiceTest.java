@@ -11,6 +11,7 @@ import ru.worktechlab.work_task.TestFixtures;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 import ru.worktechlab.work_task.dto.UserAndProjectData;
+import ru.worktechlab.work_task.dto.tasks.AutoTitleRequestDto;
 import ru.worktechlab.work_task.dto.tasks.BulkTaskRequestDTO;
 import ru.worktechlab.work_task.dto.task_comment.CommentDto;
 import ru.worktechlab.work_task.dto.task_comment.CommentResponseDto;
@@ -335,6 +336,48 @@ class TaskServiceTest {
         // «завершено» — не позиция на доске, а факт (восстановление независимости
         // осей ТП-49 там, где она осмысленна).
         verify(taskHistorySaverService).saveTaskModelChanges(eq(task), eq(dto), eq(project), eq(creator));
+    }
+
+    @Test
+    void applyAutoTitle_shouldReplaceTitle_whenItIsStillTheGeneratedOne() throws Exception {
+        AutoTitleRequestDto dto = new AutoTitleRequestDto();
+        dto.setExpectedTitle("Test Task");
+        dto.setTitle("Ускорить создание задачи и вынести обработку описания в фон");
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(taskRepository.findTaskModelByIdAndProjectForUpdate("task-1", "project-1"))
+                .thenReturn(Optional.of(task));
+        when(taskRepository.findById("task-1")).thenReturn(Optional.of(task));
+        when(taskMapper.toDo(any(TaskModel.class))).thenReturn(mock(TaskDataDto.class));
+
+        taskService.applyAutoTitle("project-1", "task-1", dto);
+
+        // ТП-240: фоновое улучшение применяется и попадает в историю задачи
+        assertThat(task.getTitle()).isEqualTo("Ускорить создание задачи и вынести обработку описания в фон");
+        verify(taskHistorySaverService).saveTaskChanges(task, creator);
+    }
+
+    @Test
+    void applyAutoTitle_shouldBeNoOp_whenTitleAlreadyChanged() throws Exception {
+        AutoTitleRequestDto dto = new AutoTitleRequestDto();
+        dto.setExpectedTitle("Test Task");
+        dto.setTitle("Название от модели");
+        UserAndProjectData data = new UserAndProjectData(project, creator);
+        task.setTitle("Название, которое задал человек");
+
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false)).thenReturn(data);
+        when(taskRepository.findTaskModelByIdAndProjectForUpdate("task-1", "project-1"))
+                .thenReturn(Optional.of(task));
+        when(taskMapper.toDo(any(TaskModel.class))).thenReturn(mock(TaskDataDto.class));
+
+        taskService.applyAutoTitle("project-1", "task-1", dto);
+
+        // Название успели поменять руками — фоновое улучшение опоздало и молчит,
+        // а не затирает правку (compare-and-set)
+        assertThat(task.getTitle()).isEqualTo("Название, которое задал человек");
+        verify(taskHistorySaverService, never()).saveTaskChanges(any(), any());
+        verify(taskRepository, never()).flush();
     }
 
     @Test

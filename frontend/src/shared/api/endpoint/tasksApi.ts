@@ -154,6 +154,34 @@ export function updateTask({
 }
 
 /**
+ * @name ApplyAutoTitle
+ * @summary Заменить автоматическое название задачи улучшенным (ТП-240)
+ * @request PUT:/tasks/{projectId}/{taskId}/auto-title
+ *
+ * Точечная замена одного поля: `updateTask` заменяет карточку целиком, и
+ * фоновый вызов откатил бы всё, что пользователь успел поменять. Сервер
+ * применяет название, только если у задачи всё ещё стоит `expectedTitle`.
+ */
+export function applyAutoTitle({
+  projectId,
+  taskId,
+  data,
+  otherParams = {},
+}: {
+  projectId: string
+  taskId: string
+  data: { title: string; expectedTitle: string }
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<TaskDataDto>({
+    method: 'PUT',
+    url: API_ENDPOINT_PATH.TASKS.AUTO_TITLE({ projectId, taskId }),
+    data,
+    ...otherParams,
+  })
+}
+
+/**
  * @name UpdateTaskStatus
  * @summary Обновить статус задачи
  * @request PUT:/tasks/update-status

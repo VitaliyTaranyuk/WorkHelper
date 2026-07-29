@@ -88,9 +88,10 @@ function CreateTaskModalInner({
 
   const onSubmit = form.handleSubmit(async (formValues) => {
     // ТП-147: единая подготовка карточки (авто-название из описания) и
-    // сборка payload — общий сервис всех точек создания.
+    // сборка payload — общий сервис всех точек создания. ТП-239: подготовка
+    // синхронная, улучшение названия ушло в фон после создания.
     const created = await createTask.mutateAsync(
-      await buildCreateTaskPayload(formValues, activeProject!.id),
+      buildCreateTaskPayload(formValues, activeProject!.id),
     )
 
     // Вложения (ТП-30): задача уже создана, ошибки загрузки не отменяют её.
@@ -144,9 +145,11 @@ function CreateTaskModalInner({
         <Stack gap={'18px'} direction={'row'} width={'100%'} height={'42px'}>
           {/* ТП-136 (F-008): кнопку не блокируем по !isValid — иначе клик по
               пустой форме молча игнорировался (мёртвая кнопка). handleSubmit
-              сам покажет ошибку у поля «Название». */}
+              сам покажет ошибку у поля «Название».
+              ТП-239: во время запроса — спиннер, а не просто серая кнопка:
+              «нажал и ничего не происходит» было основной жалобой. */}
           <MUIPrimaryButton
-            disabled={form.formState.isSubmitting}
+            loading={form.formState.isSubmitting}
             variant="contained"
             onClick={onSubmit}
             fullWidth

@@ -1,5 +1,4 @@
 import { generateTaskTitle } from '@/shared/text/generateTaskTitle'
-import { enhanceTextSafe } from '@/shared/text/enhanceText'
 import type { TaskPriority, TaskType } from '@/entities/task/types'
 
 /**
@@ -36,33 +35,22 @@ export function prepareTaskCard(input: {
 }
 
 /**
- * Асинхронный вариант (ТП-208): название, введённое пользователем,
- * по-прежнему неприкосновенно (правило 1) — DeepSeek вызывается ТОЛЬКО для
- * автоматически сгенерированного названия (правило 2); при
- * недоступности/ошибке/таймауте остаётся детерминированный результат
- * generateTaskTitle без изменений.
- *
- * ТП-212: модели отдаётся ПОЛНОЕ описание (постановка), а не локальный
- * заголовок. Раньше на вход уходил результат generateTaskTitle, уже урезанный
- * до 70 символов по границе слова, — модель переформулировала огрызок и не
- * могла увидеть контекст, который в этот лимит не поместился.
- */
-export async function prepareTaskCardAsync(input: {
-  title: string
-  description: string
-}): Promise<TaskCardDraft> {
-  const draft = prepareTaskCard(input)
-  if (input.title.trim().length > 0 || !draft.title) return draft
-  const title = await enhanceTextSafe(draft.description, 'TITLE', draft.title)
-  return { ...draft, title }
-}
-
-/**
  * Единый payload создания задачи из значений формы — используется всеми
  * точками создания (модалка, страница /task/create); раньше каждая собирала
  * DTO сама (дублирование).
+ *
+ * ТП-239: функция СИНХРОННАЯ и в сеть не ходит. До этого она ждала DeepSeek
+ * (режим TITLE) прямо на клике «Создать»: замер на проде — 5 с ожидания, из
+ * которых пользы ноль, потому что запрос обрывался по таймауту и в задачу
+ * уходило детерминированное название. Улучшение перенесено в фон
+ * ({@link upgradeAutoTitle}) — карточка создаётся сразу, название доезжает
+ * следом.
+ *
+ * `autoTitle` — признак «название сформировано движком, а не человеком»:
+ * только такое название разрешено переписывать фоновым улучшением (правило 1 —
+ * название пользователя неприкосновенно).
  */
-export async function buildCreateTaskPayload(
+export function buildCreateTaskPayload(
   values: {
     taskTitle: string
     description?: string
@@ -76,20 +64,23 @@ export async function buildCreateTaskPayload(
   },
   projectId: string,
 ) {
-  const draft = await prepareTaskCardAsync({
+  const draft = prepareTaskCard({
     title: values.taskTitle,
     description: values.description ?? '',
   })
   return {
-    title: draft.title,
-    projectId,
-    priority: values.priority,
-    taskType: values.type,
-    sprintId: values.sprint,
-    ...(draft.description ? { description: draft.description } : {}),
-    // '-1' — опция «Не назначен» (NOT_ASSIGNED_OPTION)
-    ...(values.assignee === '-1' ? {} : { assignee: values.assignee }),
-    // Выбранная колонка доски (ТП-36); для Backlog-спринта поле обнулено
-    ...(values.status != null ? { statusId: values.status } : {}),
+    autoTitle: values.taskTitle.trim().length === 0 && draft.title.length > 0,
+    dto: {
+      title: draft.title,
+      projectId,
+      priority: values.priority,
+      taskType: values.type,
+      sprintId: values.sprint,
+      ...(draft.description ? { description: draft.description } : {}),
+      // '-1' — опция «Не назначен» (NOT_ASSIGNED_OPTION)
+      ...(values.assignee === '-1' ? {} : { assignee: values.assignee }),
+      // Выбранная колонка доски (ТП-36); для Backlog-спринта поле обнулено
+      ...(values.status != null ? { statusId: values.status } : {}),
+    },
   }
 }

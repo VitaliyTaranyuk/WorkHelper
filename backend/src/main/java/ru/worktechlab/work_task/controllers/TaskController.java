@@ -19,6 +19,7 @@ import ru.worktechlab.work_task.dto.task_comment.UpdateCommentDto;
 import ru.worktechlab.work_task.dto.task_history.TaskHistoryResponseDto;
 import ru.worktechlab.work_task.dto.task_link.LinkDto;
 import ru.worktechlab.work_task.dto.task_link.LinkResponseDto;
+import ru.worktechlab.work_task.dto.tasks.AutoTitleRequestDto;
 import ru.worktechlab.work_task.dto.tasks.BulkTaskRequestDTO;
 import ru.worktechlab.work_task.dto.tasks.ReorderColumnDTO;
 import ru.worktechlab.work_task.dto.tasks.ReorderSprintDTO;
@@ -235,6 +236,15 @@ public class TaskController {
     public TaskDataDto restoreTask(@PathVariable String projectId,
                                    @PathVariable String taskId) throws NotFoundException {
         return taskService.restoreTask(projectId, taskId);
+    }
+
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
+    @PutMapping("/{projectId}/{taskId}/auto-title")
+    @Operation(summary = "Заменить автоматическое название задачи улучшенным (фоновое улучшение, ТП-240)")
+    public TaskDataDto applyAutoTitle(@PathVariable String projectId,
+                                      @PathVariable String taskId,
+                                      @Valid @RequestBody AutoTitleRequestDto dto) throws NotFoundException {
+        return taskService.applyAutoTitle(projectId, taskId, dto);
     }
 
     @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})

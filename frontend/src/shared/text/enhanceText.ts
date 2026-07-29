@@ -16,6 +16,21 @@ const TIMEOUT_MS_BY_MODE: Record<VoiceEnhanceMode, number> = {
   TASK_DRAFT: 12000,
 }
 
+/**
+ * Бюджет фонового улучшения (ТП-239/ТП-240): пользователя за ним никто не
+ * держит — карточка уже создана и закрыта, — поэтому ждать можно столько,
+ * сколько работает сервер (`app.deepseek.request-timeout-seconds` = 20 с плюс
+ * запас на повтор).
+ *
+ * Замер на проде показал, зачем это нужно: TITLE отвечает 3.5–6.5 с, а
+ * интерактивный лимит в 5 с обрывал примерно половину запросов — задача
+ * получала детерминированное название («Необходима доработка этого механизма»
+ * вместо «Ускорить создание задачи и вынести обработку описания в фон»), и за
+ * этот отменённый запрос пользователь всё равно платил пятью секундами
+ * ожидания.
+ */
+export const BACKGROUND_TIMEOUT_MS = 30_000
+
 /** Черновик задачи — минимальная форма, общая для голоса и формы создания. */
 export type EnhancedTaskDraft = {
   title: string
@@ -47,16 +62,24 @@ function acceptable(text: string, mode: VoiceEnhanceMode): boolean {
  * неудаче) разделены. Для названия это принципиально — модели отдаётся ПОЛНОЕ
  * описание, а фолбэком служит локальный заголовок; раньше отправлялся сам
  * заголовок, уже обрезанный до 70 символов, и модель переформулировала огрызок.
+ *
+ * ТП-239: `options.timeoutMs` перекрывает лимит режима — фоновому вызову,
+ * которого никто не ждёт, интерактивный бюджет не нужен
+ * (см. {@link BACKGROUND_TIMEOUT_MS}).
  */
 export async function enhanceTextSafe(
   source: string,
   mode: VoiceEnhanceMode,
   fallback: string = source,
+  options: { timeoutMs?: number } = {},
 ): Promise<string> {
   if (!source.trim()) return fallback
 
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS_BY_MODE[mode])
+  const timer = setTimeout(
+    () => controller.abort(),
+    options.timeoutMs ?? TIMEOUT_MS_BY_MODE[mode],
+  )
   try {
     const { data } = await workTechApi.voice.enhanceVoiceText({
       text: source,
