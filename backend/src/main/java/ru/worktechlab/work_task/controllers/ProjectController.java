@@ -55,6 +55,21 @@ public class ProjectController {
         return projectsService.getAllUserProjects();
     }
 
+    /**
+     * T-518: явное «я работаю в этом проекте». Раньше текущий проект
+     * переключался побочным эффектом обычного {@code GET /projects/{id}} —
+     * теперь у намерения есть отдельный запрос, а чтение данных проекта
+     * состояние пользователя не меняет.
+     */
+    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER, ADMIN})
+    @PutMapping("/{projectId}/last")
+    @Operation(summary = "Запомнить проект как последний открытый")
+    public void rememberLastProject(
+            @Parameter(description = "ИД проекта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
+            @PathVariable String projectId) throws NotFoundException {
+        projectsService.rememberLastProject(projectId);
+    }
+
     @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER, ADMIN})
     @GetMapping("/last")
     @Operation(summary = "Получить ID основного проекта пользователя")

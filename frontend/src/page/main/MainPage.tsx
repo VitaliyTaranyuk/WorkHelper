@@ -6,9 +6,21 @@ import type { OnReorder } from '@/widget/Board/Board'
 import { useActiveSprintTasks } from '@/features/task/query/useActiveSprintTasks'
 import { useReorderColumn } from '@/features/task/mutation/useReorderColumn'
 import { useProjectData } from '@/features/project/query/useProjectData'
+import { useDeclareCurrentProject } from '@/features/project/model/currentProjectStore'
+import { useRememberLastProject } from '@/features/project/mutation/useRememberLastProject'
 import { LoadErrorState } from '@/shared/ui/components/LoadErrorState'
 
-export function MainPage() {
+/**
+ * Доска проекта. T-518: проект приходит из адреса (`/project/$projectId/board`)
+ * — раньше он брался из серверного `last_project_id`, поэтому доску нельзя
+ * было передать ссылкой, а открытая вкладка уезжала на чужой проект, стоило
+ * заглянуть в другой. Проп необязателен: `/main` рендерит ту же страницу,
+ * пока определяет, куда перенаправить.
+ */
+export function MainPage({ projectId }: { projectId?: string } = {}) {
+  useDeclareCurrentProject(projectId)
+  useRememberLastProject(projectId)
+
   const { activeProject } = useProjectData()
   const modal = useModal(TaskCardModal)
 
@@ -16,7 +28,7 @@ export function MainPage() {
     data: tasks,
     isError,
     refetch,
-  } = useActiveSprintTasks({ projectId: activeProject?.id })
+  } = useActiveSprintTasks({ projectId: projectId ?? activeProject?.id })
   const reorderMutation = useReorderColumn()
 
   const [activeSprintTasks, setActiveSprintTasks] = useState(tasks || [])

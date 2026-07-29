@@ -68,12 +68,31 @@ public class ProjectsService {
         return projectMapper.toShortDataDto(visible);
     }
 
+    /**
+     * ИД проекта, где пользователь работал в прошлый раз.
+     *
+     * <p>T-518 (G-8): проверяется, что этот проект всё ещё доступен —
+     * удалённый или покинутый проект больше не «залипает» в точке входа, а
+     * заменяется первым доступным. Иначе `/main` уводил бы на экран, который
+     * заведомо не откроется.
+     */
     @TransactionRequired
     public String getLastProjectId() {
         log.debug("Получить id активного проекта");
         String userId = userContext.getUserData().getUserId();
         User user = userService.findActiveUserById(userId);
-        return user.getLastProjectId();
+        List<String> availableIds = user.getProjects().stream()
+                .filter(project -> project.getStatus() != ProjectStatus.DELETED)
+                // тот же порядок, что в сайдбаре (getAllUserProjects): запасной
+                // проект должен совпадать с первым в списке, а не быть случайным
+                .sorted(java.util.Comparator.comparing(Project::getName,
+                        String.CASE_INSENSITIVE_ORDER))
+                .map(Project::getId)
+                .toList();
+        String lastProjectId = user.getLastProjectId();
+        if (lastProjectId != null && availableIds.contains(lastProjectId))
+            return lastProjectId;
+        return availableIds.isEmpty() ? null : availableIds.get(0);
     }
 
     @TransactionMandatory
@@ -128,13 +147,33 @@ public class ProjectsService {
                 .toList());
     }
 
+    /**
+     * T-518: чтение данных проекта БОЛЬШЕ НЕ меняет состояние пользователя.
+     *
+     * <p>Раньше этот метод писал {@code user.setLastProjectId(projectId)}, то
+     * есть обычный {@code GET /projects/{id}} молча переключал «текущий
+     * проект» глобально: открытая в соседней вкладке доска после ближайшего
+     * поллинга показывала чужой проект, а заглянуть в бэклог другого проекта
+     * было нельзя, не уведя за собой доску (G-1…G-3 аудита T-500). Запоминание
+     * места вынесено в явный {@link #rememberLastProject(String)}.
+     */
     @TransactionRequired
     public ProjectDto getProjectData(String projectId) throws NotFoundException {
-        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, true);
-        User user = data.getUser();
-        user.setLastProjectId(projectId);
-        userRepository.flush();
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
         return projectMapper.toProjectDto(data.getProject());
+    }
+
+    /**
+     * Явно запомнить проект, в котором работает пользователь (T-518). Ровно
+     * одно намерение и ровно один эффект: сюда приходят из переключателя
+     * проектов и с доски — чтобы следующий вход и `/main` открылись там же,
+     * где человек остановился.
+     */
+    @TransactionRequired
+    public void rememberLastProject(String projectId) throws NotFoundException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, true);
+        data.getUser().setLastProjectId(projectId);
+        userRepository.flush();
     }
 
     @TransactionRequired
@@ -212,10 +251,8 @@ public class ProjectsService {
     @TransactionRequired
     public ProjectDataDto getProjectDataByFilter(String projectId,
                                                  ProjectDataFilterDto filter) throws NotFoundException {
-        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, true);
-        User user = data.getUser();
-        user.setLastProjectId(projectId);
-        projectRepository.flush();
+        // T-518: и здесь чтение больше не переключает «текущий проект».
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, false);
         List<User> users = userRepository.findProjectUsers(filter.getUserIds(), data.getProject());
         Map<String, List<TaskModel>> tasksByUserId = taskRepository.findTaskByUsers(data.getProject(), users, filter.getStatusIds()).stream()
                 .collect(Collectors.groupingBy(task -> task.getAssignee().getId()));

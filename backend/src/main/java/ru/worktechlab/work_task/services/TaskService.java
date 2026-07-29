@@ -91,14 +91,20 @@ public class TaskService {
      */
     public static final String REPLY_MARKER = "[вопрос]";
 
+    /**
+     * Задачи доски проекта, сгруппированные по исполнителям.
+     *
+     * <p>T-518: проект приходит параметром, а не берётся из
+     * {@code user.last_project_id}. Раньше доска была единственным разделом
+     * без проекта в запросе — из-за этого её нельзя было передать ссылкой, а
+     * открытая в соседней вкладке доска показывала чужой проект, стоило
+     * заглянуть в другой (G-3 аудита T-500). Членство проверяется явно: с
+     * параметром в URL это уже не «доверенное» серверное состояние.
+     */
     @TransactionRequired
-    public List<UsersTasksInProjectDTO> getProjectTaskByUserGuid() throws NotFoundException {
+    public List<UsersTasksInProjectDTO> getProjectTaskByUserGuid(String projectId) throws NotFoundException {
         log.debug("Вывод всех задач проекта отсортированных по пользователям");
-        String userId = userContext.getUserData().getUserId();
-        User user = userService.findUserById(userId);
-        if (user.getLastProjectId() == null)
-            throw new NotFoundException("У вас нет посещенных проектов");
-        Project project = projectsService.findProjectById(user.getLastProjectId());
+        Project project = checkerUtil.findAndCheckProjectUserData(projectId, false, false).getProject();
         // ТП-49: доска показывает только задачи доскового спринта (активный;
         // без активного — Backlog-спринт, kanban-режим). Задачи бэклога на
         // доску не попадают — бэклог не колонка, а спринт (раздел «Задачи»).

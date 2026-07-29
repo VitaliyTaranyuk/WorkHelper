@@ -12,9 +12,10 @@ export function useActiveSprintTasks({
 }) {
   const query = useQuery({
     queryKey: ['tasks', projectId, TASK_QUERY_KEY.activeSprint],
-    // /tasks/tasks-in-project — рабочий эндпоинт (возвращает задачи проекта,
-    // сгруппированные по исполнителям); разворачиваем в плоский список карточек.
-    queryFn: () => workTechApi.task.getTasksInProject(),
+    // T-518: доска запрашивается по проекту из адреса. Раньше эндпоинт был
+    // `/tasks/tasks-in-project` без проекта — сервер подставлял «последний
+    // открытый», и две вкладки с разными проектами показывали одно и то же.
+    queryFn: () => workTechApi.task.getBoardTasks({ projectId: projectId! }),
     select: (response): ITaskCard[] =>
       (response.data ?? [])
         .flatMap((group) => group.tasks ?? [])

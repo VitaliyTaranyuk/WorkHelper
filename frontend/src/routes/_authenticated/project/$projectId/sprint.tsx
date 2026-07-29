@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { TaskListPage } from '@/page/tasks/TaskListPage'
+import { useDeclareCurrentProject } from '@/features/project/model/currentProjectStore'
 
 export const Route = createFileRoute(
   '/_authenticated/project/$projectId/sprint',
@@ -11,6 +12,7 @@ export const Route = createFileRoute(
 // что и одноимённый раздел — единое отображение.
 function RouteComponent() {
   const { projectId } = Route.useParams()
+  useDeclareCurrentProject(projectId) // T-518
 
   return <TaskListPage projectId={projectId} />
 }
