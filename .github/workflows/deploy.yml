@@ -92,26 +92,52 @@ jobs:
           fi
 
       # Бэкенд собирается ВНУТРИ образа (многоэтапный backend/Dockerfile,
-      # TD-023), поэтому здесь достаточно обновить код и пересобрать образ.
-      - name: Выкатить backend
+      # TD-023), поэтому на сервере достаточно обновить код и пересобрать образ.
+      # Проверка «на сервере тот самый коммит» стоит ДО сборки: собирать не тот
+      # код и потом убеждаться, что «контейнер поднялся», — бессмысленно.
+      - name: Обновить код на сервере
+        if: ${{ inputs.target == 'both' || inputs.target == 'backend' }}
+        run: |
+          $SSH "$SERVER_USER@$SERVER_IP" "
+            set -e
+            cd ${{ vars.DEPLOY_DIR || '/opt/workhelper' }}
+            git fetch origin main
+            git checkout main
+            git pull --ff-only
+            echo \"Коммит на сервере: \$(git rev-parse HEAD)\"
+            if ! git merge-base --is-ancestor ${{ github.sha }} HEAD; then
+              echo 'Выкатываемого коммита ${{ github.sha }} на сервере нет — собрался бы другой код'
+              exit 1
+            fi
+          "
+
+      - name: Пересобрать и перезапустить backend
         if: ${{ inputs.target == 'both' || inputs.target == 'backend' }}
         run: |
           $SSH "$SERVER_USER@$SERVER_IP" \
             'cd ${{ vars.DEPLOY_DIR || '/opt/workhelper' }} \
-             && git fetch origin main && git checkout main && git pull --ff-only \
              && docker compose -f docker-compose.vds.yml up -d --build backend'
 
+      # TD-029: прежняя проверка читала `docker ps --format {{.Status}}` и
+      # сравнивала по подстроке — `case "$status" in *healthy*)`. Строка
+      # «Up 2 minutes (unhealthy)» содержит `healthy`, то есть гейт принимал
+      # НЕЗДОРОВЫЙ контейнер за здоровый. Статус читается точным значением.
       - name: Дождаться готовности backend
         if: ${{ inputs.target == 'both' || inputs.target == 'backend' }}
         run: |
           for i in $(seq 1 40); do
             status=$($SSH "$SERVER_USER@$SERVER_IP" \
-              "docker ps --filter name=workhelper-backend-1 --format '{{.Status}}'")
-            echo "$status"
-            case "$status" in *healthy*) exit 0 ;; esac
+              "docker inspect --format '{{.State.Health.Status}}' workhelper-backend-1" \
+              2>/dev/null || true)
+            status=$(printf %s "$status" | tr -d '\r')
+            echo "healthcheck: ${status:-контейнера ещё нет}"
+            if [ "$status" = "healthy" ]; then
+              exit 0
+            fi
             sleep 15
           done
-          echo "Контейнер не стал healthy — проверьте логи на сервере"
+          echo "Backend не подтвердил работоспособность за 10 минут."
+          echo "Последний статус: ${status:-контейнера нет}. Логи: docker logs workhelper-backend-1"
           exit 1
 
       - name: Set up Node
@@ -150,11 +176,55 @@ jobs:
              rm -rf "$root"/* && cp -r "$tmp"/. "$root"/
              rm -rf "$tmp" /tmp/wt-dist.tar.gz'
 
-      - name: Проверить, что сайт отвечает
+      # Прежняя проверка была `curl / → 200` и не ловила ровно тот класс
+      # регрессий, ради которого существует (баг «пропал бэклог», 2026-07-28):
+      # статика отдаётся, экран пуст. Хуже того, nginx на VDS настроен
+      # `try_files $uri $uri/ /index.html` — НЕСУЩЕСТВУЮЩИЙ /assets/*.js
+      # отдаётся с кодом 200 и типом text/html (проверено на проде), поэтому
+      # проверка ассетов по коду ответа не доказывает вообще ничего.
+      - name: Проверить, что приложение отвечает на проде
         run: |
-          code=$(curl -s -o /dev/null -w '%{http_code}' "https://${{ vars.PUBLIC_URL || 'wowoffcata.hlab.kz' }}/")
-          echo "HTTP $code"
-          [ "$code" = "200" ]
+          base="https://${{ vars.PUBLIC_URL || 'wowoffcata.hlab.kz' }}"
+
+          html=$(curl -fsS -H 'Cache-Control: no-cache' "$base/")
+          echo "$html" | grep -q 'id="root"' \
+            || { echo "На / отдаётся не index.html приложения"; exit 1; }
+
+          assets=$(echo "$html" | grep -oE '/assets/[^"]+\.(js|css)')
+          [ -n "$assets" ] \
+            || { echo "index.html не ссылается ни на один ассет — выложена не сборка Vite"; exit 1; }
+
+          for asset in $assets; do
+            ctype=$(curl -fsS -o /dev/null -w '%{content_type}' "$base$asset")
+            case "$ctype" in
+              *javascript*|text/css*)
+                echo "ассет отдаётся: $asset ($ctype)" ;;
+              *)
+                echo "Ассет $asset отдан как '$ctype' — на сервере его нет, nginx подставил index.html"
+                exit 1 ;;
+            esac
+          done
+
+          # Живой сквозной путь nginx → backend → база: 503 от /health или
+          # недоступный backend роняют деплой, а не остаются незамеченными.
+          health=$(curl -fsS "$base/work-task/api/v1/health") \
+            || { echo "API не подтверждает работоспособность на публичном адресе"; exit 1; }
+          echo "health: $health"
+          echo "$health" | grep -q '"status":"UP"' \
+            || { echo "Неожиданный ответ /health"; exit 1; }
+
+      # Гейт против молчаливого «задеплоили, но не то»: сравнивается бандл,
+      # собранный в этом прогоне, с тем, что реально отдаёт прод. Именно этот
+      # класс отказа три недели выдавал ТП-208 за развёрнутую (TD-023).
+      - name: Убедиться, что выложен свежесобранный фронтенд
+        if: ${{ inputs.target == 'both' || inputs.target == 'frontend' }}
+        run: |
+          base="https://${{ vars.PUBLIC_URL || 'wowoffcata.hlab.kz' }}"
+          built=$(grep -oE '/assets/[^"]+\.js' frontend/dist/index.html | head -1)
+          [ -n "$built" ] || { echo "В собранном index.html нет ссылки на бандл"; exit 1; }
+          curl -fsS -H 'Cache-Control: no-cache' "$base/" | grep -q "$built" \
+            || { echo "Прод отдаёт другой бандл: ожидался $built"; exit 1; }
+          echo "выложен бандл этой сборки: $built"
 
       - name: Убрать ключ
         if: always()

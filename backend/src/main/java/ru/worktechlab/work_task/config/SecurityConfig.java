@@ -26,6 +26,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import ru.worktechlab.work_task.authorization.jwt.AuthEntryPointJwt;
 import ru.worktechlab.work_task.authorization.jwt.AuthTokenFilter;
+import ru.worktechlab.work_task.controllers.HealthController;
 import ru.worktechlab.work_task.repositories.UserRepository;
 import ru.worktechlab.work_task.services.UsersDetailsService;
 
@@ -59,6 +60,9 @@ public class SecurityConfig {
     // не работает авторизация, хотя на сервере просто не было маппинга).
     // Сам /error не раскрывает данных: тело ответа формирует общий обработчик.
     private static final String[] ERROR_URLS = {"/error"};
+    // TD-029: работоспособность проверяет docker изнутри контейнера и гейт
+    // деплоя снаружи — JWT там взять неоткуда. Ответ содержит только UP/DOWN.
+    private static final String[] HEALTH_URLS = {HealthController.PATH};
 
     @Value("${spring.cors.allowed.origins}")
     private String allowedOrigins;
@@ -94,6 +98,7 @@ public class SecurityConfig {
                         .requestMatchers(WS_URLS).permitAll()
                         .requestMatchers(MONITORING_URLS).permitAll()
                         .requestMatchers(ERROR_URLS).permitAll()
+                        .requestMatchers(HEALTH_URLS).permitAll()
                         .anyRequest().authenticated());
         http.sessionManagement(
                 session ->

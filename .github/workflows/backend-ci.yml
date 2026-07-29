@@ -1,11 +1,14 @@
 name: Backend CI
 
+# docker-compose.vds.yml и deploy.yml перечислены наравне с кодом: их
+# согласованность с backend проверяет DeployGateContractTest (TD-029), и
+# правка гейта деплоя без прогона тестов прошла бы мимо этой проверки.
 on:
   push:
     branches: [ main ]
-    paths: [ 'backend/**' ]
+    paths: [ 'backend/**', 'docker-compose.vds.yml', '.github/workflows/deploy.yml' ]
   pull_request:
-    paths: [ 'backend/**' ]
+    paths: [ 'backend/**', 'docker-compose.vds.yml', '.github/workflows/deploy.yml' ]
 
 jobs:
   build-and-test:
