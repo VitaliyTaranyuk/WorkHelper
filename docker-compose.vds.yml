@@ -9,8 +9,14 @@ services:
     volumes:
       - /var/lib/workhelper/attachments:/var/lib/workhelper/attachments
     restart: unless-stopped
+    # TD-029: раньше здесь был `curl -s` (без -f) по POST-эндпоинту /auth/login.
+    # GET на него отдаёт 405, а без -f curl успешен на ЛЮБОМ ответе, включая
+    # 500 — контейнер объявлялся healthy, если Spring отвечал хоть чем-нибудь,
+    # и гейт деплоя выдавал сломанный релиз за выложенный (W-06). Теперь -f
+    # (как у glitchtip ниже) и реальный GET-эндпоинт, который ходит в базу:
+    # путь сверяется с HealthController.PATH тестом DeployGateContractTest.
     healthcheck:
-      test: ["CMD", "curl", "-s", "http://localhost:8080/work-task/api/v1/auth/login"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/work-task/api/v1/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
