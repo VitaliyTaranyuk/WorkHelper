@@ -5,6 +5,7 @@ import NiceModal from '@ebay/nice-modal-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { notify as toast } from '@/shared/ui/notify'
 import { upgradeAutoTitle } from '@/features/task/upgradeAutoTitle'
+import { upgradeDictatedDescription } from '@/features/task/upgradeDictatedDescription'
 
 /**
  * ТП-239: помимо DTO мутация принимает признак `autoTitle` — название
@@ -68,6 +69,11 @@ export function useCreateTask() {
       // через несколько секунд и обновит списки. Промис намеренно не
       // возвращается: onSuccess, вернувший промис, задержал бы mutateAsync —
       // ровно этим и тормозило удаление задачи (см. useDeleteTask).
+      const refreshLists = () => {
+        queryClient.invalidateQueries({ queryKey: ['tasks', dto.projectId] })
+        queryClient.invalidateQueries({ queryKey: ['sprints', dto.projectId] })
+      }
+
       if (autoTitle && dto.description) {
         void upgradeAutoTitle({
           projectId: dto.projectId,
@@ -75,11 +81,20 @@ export function useCreateTask() {
           description: dto.description,
           createdTitle: created.title,
         }).then((title) => {
-          if (!title) return
-          queryClient.invalidateQueries({ queryKey: ['tasks', dto.projectId] })
-          queryClient.invalidateQueries({ queryKey: ['sprints', dto.projectId] })
+          if (title) refreshLists()
         })
       }
+
+      // ТП-241: «Создать» нажали во время диктовки — задача создана с локально
+      // отформатированным текстом, вычищенный вариант доезжает следом. Тот же
+      // приём, что с названием: форма уже закрыта, ждать её некому.
+      void upgradeDictatedDescription({
+        projectId: dto.projectId,
+        taskId: created.id,
+        createdDescription: dto.description,
+      }).then((description) => {
+        if (description) refreshLists()
+      })
     },
     // onError намеренно не показывает общий toast — формы создания задачи
     // (CreateTaskModal / CreateTaskDetails) сами ловят ошибку и подсвечивают

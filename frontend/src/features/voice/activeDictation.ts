@@ -41,3 +41,43 @@ export function isDictationActive(): boolean {
 export async function finalizeActiveDictation(): Promise<void> {
   activeFinalize?.()
 }
+
+/**
+ * Только что законченная диктовка, чьё улучшение ещё в пути (ТП-241).
+ *
+ * `local` — текст, который УЖЕ вставлен в поле и с которым задача будет
+ * создана; `enhanced` — промис вычищенного варианта (тот же, что ждёт сам
+ * конвейер, второго запроса к модели не делается). Точка создания забирает
+ * слот и, если задача создана именно с `local`, дописывает ей вычищенный
+ * вариант фоном — форма к тому моменту уже закрыта.
+ */
+export type PendingDictation = {
+  local: string
+  enhanced: Promise<string>
+  at: number
+}
+
+/**
+ * Слот живёт минуту: он нужен ровно на путь «закончил диктовку → создал
+ * задачу». Всё, что дольше, — это уже другая диктовка (правка в карточке,
+ * комментарий), и приписывать её к случайной последующей задаче нельзя.
+ */
+const PENDING_TTL_MS = 60_000
+
+let pending: PendingDictation | null = null
+
+export function setPendingDictation(local: string, enhanced: Promise<string>): void {
+  // Промис уходит в фон и обязан быть безопасным: enhanceTextSafe никогда не
+  // бросает, но слот может быть и не востребован — гасим на всякий случай,
+  // чтобы не оставить unhandled rejection.
+  enhanced.catch(() => undefined)
+  pending = { local, enhanced, at: Date.now() }
+}
+
+/** Забрать слот (одноразово). `null` — слота нет или он протух. */
+export function takePendingDictation(): PendingDictation | null {
+  const current = pending
+  pending = null
+  if (!current) return null
+  return Date.now() - current.at <= PENDING_TTL_MS ? current : null
+}

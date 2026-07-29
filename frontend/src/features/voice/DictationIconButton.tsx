@@ -6,9 +6,8 @@ import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined'
 
 /**
  * Кнопка микрофона — только внешний вид и клик (ТП-241). Сессией управляет
- * вызывающий: у комментария это {@link DictationButton} (текст приходит одним
- * куском в конце), у описания — {@link useLiveDictation} (живая расшифровка).
- * Общий вид вынесен сюда, чтобы два места диктовки не разошлись визуально.
+ * вызывающий (`useLiveDictation`); общий вид вынесен сюда, чтобы места
+ * диктовки — описание и комментарий — не разошлись визуально.
  */
 export function DictationIconButton({
   listening,
