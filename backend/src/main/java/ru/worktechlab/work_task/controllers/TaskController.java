@@ -103,11 +103,17 @@ public class TaskController {
         return taskService.updateTaskStatus(requestDto);
     }
 
+    // T-518: было `/tasks-in-project` без проекта — «активный проект» брался из
+    // user.last_project_id, поэтому доска не открывалась по ссылке и зависела
+    // от того, что пользователь смотрел в другой вкладке. Путь приведён к
+    // общему для этого контроллера виду `/tasks/{projectId}/…`.
     @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
-    @GetMapping("/tasks-in-project")
-    @Operation(summary = "Получить все задачи активного проекта отсортированные по пользователям")
-    public List<UsersTasksInProjectDTO> getTasksInProject() throws NotFoundException {
-        return taskService.getProjectTaskByUserGuid();
+    @GetMapping("/{projectId}/board")
+    @Operation(summary = "Задачи доски проекта, сгруппированные по исполнителям")
+    public List<UsersTasksInProjectDTO> getBoardTasks(
+            @Parameter(description = "ИД проекта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
+            @PathVariable String projectId) throws NotFoundException {
+        return taskService.getProjectTaskByUserGuid(projectId);
     }
 
     @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})

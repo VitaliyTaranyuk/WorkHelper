@@ -45,6 +45,9 @@ export const API_ENDPOINT_PATH = {
 
     GET_ACTIVE: () => `/projects/last`,
 
+    // T-518: явное «работаю в этом проекте» вместо побочного эффекта GET.
+    REMEMBER_LAST: ({ projectId }: ProjectId) => `/projects/${projectId}/last`,
+
     GET_BY_ID: ({ projectId }: ProjectId) => `/projects/${projectId}`,
 
     GET_FILTERED: ({ projectId }: ProjectId) =>
@@ -135,7 +138,10 @@ export const API_ENDPOINT_PATH = {
     GET_HISTORY: ({ projectId, taskId }: ProjectId & TaskId) =>
       `/tasks/${projectId}/${taskId}/history`,
 
-    GET_ALL_IN_PROJECT: () => `/tasks/tasks-in-project`,
+    // T-518: было `/tasks/tasks-in-project` без проекта — «активный проект»
+    // брался на сервере из last_project_id, из-за чего доска не открывалась
+    // по ссылке и зависела от соседней вкладки.
+    GET_BOARD: ({ projectId }: ProjectId) => `/tasks/${projectId}/board`,
 
     GET_COMPLETED: ({ projectId }: ProjectId) =>
       `/tasks/${projectId}/completed`,

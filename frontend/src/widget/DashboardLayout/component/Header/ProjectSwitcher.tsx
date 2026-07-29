@@ -16,15 +16,15 @@ import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt'
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import AddIcon from '@mui/icons-material/Add'
-import { useModal } from '@ebay/nice-modal-react'
+import NiceModal, { useModal } from '@ebay/nice-modal-react'
 import { useNavigate } from '@tanstack/react-router'
 import { useProjectData } from '@/features/project/query/useProjectData'
-import { useChangeProject } from '@/features/project/mutation/useChangeProject'
 import { useDeleteProject } from '@/features/project/mutation/useProjectActions'
 import { CreateProjectModal } from '@/widget/modal/project/CreateProjectModal'
 import { EditProjectModal } from '@/widget/modal/project/EditProjectModal'
 import { InviteUsersModal } from '@/widget/modal/project/InviteUsersModal'
 import { ProjectHistoryModal } from '@/widget/modal/project/ProjectHistoryModal'
+import { TaskCardModal } from '@/widget/modal/task'
 import { COLOR } from '@/shared/ui/theme/constants'
 
 /**
@@ -40,7 +40,6 @@ export function ProjectSwitcher() {
 
   const navigate = useNavigate()
   const { activeProject, userProjects } = useProjectData()
-  const changeProject = useChangeProject()
   const deleteProject = useDeleteProject()
 
   const editModal = useModal(EditProjectModal)
@@ -52,10 +51,14 @@ export function ProjectSwitcher() {
 
   const switchTo = (projectId: string) => {
     close()
-    if (projectId !== activeProject?.id) {
-      changeProject.mutate({ projectId })
-      navigate({ to: '/main' })
-    }
+    if (projectId === activeProject?.id) return
+    // T-518: переключение — это переход по адресу проекта, а не мутация
+    // серверного «текущего проекта» через побочный эффект GET. Инвалидация
+    // кэшей больше не нужна: ключи запросов содержат projectId, у нового
+    // проекта они просто другие. Открытая карточка задачи закрывается — она
+    // принадлежит покидаемому проекту и пережила бы переключение (G-9).
+    NiceModal.hide(TaskCardModal)
+    navigate({ to: '/project/$projectId/board', params: { projectId } })
   }
 
   const removeProject = async () => {

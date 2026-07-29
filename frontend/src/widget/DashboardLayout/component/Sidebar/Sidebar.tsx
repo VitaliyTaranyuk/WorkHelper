@@ -50,7 +50,15 @@ export function Sidebar({ className }: SideBarProps) {
           колонку иконок — подписи скрыты, ширина 56px; на планшете/десктопе
           вид не меняется. title даёт подсказку в свёрнутом состоянии. */}
       <Nav>
-        <NavItem to="/main" title="Доска">
+        {/* T-518: доска ведёт на адрес проекта, как и остальные разделы.
+            Без проекта остаётся `/main` — точка входа сама определит, куда
+            перенаправить. */}
+        <NavItem
+          to={
+            activeProject ? `/project/${activeProject.id}/board` : '/main'
+          }
+          title="Доска"
+        >
           <ViewKanbanOutlinedIcon fontSize="small" />
           <NavLabel>Доска</NavLabel>
         </NavItem>

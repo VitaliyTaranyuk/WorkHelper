@@ -174,6 +174,28 @@ export function getActiveProject({
 }
 
 /**
+ * @name RememberLastProject
+ * @summary Запомнить проект как последний открытый
+ * @request PUT:/projects/{projectId}/last
+ *
+ * T-518: раньше «текущий проект» переключался побочным эффектом обычного
+ * GET /projects/{id}; теперь у намерения есть отдельный запрос.
+ */
+export function rememberLastProject({
+  projectId,
+  otherParams = {},
+}: {
+  projectId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<void>({
+    method: 'PUT',
+    url: API_ENDPOINT_PATH.PROJECTS.REMEMBER_LAST({ projectId }),
+    ...otherParams,
+  })
+}
+
+/**
  * @name GetProjectData
  * @summary Получение данных проекта по ИД
  * @request GET:/projects/{projectId}

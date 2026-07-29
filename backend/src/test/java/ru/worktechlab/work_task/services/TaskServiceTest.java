@@ -646,12 +646,9 @@ class TaskServiceTest {
     @Test
     void getProjectTasks_shouldMarkAwaitingReply_whenLastCommentHasMarker() throws Exception {
         // ТП-45: последний комментарий с маркером [вопрос] -> точка на карточке
-        UserContext realCtx = new UserContext();
-        UserContext.UserContextData ctx = TestFixtures.contextData(realCtx, "user-1", "owner@test.com");
-        when(userContext.getUserData()).thenReturn(ctx);
-        ReflectionTestUtils.setField(creator, "lastProjectId", "project-1");
-        when(userService.findUserById("user-1")).thenReturn(creator);
-        when(projectsService.findProjectById("project-1")).thenReturn(project);
+        // T-518: проект приходит параметром, а не из user.last_project_id
+        when(checkerUtil.findAndCheckProjectUserData("project-1", false, false))
+                .thenReturn(new UserAndProjectData(project, creator));
         // ТП-49: доска фильтрует по досковому спринту
         when(taskPlacementService.boardSprint(project)).thenReturn(sprint);
         project.getTasks().add(task);
@@ -661,9 +658,23 @@ class TaskServiceTest {
         dto.setId("task-1");
         when(taskMapper.toListItems(anyList())).thenReturn(List.of(dto));
 
-        taskService.getProjectTaskByUserGuid();
+        taskService.getProjectTaskByUserGuid("project-1");
 
         assertThat(dto.isAwaitingReply()).isTrue();
+    }
+
+    /**
+     * T-518: доска берёт проект из запроса, поэтому членство обязано
+     * проверяться явно — раньше проект приходил из серверного
+     * `last_project_id`, куда пользователь мог попасть только легально.
+     */
+    @Test
+    void getProjectTasks_shouldRejectForeignProject() throws Exception {
+        when(checkerUtil.findAndCheckProjectUserData("foreign-project", false, false))
+                .thenThrow(new NotFoundException("Вам не доступен проект"));
+
+        assertThatThrownBy(() -> taskService.getProjectTaskByUserGuid("foreign-project"))
+                .isInstanceOf(NotFoundException.class);
     }
 
     @Test

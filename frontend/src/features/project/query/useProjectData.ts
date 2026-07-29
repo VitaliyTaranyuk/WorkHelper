@@ -2,6 +2,7 @@ import { mapProjectDtoToProjectInfo } from '@/entities/project/mapDTO'
 import { workTechApi } from '@/shared/api/endpoint'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+import { useCurrentProjectStore } from '@/features/project/model/currentProjectStore'
 
 function useUserProjects() {
   return useQuery({
@@ -11,15 +12,31 @@ function useUserProjects() {
   })
 }
 
+/**
+ * T-518: проект открытой страницы важнее серверного «последнего».
+ *
+ * Раньше единственным источником был `GET /projects/last`, то есть общее для
+ * всех вкладок поле `user.last_project_id`: открытие бэклога другого проекта
+ * уводило за собой доску, а две вкладки с разными проектами были невозможны.
+ * Теперь адрес страницы решает, а серверное значение остаётся точкой входа —
+ * «где я остановился» при заходе на `/main` и при следующем входе.
+ */
 function useActiveProjectId(userProjects: Array<{ id: string }>) {
+  const projectIdFromRoute = useCurrentProjectStore((state) => state.projectId)
+
   const { data: activeProjectData, isLoading } = useQuery({
     queryKey: ['activeProject'],
     queryFn: () =>
       workTechApi.project.getActiveProject().then((res) => res.data),
+    enabled: !projectIdFromRoute,
   })
 
-  const id = activeProjectData?.id || userProjects[0]?.id
-  return { activeProjectId: id, isLoading }
+  const id =
+    projectIdFromRoute || activeProjectData?.id || userProjects[0]?.id
+  return {
+    activeProjectId: id,
+    isLoading: projectIdFromRoute ? false : isLoading,
+  }
 }
 
 function useActiveProjectInfo(projectId: string | undefined) {
@@ -33,6 +50,21 @@ function useActiveProjectInfo(projectId: string | undefined) {
         : Promise.resolve(undefined),
     enabled: !!projectId, // делаем запрос только если есть id
   })
+}
+
+/**
+ * Проект для точки входа `/main`, у которой проекта в адресе нет: контекст
+ * вкладки → серверное «последнее место» → первый доступный проект (T-518).
+ */
+export function useEntryProjectId() {
+  const userProjectsQuery = useUserProjects()
+  const { activeProjectId, isLoading } = useActiveProjectId(
+    userProjectsQuery.data ?? [],
+  )
+  return {
+    projectId: activeProjectId,
+    isLoading: isLoading || userProjectsQuery.isLoading,
+  }
 }
 
 export function useProjectData() {

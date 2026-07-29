@@ -270,18 +270,20 @@ export function getTaskHistory({
 }
 
 /**
- * @name GetTasksInProject
- * @summary Получить все задачи активного проекта отсортированные по пользователям
- * @request GET:/tasks/tasks-in-project
+ * @name GetBoardTasks
+ * @summary Задачи доски проекта, сгруппированные по исполнителям
+ * @request GET:/tasks/{projectId}/board
  */
-export function getTasksInProject({
+export function getBoardTasks({
+  projectId,
   otherParams = {},
 }: {
+  projectId: string
   otherParams?: RequestParams
-} = {}) {
+}) {
   return workTechApiClient<GetTasksInProjectData>({
     method: 'GET',
-    url: API_ENDPOINT_PATH.TASKS.GET_ALL_IN_PROJECT(),
+    url: API_ENDPOINT_PATH.TASKS.GET_BOARD({ projectId }),
     ...otherParams,
   })
 }
