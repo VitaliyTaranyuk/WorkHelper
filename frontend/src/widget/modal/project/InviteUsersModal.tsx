@@ -125,6 +125,12 @@ function InviteUsersModalInner() {
                   `${o.displayName || o.username} (@${o.username})`
                 }
                 isOptionEqualToValue={(o, v) => o.id === v.id}
+                // Отбор делает backend по ТОЧНОМУ совпадению, поэтому подпись
+                // варианта («Админ (@admin)») заведомо не содержит введённый
+                // email — встроенный клиентский фильтр MUI выбросил бы
+                // единственный найденный вариант, и поиск по почте выглядел бы
+                // как «никто не найден». Найдено живой проверкой на проде.
+                filterOptions={(options) => options}
                 noOptionsText={
                   query.trim().length < 2
                     ? 'Введите @username или email целиком'
