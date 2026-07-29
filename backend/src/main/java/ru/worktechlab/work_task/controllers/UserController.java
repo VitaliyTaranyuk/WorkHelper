@@ -11,6 +11,7 @@ import ru.worktechlab.work_task.dto.StringIdsDto;
 import ru.worktechlab.work_task.dto.users.UpdateProfileRequest;
 import ru.worktechlab.work_task.dto.users.UpdateUserRequest;
 import ru.worktechlab.work_task.dto.users.UserDataDto;
+import ru.worktechlab.work_task.dto.users.UserLookupDto;
 import ru.worktechlab.work_task.dto.users.UserPickerDto;
 import ru.worktechlab.work_task.dto.users.UserSettingsDto;
 import ru.worktechlab.work_task.dto.users.UserShortDataDto;
@@ -39,18 +40,40 @@ public class UserController {
     }
 
     /**
-     * Единый источник для assignee picker / @mention autocomplete / комментариев.
-     * Доступен всем участникам проекта. Только активные подтверждённые
-     * пользователи; поиск по firstName/lastName/displayName/username/email.
+     * Источник для @mention autocomplete в комментариях — **участники
+     * указанного проекта**. TD-028: до этого отдавались все пользователи
+     * системы вместе с email, то есть любой участник любого проекта видел всю
+     * базу (K-36) и мог упомянуть человека, которому проект недоступен.
+     * Только активные подтверждённые; поиск по
+     * firstName/lastName/displayName/username/email.
      */
     @RolesAllowed({ADMIN, PROJECT_OWNER, PROJECT_MEMBER, POWER_USER})
-    @Operation(summary = "Picker: активные пользователи для assignee / @mention")
+    @Operation(summary = "Picker: участники проекта для @mention")
     @GetMapping("/picker")
     public List<UserPickerDto> picker(
+            @Parameter(description = "ИД проекта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
+            @RequestParam("projectId") String projectId,
             @RequestParam(value = "q", required = false) String q,
             @RequestParam(value = "limit", required = false, defaultValue = "20") int limit
-    ) {
-        return userService.pickerSearch(q, limit);
+    ) throws NotFoundException {
+        return userService.pickerSearch(projectId, q, limit);
+    }
+
+    /**
+     * Поиск пользователя для приглашения в проект по **точному** username или
+     * email (TD-028). Роли те же, что у `PUT /projects/{id}/add-users`, —
+     * искать может только тот, кто может добавить.
+     */
+    @RolesAllowed({ADMIN, PROJECT_OWNER})
+    @Operation(summary = "Поиск пользователя для приглашения по точному username или email")
+    @GetMapping("/lookup")
+    public List<UserLookupDto> lookup(
+            @Parameter(description = "ИД проекта", example = "656c989e-ceb1-4a9f-a6a9-9ab40cc11540", required = true)
+            @RequestParam("projectId") String projectId,
+            @Parameter(description = "Точный username (можно с @) или email", example = "@ivanov")
+            @RequestParam(value = "q", required = false) String q
+    ) throws NotFoundException {
+        return userService.lookupForInvite(projectId, q);
     }
 
 //    @RolesAllowed({PROJECT_MEMBER, PROJECT_OWNER})

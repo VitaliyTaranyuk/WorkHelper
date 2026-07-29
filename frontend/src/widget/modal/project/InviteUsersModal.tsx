@@ -19,7 +19,7 @@ import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { notify as toast } from '@/shared/ui/notify'
 import { workTechApi } from '@/shared/api/endpoint'
-import { useUserPicker, type UserPickerItem } from '@/features/user/useUserPicker'
+import { useUserLookup, type UserLookupItem } from '@/features/user/useUserLookup'
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { extractGeneralError } from '@/shared/api/extractFieldErrors'
 
@@ -27,7 +27,11 @@ export const InviteUsersModal = NiceModal.create(InviteUsersModalInner)
 
 /**
  * Приглашение пользователей в проект (ТП-35, паттерн Trello/Notion):
- *  - вручную: выбор зарегистрированного пользователя и добавление;
+ *  - вручную: поиск зарегистрированного пользователя по ТОЧНОМУ username или
+ *    email и добавление. Точное совпадение — не придирка к UX: подстроковый
+ *    поиск по всей базе был перечисляемым каталогом чужих учёток с email
+ *    (TD-028), а ролью его не закрыть — владельцем проекта становится любой,
+ *    кто создал проект;
  *  - по ссылке: одноразовая ссылка-приглашение, копируется в буфер;
  *    незарегистрированный получатель попадёт в проект сразу после
  *    регистрации. Каждое нажатие создаёт новую уникальную ссылку.
@@ -38,9 +42,9 @@ function InviteUsersModalInner() {
   const queryClient = useQueryClient()
 
   const [query, setQuery] = useState('')
-  const [selected, setSelected] = useState<UserPickerItem | null>(null)
+  const [selected, setSelected] = useState<UserLookupItem | null>(null)
   const [inviteUrl, setInviteUrl] = useState('')
-  const { data: users } = useUserPicker(query)
+  const { data: users } = useUserLookup(query, activeProject?.id)
 
   const addUser = useMutation({
     mutationFn: (userId: string) =>
@@ -121,9 +125,17 @@ function InviteUsersModalInner() {
                   `${o.displayName || o.username} (@${o.username})`
                 }
                 isOptionEqualToValue={(o, v) => o.id === v.id}
-                noOptionsText="Пользователи не найдены"
+                noOptionsText={
+                  query.trim().length < 2
+                    ? 'Введите @username или email целиком'
+                    : 'Никто не найден — проверьте username или email, либо пригласите ссылкой'
+                }
                 renderInput={(params) => (
-                  <TextField {...params} placeholder="Найдите по имени или @username" />
+                  <TextField
+                    {...params}
+                    placeholder="@username или email целиком"
+                    helperText="Поиск по точному совпадению — чужие учётки не перечисляются"
+                  />
                 )}
               />
               <Button
