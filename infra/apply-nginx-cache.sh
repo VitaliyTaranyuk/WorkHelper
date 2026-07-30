@@ -61,11 +61,21 @@ block = textwrap.dedent(os.environ["ASSETS_BLOCK"]).strip("\n")
 with io.open(path, encoding="utf-8") as fh:
     text = fh.read()
 
-# 1. Заголовок оболочки — внутрь КАЖДОГО `location / { … try_files … }`.
-shell = re.compile(r"^([ \t]*)(try_files\s+\$uri\s+\$uri/\s+/index\.html;)", re.M)
+# 1. Заголовок оболочки — на уровень server-блока, прямо перед `location /`
+#    с SPA-фолбэком. Внутри самого location он до ответа не доезжает: `/`
+#    обслуживается через внутренний редирект index-модуля (проверено на проде).
+#    Позиция «строкой выше location» гарантирует, что директива окажется
+#    ИМЕННО в том server-блоке, где живёт SPA, — а не в редиректе :80 и не в
+#    блоке GlitchTip на :8443.
+shell = re.compile(
+    r"^([ \t]*)location\s+/\s*\{\s*\n([ \t]*)try_files\s+\$uri\s+\$uri/\s+/index\.html;",
+    re.M,
+)
 if not shell.search(text):
-    raise SystemExit(f"не найден SPA-фолбэк try_files в {path}")
-text = shell.sub(lambda m: f'{m.group(1)}{m.group(2)}\n{m.group(1)}add_header Cache-Control "no-cache";', text)
+    raise SystemExit(f"не найден блок SPA-фолбэка в {path}")
+text = shell.sub(
+    lambda m: f'{m.group(1)}add_header Cache-Control "no-cache";\n\n{m.group(0)}', text
+)
 
 # 2. Блок /assets/ — перед КАЖДОЙ `location /work-task/ {`: в файле бывает
 #    несколько server-блоков (:80 от certbot и рабочий :443), и вставка только
