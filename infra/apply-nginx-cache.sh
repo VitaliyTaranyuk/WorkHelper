@@ -73,8 +73,21 @@ shell = re.compile(
 )
 if not shell.search(text):
     raise SystemExit(f"не найден блок SPA-фолбэка в {path}")
+root_block = (
+    'add_header Cache-Control "no-cache";\n\n'
+    "# Корневой адрес — отдельным блоком: иначе `/` отдаёт index-модуль через\n"
+    "# внутренний редирект, куда add_header с уровня server не доезжает.\n"
+    "location = / {\n"
+    "    try_files /index.html =404;\n"
+    "}\n\n"
+)
 text = shell.sub(
-    lambda m: f'{m.group(1)}add_header Cache-Control "no-cache";\n\n{m.group(0)}', text
+    lambda m: "\n".join(
+        m.group(1) + line if line.strip() else line for line in root_block.splitlines()
+    )
+    + "\n"
+    + m.group(0),
+    text,
 )
 
 # 2. Блок /assets/ — перед КАЖДОЙ `location /work-task/ {`: в файле бывает
@@ -131,10 +144,16 @@ ASSET_PATH="$(curl -sS --max-time 10 --resolve "$PUBLIC_HOST:443:127.0.0.1" -k "
 ASSET_HEADERS=""
 [ -n "$ASSET_PATH" ] && ASSET_HEADERS="$(fetch_headers "$ASSET_PATH")"
 
+# Глубокая ссылка проверяется наравне с корнем: оболочку для /main отдаёт
+# фолбэк try_files, и это ровно тот путь, по которому пользователь возвращается
+# в приложение после деплоя.
+DEEP_HEADERS="$(fetch_headers /main)"
+
 if echo "$INDEX_HEADERS" | grep -qi "^Cache-Control:.*no-cache" \
   && echo "$INDEX_HEADERS" | grep -q "200" \
+  && echo "$DEEP_HEADERS" | grep -qi "^Cache-Control:.*no-cache" \
   && echo "$ASSET_HEADERS" | grep -qi "immutable"; then
-  log "post-check OK: оболочка no-cache, ассет immutable, сайт отвечает 200"
+  log "post-check OK: / и /main — no-cache, ассет — immutable, сайт отвечает 200"
   audit "OK applied (changed=$CHANGED)"
 else
   log "GET / :            $(echo "$INDEX_HEADERS" | tr -d '\r' | tr '\n' ' ')"
