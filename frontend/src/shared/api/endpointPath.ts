@@ -146,6 +146,14 @@ export const API_ENDPOINT_PATH = {
     GET_COMPLETED: ({ projectId }: ProjectId) =>
       `/tasks/${projectId}/completed`,
 
+    // T-151: эндпоинты архивации существовали с 2026-07, но в интерфейс не
+    // были выведены ни одной кнопкой — недоступная функциональность (K-32).
+    ARCHIVE_TASK: ({ projectId, taskId }: ProjectId & TaskId) =>
+      `/tasks/${projectId}/${taskId}/archive`,
+
+    RESTORE_TASK: ({ projectId, taskId }: ProjectId & TaskId) =>
+      `/tasks/${projectId}/${taskId}/restore`,
+
     GET_DEV_INFO: ({ projectId, taskId }: ProjectId & TaskId) =>
       `/tasks/${projectId}/${taskId}/dev-info`,
 
