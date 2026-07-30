@@ -289,6 +289,48 @@ export function getBoardTasks({
 }
 
 /**
+ * @name ArchiveTask
+ * @summary Архивировать задачу
+ * @request PUT:/tasks/{projectId}/{taskId}/archive
+ */
+export function archiveTask({
+  projectId,
+  taskId,
+  otherParams = {},
+}: {
+  projectId: string
+  taskId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<TaskDataDto>({
+    method: 'PUT',
+    url: API_ENDPOINT_PATH.TASKS.ARCHIVE_TASK({ projectId, taskId }),
+    ...otherParams,
+  })
+}
+
+/**
+ * @name RestoreTask
+ * @summary Восстановить задачу из архива
+ * @request PUT:/tasks/{projectId}/{taskId}/restore
+ */
+export function restoreTask({
+  projectId,
+  taskId,
+  otherParams = {},
+}: {
+  projectId: string
+  taskId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<TaskDataDto>({
+    method: 'PUT',
+    url: API_ENDPOINT_PATH.TASKS.RESTORE_TASK({ projectId, taskId }),
+    ...otherParams,
+  })
+}
+
+/**
  * @name GetCompletedTasks
  * @summary Завершённые задачи проекта (ушли с активной доски или в колонке Done)
  * @request GET:/tasks/{projectId}/completed

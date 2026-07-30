@@ -22,6 +22,7 @@ import { isBoardSprintId } from '@/entities/sprint/board'
 import { useEditTaskForm } from './TaskForm/useTaskForm'
 import { useEditTask } from './mutation/useEditTask'
 import { useDeleteTask } from './mutation/useDeleteTask'
+import { useArchiveTask, useRestoreTask } from './mutation/useArchiveTask'
 import { finalizeActiveDictation } from '@/features/voice/activeDictation'
 import { useUpdateTaskStatus } from './mutation/useUpdateTaskStatus'
 import { TaskComments } from './TaskComments'
@@ -53,7 +54,11 @@ export type TaskCardGuard = {
 
 type TaskCardContentProps = {
   task: ITaskCard
-  /** Вызывается после успешного удаления задачи (закрыть модалку / уйти со страницы). */
+  /**
+   * Вызывается, когда задача покинула текущие списки — после удаления, а
+   * также после архивации и возврата из архива (T-151): закрыть модалку /
+   * уйти со страницы.
+   */
   onDeleted?: () => void
   /** Контейнер получает актуальные isDirty/save для guard-а закрытия (ТП-34). */
   guardRef?: MutableRefObject<TaskCardGuard | null>
@@ -96,6 +101,8 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
   const form = useEditTaskForm({ task })
   const editTask = useEditTask()
   const deleteTask = useDeleteTask()
+  const archiveTask = useArchiveTask()
+  const restoreTask = useRestoreTask()
   const updateStatus = useUpdateTaskStatus()
   const { errors } = form.formState
 
@@ -281,6 +288,43 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
     onDeleted?.()
   }
 
+  // T-151: обе операции меняют принадлежность задачи спискам, поэтому карточка
+  // закрывается — как после удаления. Оставлять её открытой было бы хуже: она
+  // получила `task` пропсом и показывала бы прежнее состояние («В архиве» у
+  // только что возвращённой задачи) до перезапроса родителем.
+  const onArchive = async () => {
+    if (!activeProject) return
+    try {
+      await archiveTask.mutateAsync({
+        projectId: activeProject.id,
+        taskId: task.id,
+      })
+    } catch (error) {
+      // Молча проглоченная ошибка мутации — отдельный класс дефектов этого
+      // проекта (BUG-014): человек нажал кнопку и не узнал, что ничего не
+      // произошло.
+      toast.error(extractGeneralError(error) ?? 'Не удалось архивировать задачу')
+      return
+    }
+    toast.success(`${task.code} в архиве`)
+    onDeleted?.()
+  }
+
+  const onRestore = async () => {
+    if (!activeProject) return
+    try {
+      await restoreTask.mutateAsync({
+        projectId: activeProject.id,
+        taskId: task.id,
+      })
+    } catch (error) {
+      toast.error(extractGeneralError(error) ?? 'Не удалось вернуть задачу из архива')
+      return
+    }
+    toast.success(`${task.code} возвращена из архива`)
+    onDeleted?.()
+  }
+
   if (isProjectLoading || isSprintsLoading) {
     return <Loader isLoading />
   }
@@ -453,6 +497,18 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
           </MUIPrimaryButton>
           {/* ТП-178: кнопка «Обсудить во встрече» удалена по решению
               владельца — встречи создаются из календаря. */}
+          {/* T-151: архивация существовала только в API — в интерфейсе не было
+              ни одной кнопки. Действие обратимое, поэтому без подтверждения
+              (в отличие от удаления): задача уходит с доски в «Завершённые» с
+              пометкой «В архиве», оттуда её возвращает эта же кнопка. */}
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={task.archived ? onRestore : onArchive}
+            loading={archiveTask.isPending || restoreTask.isPending}
+          >
+            {task.archived ? 'Вернуть из архива' : 'В архив'}
+          </Button>
           {/* ТП-239: пока идёт запрос — спиннер (кнопка блокируется сама).
               Молчаливая серая кнопка читалась как «ничего не происходит». */}
           <Button
