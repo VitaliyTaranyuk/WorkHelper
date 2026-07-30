@@ -4,18 +4,22 @@
 # правки прод-nginx не используются.
 #
 # Зачем: измерено на проде — `/` и `/assets/*` отдавались БЕЗ Cache-Control.
-# Браузер кэшировал index.html по эвристике и после деплоя продолжал грузить
+# Браузер кэшировал оболочку SPA по эвристике и после деплоя продолжал грузить
 # прежний бандл до жёсткой перезагрузки, а файлы с хешем в имени, наоборот,
 # перезапрашивались каждый раз.
 #
-# Свойства:
-#  - идемпотентно: блоки уже есть → no-op;
-#  - бэкап → вставка → nginx -t → reload → post-check по заголовкам;
-#  - автооткат при провале nginx -t или post-check;
-#  - аудит-след в /var/log/workhelper-nginx-cache.log.
+# Две операции, обе идемпотентные:
+#  1) `add_header Cache-Control "no-cache"` внутрь существующего `location /`
+#     — именно он отдаёт оболочку по фолбэку try_files для ЛЮБОГО маршрута
+#     (/main, /project/…/board). Отдельная `location = /index.html` не годится:
+#     на проде она не подхватывалась (прогон #30558012673, откат по post-check);
+#  2) отдельный блок `location /assets/` с длинным кэшем.
+#
+# Свойства: бэкап → правка → nginx -t → reload → post-check по заголовкам →
+# автооткат при любом провале. Аудит-след в /var/log/workhelper-nginx-cache.log.
 set -u
 
-MARKER="location = /index.html"
+MARKER='Cache-Control "no-cache"'
 AUDIT_LOG="/var/log/workhelper-nginx-cache.log"
 REPO_DIR="${REPO_DIR:-/opt/workhelper}"
 PUBLIC_HOST="${PUBLIC_HOST:-wowoffcata.hlab.kz}"
@@ -26,11 +30,11 @@ audit() {
     >> "$AUDIT_LOG" 2>/dev/null || true
 }
 
-# Эталонный блок — единственный источник: infra/nginx-vds.conf.
-CACHE_BLOCK="$(awk '/# Кэширование статики/{f=1} f{print} f && /immutable/{done=1} done && /^    }$/{exit}' \
+# Эталонный блок /assets/ — единственный источник: infra/nginx-vds.conf.
+ASSETS_BLOCK="$(awk '/# Кэширование хешированной статики/{f=1} f{print} f && /immutable/{d=1} d && /^    }$/{exit}' \
   "$REPO_DIR/infra/nginx-vds.conf")"
-if [ -z "$CACHE_BLOCK" ] || ! echo "$CACHE_BLOCK" | grep -q "immutable"; then
-  log "ERROR: эталонный блок не найден в infra/nginx-vds.conf"
+if ! echo "$ASSETS_BLOCK" | grep -q "immutable"; then
+  log "ERROR: эталонный блок /assets/ не найден в infra/nginx-vds.conf"
   exit 1
 fi
 
@@ -45,36 +49,45 @@ log "найдено конфигов: ${#FILES[@]} (${FILES[*]})"
 CHANGED=0
 for f in "${FILES[@]}"; do
   if grep -q "$MARKER" "$f"; then
-    log "$f: блок уже есть — пропуск (идемпотентность)"
+    log "$f: заголовки уже настроены — пропуск (идемпотентность)"
     continue
   fi
   cp "$f" "$f.bak-cache" || { log "ERROR: бэкап $f не создан"; exit 1; }
-  # Вставка перед `location /work-task/ {` — якорь есть в каждом рабочем
-  # server-блоке (через него проксируется API), отступ берётся из файла.
-  CACHE_BLOCK="$CACHE_BLOCK" python3 - "$f" <<'PYEOF'
+  ASSETS_BLOCK="$ASSETS_BLOCK" python3 - "$f" <<'PYEOF'
 import io, os, re, sys, textwrap
+
 path = sys.argv[1]
-block = textwrap.dedent(os.environ["CACHE_BLOCK"]).strip("\n")
+block = textwrap.dedent(os.environ["ASSETS_BLOCK"]).strip("\n")
 with io.open(path, encoding="utf-8") as fh:
     text = fh.read()
-pattern = re.compile(r"^([ \t]*)location\s+/work-task/\s*\{", re.M)
-matches = list(pattern.finditer(text))
-if not matches:
-    raise SystemExit(f"marker 'location /work-task/' not found in {path}")
+
+# 1. Заголовок оболочки — внутрь КАЖДОГО `location / { … try_files … }`.
+shell = re.compile(r"^([ \t]*)(try_files\s+\$uri\s+\$uri/\s+/index\.html;)", re.M)
+if not shell.search(text):
+    raise SystemExit(f"не найден SPA-фолбэк try_files в {path}")
+text = shell.sub(lambda m: f'{m.group(1)}{m.group(2)}\n{m.group(1)}add_header Cache-Control "no-cache";', text)
+
+# 2. Блок /assets/ — перед КАЖДОЙ `location /work-task/ {`: в файле бывает
+#    несколько server-блоков (:80 от certbot и рабочий :443), и вставка только
+#    в первый оставляла рабочий без заголовков.
+anchor = re.compile(r"^([ \t]*)location\s+/work-task/\s*\{", re.M)
+if not anchor.search(text):
+    raise SystemExit(f"не найден якорь 'location /work-task/' в {path}")
 def repl(m):
     indent = m.group(1)
     indented = "\n".join(indent + line if line.strip() else line
                          for line in block.splitlines())
     return indented + "\n\n" + m.group(0)
-text = pattern.sub(repl, text, count=1)
+text = anchor.sub(repl, text)
+
 with io.open(path, "w", encoding="utf-8") as fh:
     fh.write(text)
-print(f"inserted into {path}")
+print(f"обновлён {path}")
 PYEOF
   if [ $? -ne 0 ]; then
     cp "$f.bak-cache" "$f"
-    log "ERROR: вставка в $f не удалась — откат"
-    audit "FAIL insert $f (rolled back)"
+    log "ERROR: правка $f не удалась — откат"
+    audit "FAIL edit $f (rolled back)"
     exit 1
   fi
   CHANGED=1
@@ -98,29 +111,36 @@ if [ "$CHANGED" -eq 1 ]; then
   log "nginx перезагружен (reload)"
 fi
 
-# Post-check: заголовки обязаны появиться, а сайт — остаться живым.
-headers() { curl -sSI --max-time 10 --resolve "$PUBLIC_HOST:443:127.0.0.1" -k "https://$PUBLIC_HOST$1"; }
-INDEX_HEADERS="$(headers /)"
+# Post-check: заголовки обязаны появиться на РАБОЧЕМ адресе, сайт — отвечать 200.
+fetch_headers() {
+  curl -sSI --max-time 10 --resolve "$PUBLIC_HOST:443:127.0.0.1" -k "https://$PUBLIC_HOST$1"
+}
+INDEX_HEADERS="$(fetch_headers /)"
 ASSET_PATH="$(curl -sS --max-time 10 --resolve "$PUBLIC_HOST:443:127.0.0.1" -k "https://$PUBLIC_HOST/" \
   | grep -oE '/assets/index-[^"]+\.js' | head -1)"
-ASSET_HEADERS="$([ -n "$ASSET_PATH" ] && headers "$ASSET_PATH")"
+ASSET_HEADERS=""
+[ -n "$ASSET_PATH" ] && ASSET_HEADERS="$(fetch_headers "$ASSET_PATH")"
 
-ok_index=$(echo "$INDEX_HEADERS" | grep -ci "^Cache-Control: no-cache" || true)
-ok_asset=$(echo "$ASSET_HEADERS" | grep -ci "immutable" || true)
-ok_status=$(echo "$INDEX_HEADERS" | grep -c "200" || true)
-
-if [ "$ok_index" -ge 1 ] && [ "$ok_asset" -ge 1 ] && [ "$ok_status" -ge 1 ]; then
-  log "post-check OK: index.html no-cache, ассет immutable, сайт отвечает 200"
+if echo "$INDEX_HEADERS" | grep -qi "^Cache-Control:.*no-cache" \
+  && echo "$INDEX_HEADERS" | grep -q "200" \
+  && echo "$ASSET_HEADERS" | grep -qi "immutable"; then
+  log "post-check OK: оболочка no-cache, ассет immutable, сайт отвечает 200"
   audit "OK applied (changed=$CHANGED)"
 else
+  log "index headers: $(echo "$INDEX_HEADERS" | tr -d '\r' | tr '\n' ' ')"
+  log "asset ($ASSET_PATH) headers: $(echo "$ASSET_HEADERS" | tr -d '\r' | tr '\n' ' ')"
+  # Диагностика: какие server-блоки и локации реально в конфиге.
+  for f in "${FILES[@]}"; do
+    log "--- $f ---"
+    grep -nE "^\s*(server\s*\{|listen|server_name|location|add_header|try_files)" "$f" | head -40
+  done
   if [ "$CHANGED" -eq 1 ]; then
     rollback_all
     log "ERROR: post-check не прошёл — конфиги откатаны"
-    log "index: $(echo "$INDEX_HEADERS" | tr -d '\r' | head -5 | tr '\n' ' ')"
     audit "FAIL post-check (rolled back)"
     exit 1
   fi
-  log "WARNING: заголовков нет при неизменённом конфиге — проверить вручную"
+  log "WARNING: заголовков нет при неизменённом конфиге"
   audit "WARN post-check without changes"
   exit 1
 fi
