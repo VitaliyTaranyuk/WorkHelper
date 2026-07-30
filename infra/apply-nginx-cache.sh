@@ -75,11 +75,9 @@ if not shell.search(text):
     raise SystemExit(f"не найден блок SPA-фолбэка в {path}")
 root_block = (
     'add_header Cache-Control "no-cache";\n\n'
-    "# Корневой адрес — отдельным блоком: иначе `/` отдаёт index-модуль через\n"
-    "# внутренний редирект, куда add_header с уровня server не доезжает.\n"
-    "location = / {\n"
-    "    try_files /index.html =404;\n"
-    "}\n\n"
+    "# `/` переписывается в /index.html до подбора location: при обслуживании\n"
+    "# index-модулем заголовок до ответа не доезжает (измерено на проде).\n"
+    "rewrite ^/$ /index.html last;\n\n"
 )
 text = shell.sub(
     lambda m: "\n".join(
