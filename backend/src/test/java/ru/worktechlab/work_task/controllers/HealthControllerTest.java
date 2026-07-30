@@ -30,7 +30,7 @@ class HealthControllerTest {
 
     @Test
     void answers200WhenApplicationWorks() {
-        when(healthService.check()).thenReturn(HealthResponseDto.ofDatabase(true));
+        when(healthService.check()).thenReturn(HealthResponseDto.ofDatabase(true, "abc1234"));
 
         ResponseEntity<HealthResponseDto> response = healthController.health();
 
@@ -41,7 +41,7 @@ class HealthControllerTest {
 
     @Test
     void answers503WhenDatabaseIsUnreachable() {
-        when(healthService.check()).thenReturn(HealthResponseDto.ofDatabase(false));
+        when(healthService.check()).thenReturn(HealthResponseDto.ofDatabase(false, "abc1234"));
 
         ResponseEntity<HealthResponseDto> response = healthController.health();
 

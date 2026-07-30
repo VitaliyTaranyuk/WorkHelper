@@ -115,13 +115,19 @@ jobs:
               exit 1
             fi
           "
+          # T-305: сверять версию образа нужно именно с коммитом НА СЕРВЕРЕ, а
+          # не с github.sha: проверка выше намеренно допускает, что сервер ушёл
+          # вперёд, и строгое равенство давало бы ложные падения.
+          SERVER_SHA=$($SSH "$SERVER_USER@$SERVER_IP" \
+            "cd ${{ vars.DEPLOY_DIR || '/opt/workhelper' }} && git rev-parse HEAD" | tr -d '\r')
+          echo "SERVER_SHA=$SERVER_SHA" >> "$GITHUB_ENV"
 
       - name: Пересобрать и перезапустить backend
         if: ${{ inputs.target == 'both' || inputs.target == 'backend' }}
         run: |
           $SSH "$SERVER_USER@$SERVER_IP" \
-            'cd ${{ vars.DEPLOY_DIR || '/opt/workhelper' }} \
-             && docker compose -f docker-compose.vds.yml up -d --build backend'
+            "cd ${{ vars.DEPLOY_DIR || '/opt/workhelper' }} \
+             && APP_VERSION=$SERVER_SHA docker compose -f docker-compose.vds.yml up -d --build backend"
 
       # TD-029: прежняя проверка читала `docker ps --format {{.Status}}` и
       # сравнивала по подстроке — `case "$status" in *healthy*)`. Строка
@@ -144,6 +150,22 @@ jobs:
           echo "Backend не подтвердил работоспособность за 10 минут."
           echo "Последний статус: ${status:-контейнера нет}. Логи: docker logs workhelper-backend-1"
           exit 1
+
+      # T-305: «контейнер жив» и «работает НОВЫЙ код» — разные утверждения.
+      # Раньше второе доказать было нечем: в образе версия вырождалась в
+      # «0.0.1-», потому что .git не попадает в контекст сборки. Теперь образ
+      # несёт коммит, и гейт сверяет его с тем, что лежит на сервере.
+      - name: Проверить, что запущен образ из выкаченного кода
+        if: ${{ inputs.target == 'both' || inputs.target == 'backend' }}
+        run: |
+          running=$(curl -fsS "https://${{ vars.PUBLIC_URL || 'wowoffcata.hlab.kz' }}/work-task/api/v1/health" \
+            | sed -n 's/.*"version":"\([^"]*\)".*/\1/p')
+          echo "версия в образе: ${running:-нет поля version}"
+          echo "коммит на сервере: $SERVER_SHA"
+          if [ "$running" != "$SERVER_SHA" ]; then
+            echo "Запущен образ, собранный не из этого кода — деплой не доехал"
+            exit 1
+          fi
 
       - name: Set up Node
         if: ${{ inputs.target == 'both' || inputs.target == 'frontend' }}

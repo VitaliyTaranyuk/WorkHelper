@@ -2,6 +2,7 @@ package ru.worktechlab.work_task.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ru.worktechlab.work_task.dto.HealthResponseDto;
 
@@ -30,8 +31,16 @@ public class HealthService {
 
     private final DataSource dataSource;
 
+    /**
+     * T-305: коммит, из которого собран образ. Приезжает build-аргументом в
+     * `ENV APP_VERSION` (см. backend/Dockerfile); при локальном запуске и
+     * ручной сборке остаётся `unknown` — это честный ответ, а не поломка.
+     */
+    @Value("${APP_VERSION:unknown}")
+    private String appVersion;
+
     public HealthResponseDto check() {
-        return HealthResponseDto.ofDatabase(databaseReachable());
+        return HealthResponseDto.ofDatabase(databaseReachable(), appVersion);
     }
 
     private boolean databaseReachable() {

@@ -1,10 +1,12 @@
 package ru.worktechlab.work_task.services;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import ru.worktechlab.work_task.dto.HealthResponseDto;
 
 import javax.sql.DataSource;
@@ -33,6 +35,12 @@ class HealthServiceTest {
     @InjectMocks
     private HealthService healthService;
 
+    @BeforeEach
+    void setUp() {
+        // T-305: в проде значение приходит из ENV APP_VERSION (build-arg).
+        ReflectionTestUtils.setField(healthService, "appVersion", "abc1234");
+    }
+
     @Test
     void upWhenDatabaseAnswers() throws SQLException {
         when(dataSource.getConnection()).thenReturn(connection);
@@ -43,6 +51,9 @@ class HealthServiceTest {
         assertThat(health.isUp()).isTrue();
         assertThat(health.getStatus()).isEqualTo(HealthResponseDto.UP);
         assertThat(health.getDatabase()).isEqualTo(HealthResponseDto.UP);
+        assertThat(health.getVersion())
+                .as("деплой сверяет это поле с коммитом на сервере (T-305)")
+                .isEqualTo("abc1234");
     }
 
     @Test
