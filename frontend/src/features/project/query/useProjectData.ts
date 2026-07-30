@@ -24,15 +24,30 @@ function useUserProjects() {
 function useActiveProjectId(userProjects: Array<{ id: string }>) {
   const projectIdFromRoute = useCurrentProjectStore((state) => state.projectId)
 
-  const { data: activeProjectData, isLoading } = useQuery({
+  const {
+    data: activeProjectData,
+    isLoading,
+    isFetched,
+  } = useQuery({
     queryKey: ['activeProject'],
     queryFn: () =>
       workTechApi.project.getActiveProject().then((res) => res.data),
     enabled: !projectIdFromRoute,
   })
 
+  // Подставлять «первый проект» можно только ПОСЛЕ ответа сервера о последнем
+  // открытом. Список проектов приезжает отдельным запросом и нередко быстрее —
+  // без этого условия `/main` успевал увести в первый по алфавиту проект ещё
+  // до того, как приходил правильный ответ. Гонка найдена живой проверкой на
+  // проде с двумя проектами: при одном и том же состоянии сервера переход
+  // открывал то нужный проект, то чужой.
+  const fallbackAllowed = isFetched || Boolean(activeProjectData)
+
   const id =
-    projectIdFromRoute || activeProjectData?.id || userProjects[0]?.id
+    projectIdFromRoute ||
+    activeProjectData?.id ||
+    (fallbackAllowed ? userProjects[0]?.id : undefined)
+
   return {
     activeProjectId: id,
     isLoading: projectIdFromRoute ? false : isLoading,

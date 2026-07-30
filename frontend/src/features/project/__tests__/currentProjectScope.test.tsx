@@ -28,7 +28,7 @@ vi.mock('@/shared/api/endpoint', () => ({
   },
 }))
 
-import { useProjectData } from '../query/useProjectData'
+import { useEntryProjectId, useProjectData } from '../query/useProjectData'
 import { useCurrentProjectStore } from '../model/currentProjectStore'
 import { useActiveSprintTasks } from '@/features/task/query/useActiveSprintTasks'
 
@@ -116,6 +116,38 @@ describe('проект берётся из адреса страницы (T-518)
       expect(result.current.activeProject?.id).toBe('project-server'),
     )
     expect(getProjectData).toHaveBeenCalledWith({ projectId: 'project-server' })
+  })
+
+  /**
+   * Постоянный репродьюсер гонки, найденной живой проверкой на проде с двумя
+   * проектами: список проектов приходит отдельным запросом и часто быстрее
+   * ответа о последнем открытом. Точка входа успевала увести в первый по
+   * алфавиту проект — при том же состоянии сервера переход открывал то нужный
+   * проект, то чужой.
+   */
+  it('точка входа не уводит в первый проект, пока сервер не ответил про последний', async () => {
+    getAllUserProjects.mockResolvedValue({
+      data: [{ id: 'project-first' }, { id: 'project-server' }],
+    })
+    getActiveProject.mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ data: { id: 'project-server' } }), 60),
+        ),
+    )
+
+    const seen: string[] = []
+    const { result } = renderHook(
+      () => {
+        const entry = useEntryProjectId()
+        if (entry.projectId) seen.push(entry.projectId)
+        return entry
+      },
+      { wrapper: wrapper(client) },
+    )
+
+    await waitFor(() => expect(result.current.projectId).toBe('project-server'))
+    expect(seen).not.toContain('project-first')
   })
 
   it('доска запрашивает задачи по проекту из адреса, а не «активного» на сервере', async () => {
