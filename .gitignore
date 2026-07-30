@@ -54,3 +54,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# ===== Инструменты =====
+# postinstall lefthook кладёт в КОРЕНЬ репозитория пустой файл-пример при
+# каждом `npm ci` во frontend. Рабочий конфиг — frontend/lefthook.yml, он
+# отслеживается; корневой пример коммитить нечего. Путь указан от корня
+# (`/lefthook.yml`), чтобы правило не задело конфиги в подкаталогах.
+/lefthook.yml

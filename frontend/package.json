@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "//build": "Сначала vite build: Vite-плагин @tanstack/router-plugin генерирует src/routeTree.gen.ts, и при обратном порядке tsc падал на только что добавленном маршруте, которого в дереве ещё нет (T-518). Гейт не ослаблен — ошибка типов по-прежнему валит команду, просто после сборки бандла.",
+    "build": "vite build && tsc -b",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
