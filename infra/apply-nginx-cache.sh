@@ -137,12 +137,15 @@ if echo "$INDEX_HEADERS" | grep -qi "^Cache-Control:.*no-cache" \
   log "post-check OK: оболочка no-cache, ассет immutable, сайт отвечает 200"
   audit "OK applied (changed=$CHANGED)"
 else
-  log "index headers: $(echo "$INDEX_HEADERS" | tr -d '\r' | tr '\n' ' ')"
-  log "asset ($ASSET_PATH) headers: $(echo "$ASSET_HEADERS" | tr -d '\r' | tr '\n' ' ')"
-  # Диагностика: какие server-блоки и локации реально в конфиге.
+  log "GET / :            $(echo "$INDEX_HEADERS" | tr -d '\r' | tr '\n' ' ')"
+  log "GET /index.html :  $(fetch_headers /index.html | tr -d '\r' | tr '\n' ' ')"
+  log "GET /favicon.ico : $(fetch_headers /favicon.ico | tr -d '\r' | tr '\n' ' ')"
+  log "GET $ASSET_PATH : $(echo "$ASSET_HEADERS" | tr -d '\r' | tr '\n' ' ')"
+  # Диагностика: ПОЛНЫЙ первый server-блок — по скелету из grep причину
+  # трижды определить не удалось, нужен текст целиком.
   for f in "${FILES[@]}"; do
-    log "--- $f ---"
-    grep -nE "^\s*(server\s*\{|listen|server_name|location|add_header|try_files)" "$f" | head -40
+    log "--- $f (первый server-блок целиком) ---"
+    awk '/^server \{/{n++} n==1{print NR": "$0} n==1 && /^}/{exit}' "$f"
   done
   if [ "$CHANGED" -eq 1 ]; then
     rollback_all
