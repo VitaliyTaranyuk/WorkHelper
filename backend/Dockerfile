@@ -30,6 +30,17 @@ WORKDIR /home/deployer/backend
 
 COPY --from=build /src/build/libs/*.jar app.jar
 
+# T-305: отпечаток версии. build.gradle считает версию через `git rev-parse`,
+# но в контекст сборки `.git` не копируется — внутри образа версия
+# вырождалась в «0.0.1-», и деплой не мог доказать, что запущен образ ИЗ
+# нового кода (TD-030). SHA приезжает аргументом.
+#
+# ARG объявлен ТОЛЬКО в рантайм-стадии и после COPY: в стадии сборки он сбросил
+# бы кэш слоёв, и каждый деплой пересобирал бы зависимости Gradle на VDS с
+# одним CPU.
+ARG APP_VERSION=unknown
+ENV APP_VERSION=${APP_VERSION}
+
 # Получаем аргумент из docker build
 ARG SPRING_PROFILES_ACTIVE=prod
 

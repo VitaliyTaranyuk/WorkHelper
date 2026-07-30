@@ -2,6 +2,10 @@ services:
   backend:
     build:
       context: ./backend
+      args:
+        # T-305: коммит, из которого собран образ. Подставляет деплой
+        # (APP_VERSION=<sha на сервере>); при ручной сборке остаётся unknown.
+        APP_VERSION: "${APP_VERSION:-unknown}"
     image: work-task-backend
     env_file: .env.vds
     ports:
