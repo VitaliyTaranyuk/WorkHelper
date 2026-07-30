@@ -25,6 +25,10 @@ REPO_DIR="${REPO_DIR:-/opt/workhelper}"
 PUBLIC_HOST="${PUBLIC_HOST:-wowoffcata.hlab.kz}"
 
 log() { echo "[apply-nginx-cache] $*"; }
+# Пробуем рабочий :443-блок изнутри сервера (тот же путь, что у apply-nginx-ws).
+fetch_headers() {
+  curl -sSI --max-time 10 --resolve "$PUBLIC_HOST:443:127.0.0.1" -k "https://$PUBLIC_HOST$1"
+}
 audit() {
   echo "$(date -Is) commit=$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo '?') $*" \
     >> "$AUDIT_LOG" 2>/dev/null || true
@@ -130,12 +134,22 @@ if [ "$CHANGED" -eq 1 ]; then
   fi
   nginx -s reload
   log "nginx перезагружен (reload)"
+  # Воркеры после reload подменяются АСИНХРОННО: первые запросы может
+  # обслужить ещё старый воркер со старым конфигом. Пять прогонов подряд
+  # «доказывали», что заголовок на / не появляется, — на самом деле / просто
+  # пробовался первым, через доли секунды после reload, а остальные пути
+  # секундой позже и заголовок уже имели. Ждём, пока новый конфиг реально
+  # начнёт отвечать.
+  for _ in $(seq 1 15); do
+    if fetch_headers / | grep -qi "^Cache-Control:"; then
+      log "новый конфиг отвечает"
+      break
+    fi
+    sleep 1
+  done
 fi
 
 # Post-check: заголовки обязаны появиться на РАБОЧЕМ адресе, сайт — отвечать 200.
-fetch_headers() {
-  curl -sSI --max-time 10 --resolve "$PUBLIC_HOST:443:127.0.0.1" -k "https://$PUBLIC_HOST$1"
-}
 INDEX_HEADERS="$(fetch_headers /)"
 ASSET_PATH="$(curl -sS --max-time 10 --resolve "$PUBLIC_HOST:443:127.0.0.1" -k "https://$PUBLIC_HOST/" \
   | grep -oE '/assets/index-[^"]+\.js' | head -1)"
