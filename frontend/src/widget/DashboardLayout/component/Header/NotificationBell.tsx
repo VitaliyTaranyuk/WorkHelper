@@ -27,6 +27,8 @@ import {
   getNotificationIconStyle,
   isTaskDeleted,
 } from '@/features/notification/notificationMeta'
+import { resolveNotificationTaskTarget } from '@/features/notification/notificationTaskTarget'
+import { useProjectData } from '@/features/project/query/useProjectData'
 import { notify } from '@/shared/ui/notify'
 import { formatRelativeTime } from '@/shared/utils/date'
 import { parseMeetToken } from '@/features/meet/meetLink'
@@ -48,6 +50,10 @@ export function NotificationBell() {
   const open = Boolean(anchorEl)
   const navigate = useNavigate()
   const bellRef = useRef<HTMLButtonElement>(null)
+  // G-6: с чем сравнивать проект уведомления. Тот же источник, что у карточки
+  // задачи, — иначе развилка «свой/чужой проект» решалась бы по другому полю,
+  // чем то, из которого карточка потом грузит данные.
+  const { activeProject } = useProjectData()
   // ТП-89: задача из уведомления открывается той же модальной карточкой, что и
   // с доски/списка (единый компонент), а не отдельной страницей.
   const taskCardModal = useModal(TaskCardModal)
@@ -85,11 +91,32 @@ export function NotificationBell() {
 
   // ТП-89: открыть карточку задачи модалкой (как с доски) и после закрытия
   // вернуть пользователя к списку уведомлений без перезагрузки страницы.
-  const openTaskCard = async (taskCode: string) => {
+  // G-6: для задачи ЧУЖОГО проекта модалка не годится — она грузила бы задачу
+  // из текущего проекта и предлагала бы его колонки. Развилка — в чистой
+  // resolveNotificationTaskTarget.
+  const openTaskCard = async (
+    taskCode: string,
+    notificationProjectId?: string | null,
+  ) => {
+    const target = resolveNotificationTaskTarget({
+      taskCode,
+      notificationProjectId,
+      currentProjectId: activeProject?.id,
+    })
+
+    if (target.kind === 'navigate') {
+      closeMenu()
+      void navigate({
+        to: '/project/$projectId/task/$code',
+        params: { projectId: target.projectId, code: target.taskCode },
+      })
+      return
+    }
+
     const anchor = bellRef.current
     closeMenu()
     try {
-      await taskCardModal.show({ taskCode })
+      await taskCardModal.show({ taskCode: target.taskCode })
     } catch {
       // модалка закрыта без сохранения — это не ошибка
     }
@@ -124,7 +151,10 @@ export function NotificationBell() {
       return
     }
     if (n.taskCode) {
-      openTaskCard(n.taskCode)
+      // G-6: проект уведомления наконец используется и для задач, а не только
+      // для встреч — данные для этого лежали в `Notification.project_id` всё
+      // время, не задействован был один аргумент.
+      openTaskCard(n.taskCode, n.projectId)
       return
     }
     if (n.link) {
