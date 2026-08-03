@@ -268,7 +268,7 @@ ConfirmationGate → CommandExecutor → Feedback/Log`. Эволюция дву�
 |---|---|---|
 | `id` | String (UUID) | |
 | `project_id` | FK → `project` | `nullable = false` |
-| `code`, `name` | String | `A1`, `A2`, `D`, `I`, `V` |
+| `code`, `name` | String | `A0`, `A1`, `A2`, `D`, `I`, `V` |
 | `position` | int | порядок |
 | `required_from_size` | enum, **nullable** | с какого размера задачи этап обязателен (T-516) |
 
