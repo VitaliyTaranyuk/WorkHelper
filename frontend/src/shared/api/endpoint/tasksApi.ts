@@ -20,6 +20,7 @@ import type {
   UpdateTasksSprintData,
   FindTaskByCodeData,
   TaskDataDto,
+  ApiResponse,
 } from '@/data-contracts'
 import { API_ENDPOINT_PATH } from '../endpointPath'
 import { workTechApiClient } from '../workTechHttpClient'
@@ -243,6 +244,79 @@ export function updateTasksSprint({
   return workTechApiClient<UpdateTasksSprintData>({
     method: 'PUT',
     url: API_ENDPOINT_PATH.TASKS.UPDATE_SPRINT(),
+    data,
+    ...otherParams,
+  })
+}
+
+/**
+ * Массовые операции (T-309). Бэкенд атомарен: `findTasksInProject` бросает
+ * NotFoundException на первом же чужом или удалённом id, а методы обёрнуты в
+ * транзакцию — то есть частичного применения не бывает. Клиент обязан слать
+ * только те id, которые есть в текущих данных.
+ */
+export type BulkTaskRequest = {
+  projectId: string
+  taskIds: string[]
+  statusId?: number
+  targetSprintId?: string
+}
+
+/**
+ * @name BulkArchiveTasks
+ * @summary Массовое архивирование задач
+ * @request POST:/tasks/bulk/archive
+ */
+export function bulkArchiveTasks({
+  data,
+  otherParams = {},
+}: {
+  data: BulkTaskRequest
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<ApiResponse>({
+    method: 'POST',
+    url: API_ENDPOINT_PATH.TASKS.BULK_ARCHIVE(),
+    data,
+    ...otherParams,
+  })
+}
+
+/**
+ * @name BulkMoveTasksStatus
+ * @summary Массовое перемещение задач между колонками
+ * @request POST:/tasks/bulk/move-status
+ */
+export function bulkMoveTasksStatus({
+  data,
+  otherParams = {},
+}: {
+  data: BulkTaskRequest
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<ApiResponse>({
+    method: 'POST',
+    url: API_ENDPOINT_PATH.TASKS.BULK_MOVE_STATUS(),
+    data,
+    ...otherParams,
+  })
+}
+
+/**
+ * @name BulkMoveTasksSprint
+ * @summary Массовое перемещение задач между спринтами
+ * @request POST:/tasks/bulk/move-sprint
+ */
+export function bulkMoveTasksSprint({
+  data,
+  otherParams = {},
+}: {
+  data: BulkTaskRequest
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<ApiResponse>({
+    method: 'POST',
+    url: API_ENDPOINT_PATH.TASKS.BULK_MOVE_SPRINT(),
     data,
     ...otherParams,
   })
