@@ -211,6 +211,7 @@ Zustand, React Hook Form + Zod, Axios.
 |---|---|
 | БД локально | `docker-compose up -d` в `backend/enviroment/local` |
 | Тесты (backend) | `./gradlew test` |
+| Статический анализ (backend) | `./gradlew spotbugsMain` (входит в `build`; отчёт — `build/reports/spotbugs/main.html`) |
 | Сборка (backend) | `./gradlew build` |
 | Запуск (backend) | `./gradlew bootRun` |
 | Установка (frontend) | `npm install` |

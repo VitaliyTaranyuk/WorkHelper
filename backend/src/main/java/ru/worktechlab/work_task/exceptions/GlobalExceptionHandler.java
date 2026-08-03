@@ -50,7 +50,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<String> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
         log.error("DataIntegrityViolation", ex);
-        String raw = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+        // T-104 (SpotBugs, RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE): у Spring
+        // getMostSpecificCause() не бывает null — он возвращает корневую причину
+        // либо само исключение. Прежняя проверка выглядела защитой, но ветка
+        // `ex.getMessage()` была недостижима.
+        String raw = ex.getMostSpecificCause().getMessage();
         String safeMessage;
         if (raw != null && raw.toLowerCase().contains("users_email_key")) {
             safeMessage = "Пользователь с таким email уже существует";
