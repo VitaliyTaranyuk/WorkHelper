@@ -40,8 +40,11 @@ function FinishSprintModalInner(props: FinishSprintModalProps) {
 
   // Сравнение по id: task.status и resolveStatus — разные объекты,
   // сравнение по ссылке всегда true, и Done-задачи попадали в «незавершённые».
+  // `?.` после resolveStatus — TD-031: завершающей колонки может не быть.
+  // Поведение при этом то же, что и при незагруженном проекте: все задачи
+  // считаются незавершёнными, то есть спринт не закроет их молча.
   const notFinishedTasks = (props.sprint.tasks || []).filter(
-    (task) => task.status.id !== activeProject?.resolveStatus.id,
+    (task) => task.status.id !== activeProject?.resolveStatus?.id,
   )
 
   const isSubmitting =

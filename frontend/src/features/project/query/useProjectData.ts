@@ -100,11 +100,23 @@ export function useProjectData() {
     const boardStatuses = mapped.statuses.filter(
       (s) => s.viewed && !s.defaultTaskStatus,
     )
-    const resolveStatus = (
+    const candidates =
       boardStatuses.length > 0 ? boardStatuses : mapped.statuses
-    ).reduce((acc, curStatus) =>
-      acc.priority < curStatus.priority ? curStatus : acc,
-    )
+
+    // TD-031: `reduce` без начального значения бросает TypeError на пустом
+    // списке и роняет ВЕСЬ экран в ErrorBoundary. Пустой список приезжает не
+    // только из проекта без колонок (его удержать некому было бы): mapDTO
+    // превращает отсутствующее поле `statuses` в [], то есть достаточно
+    // дрейфа контракта — фронтенд обязан деградировать, а не бросать (W-08).
+    //
+    // Отсутствие завершающей колонки — честное `undefined`, а не подставленный
+    // статус: фиктивный дал бы «завершение» задачи в несуществующую колонку,
+    // то есть ровно молчаливый отказ, который запрещает W-06.
+    const resolveStatus = candidates.length
+      ? candidates.reduce((acc, curStatus) =>
+          acc.priority < curStatus.priority ? curStatus : acc,
+        )
+      : undefined
 
     return { ...mapped, resolveStatus }
   }, [activeProjectInfoQuery.data])
