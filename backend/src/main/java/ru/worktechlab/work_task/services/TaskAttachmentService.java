@@ -77,7 +77,13 @@ public class TaskAttachmentService {
         if (!target.startsWith(storage.root())) {
             throw new BadRequestException("Недопустимый путь хранения");
         }
-        Files.createDirectories(target.getParent());
+        // Родитель здесь есть всегда (relativePath содержит "/"), но полагаться
+        // на это молча нельзя: null дал бы NPE вместо понятного отказа (K-34).
+        Path parent = target.getParent();
+        if (parent == null) {
+            throw new BadRequestException("Недопустимый путь хранения");
+        }
+        Files.createDirectories(parent);
         try (var in = file.getInputStream()) {
             Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
         }
@@ -145,7 +151,13 @@ public class TaskAttachmentService {
 
     private static String sanitizeFileName(String original) {
         if (original == null || original.isBlank()) return "file";
-        String base = Paths.get(original).getFileName().toString();
+        // T-104 (найдено SpotBugs, NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE):
+        // getFileName() возвращает null для пути без имени — например "/" или
+        // "C:\". Имя приходит из `file.getOriginalFilename()`, то есть от
+        // пользователя, и прежний код падал на нём NPE (500 на загрузке).
+        Path fileName = Paths.get(original).getFileName();
+        if (fileName == null) return "file";
+        String base = fileName.toString();
         // Запрещаем path-разделители и управляющие символы.
         String safe = base.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_").trim();
         if (safe.isBlank() || safe.equals(".") || safe.equals("..")) return "file";
