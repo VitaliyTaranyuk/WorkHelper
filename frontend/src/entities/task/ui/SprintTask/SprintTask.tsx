@@ -15,12 +15,20 @@ import {
 import { truncateText } from '@/shared/utils/text'
 import { MAX_TITLE_LENGTH } from './constants'
 import { memo } from 'react'
+import Checkbox from '@mui/material/Checkbox'
 
 export type SprintTaskProps = {
   task: ITaskCard
   onTitleClick: (task: ITaskCard) => void
   onEditClick: (task: ITaskCard) => void
   onMoveToSprintClick: (props: { task: ITaskCard; anchor: HTMLElement }) => void
+  /**
+   * T-309: множественный выбор. Чекбокс появляется только когда родитель
+   * передал обработчик — в остальных местах строка выглядит как прежде.
+   * `range` = клик с Shift: выбрать диапазон от предыдущей отметки.
+   */
+  selected?: boolean
+  onSelectChange?: (props: { task: ITaskCard; range: boolean }) => void
 }
 
 export const SprintTask = memo(function ({
@@ -28,11 +36,31 @@ export const SprintTask = memo(function ({
   onTitleClick,
   onEditClick,
   onMoveToSprintClick,
+  selected = false,
+  onSelectChange,
 }: SprintTaskProps) {
   const taskTitle = truncateText(task.title, MAX_TITLE_LENGTH)
 
   return (
     <SprintTaskWrapper>
+      {onSelectChange && (
+        <Checkbox
+          size="small"
+          checked={selected}
+          inputProps={{
+            'aria-label': `Выбрать задачу ${task.code}`,
+          }}
+          sx={{ p: 0.5, mr: 0.5 }}
+          // onClick, а не onChange: нужен shiftKey, которого в событии
+          // изменения нет. Всплытие останавливаем — строка кликабельна сама
+          // по себе (открытие задачи) и перетаскивается.
+          onClick={(e) => {
+            e.stopPropagation()
+            onSelectChange({ task, range: e.shiftKey })
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        />
+      )}
       <TaskType taskType={task.taskType} />
       <TaskCode priority={task.priority}>{task.code}</TaskCode>
       <TaskTitle onClick={() => onTitleClick(task)}>{taskTitle}</TaskTitle>

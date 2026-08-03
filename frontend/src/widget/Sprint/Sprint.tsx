@@ -45,6 +45,7 @@ import { useMoveToSprintMenuStore } from '@/features/sprint/MoveToSprintMenu/mov
 import { useSprintsInfoQuery } from '@/features/sprint/query/useSprintsInfoQuery'
 import type { SprintTaskProps } from '@/entities/task/ui/SprintTask/SprintTask'
 import { useUpdateTasksSprint } from '@/features/task/mutation/useUpdateTasksSprint'
+import { useTaskSelectionStore } from '@/features/task/model/taskSelectionStore'
 import type { TaskFilter } from '@/entities/task/types'
 import { Droppable, Draggable } from '@hello-pangea/dnd'
 
@@ -58,13 +59,27 @@ export type SprintProps = {
    * у родителя (TaskListPage).
    */
   droppableId?: string
+  /** T-309: показывать чекбоксы множественного выбора у задач секции. */
+  selectable?: boolean
 }
 
-export function Sprint({ sprint, projectId, taskFilter, droppableId }: SprintProps) {
+export function Sprint({
+  sprint,
+  projectId,
+  taskFilter,
+  droppableId,
+  selectable = false,
+}: SprintProps) {
   const taskCardModal = useModal(TaskCardModal)
   const { data: sprints } = useSprintsInfoQuery({ projectId })
   const [isExpaneded, setIsExpanded] = useState(true)
   const updateTasksSprint = useUpdateTasksSprint()
+
+  // T-309: множественный выбор. Секция знает только свой порядок задач —
+  // диапазон по Shift считается внутри неё, между секциями не тянется.
+  const selectedIds = useTaskSelectionStore((s) => s.selectedIds)
+  const toggleSelection = useTaskSelectionStore((s) => s.toggle)
+  const selectRange = useTaskSelectionStore((s) => s.selectRange)
 
   const openPopup = useMoveToSprintMenuStore((state) => state.openPopup)
   const deleteSprint = useDeleteSprint()
@@ -110,6 +125,20 @@ export function Sprint({ sprint, projectId, taskFilter, droppableId }: SprintPro
       },
       [openPopup, projectId, sprint.id, sprints, updateTasksSprint],
     )
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
+  const onSelectChange: NonNullable<SprintTaskProps['onSelectChange']> =
+    useCallback(
+      ({ task, range }) => {
+        if (range)
+          selectRange(
+            task.id,
+            sprintTasks.map((t) => t.id),
+          )
+        else toggleSelection(task.id)
+      },
+      [selectRange, toggleSelection, sprintTasks],
+    )
+
   const onTitleClick = useCallback(
     async (task: ITaskCard) => {
       await taskCardModal.show({
@@ -278,6 +307,8 @@ export function Sprint({ sprint, projectId, taskFilter, droppableId }: SprintPro
                           onMoveToSprintClick={onMoveToSprintClick}
                           onTitleClick={onTitleClick}
                           task={task}
+                          selected={selectedSet.has(task.id)}
+                          onSelectChange={selectable ? onSelectChange : undefined}
                         />
                       </li>
                     )}
@@ -308,6 +339,8 @@ export function Sprint({ sprint, projectId, taskFilter, droppableId }: SprintPro
                   onMoveToSprintClick={onMoveToSprintClick}
                   onTitleClick={onTitleClick}
                   task={task}
+                  selected={selectedSet.has(task.id)}
+                  onSelectChange={selectable ? onSelectChange : undefined}
                 />
               </li>
             ))}

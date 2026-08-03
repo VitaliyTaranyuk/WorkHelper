@@ -135,6 +135,17 @@ export const API_ENDPOINT_PATH = {
 
     UPDATE_SPRINT: () => `/tasks/update-sprint`,
 
+    // T-309: массовые операции. В UI выведены только обратимые — архивация,
+    // перенос в спринт, смена статуса. `/bulk/delete` и `/bulk/move-project`
+    // намеренно не подключены: удаление необратимо, а перенос между проектами
+    // ПЕРЕВЫДАЁТ код задачи (TaskService.bulkMoveProject), то есть ломает
+    // старые ссылки и упоминания безвозвратно.
+    BULK_ARCHIVE: () => `/tasks/bulk/archive`,
+
+    BULK_MOVE_STATUS: () => `/tasks/bulk/move-status`,
+
+    BULK_MOVE_SPRINT: () => `/tasks/bulk/move-sprint`,
+
     GET_HISTORY: ({ projectId, taskId }: ProjectId & TaskId) =>
       `/tasks/${projectId}/${taskId}/history`,
 

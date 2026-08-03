@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { InputAdornment, Stack } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import { DragDropContext, type DropResult } from '@hello-pangea/dnd'
@@ -12,6 +12,8 @@ import { useSortedSprints } from '@/page/sprint/useSortedSprints'
 import { CompletedTasksSection } from '@/features/task/CompletedTasksSection'
 import { useReorderSprint } from '@/features/task/mutation/useReorderSprint'
 import { useTaskSearch } from '@/features/task/query/useTaskSearch'
+import { useTaskSelectionStore } from '@/features/task/model/taskSelectionStore'
+import { BulkActionBar } from '@/features/task/BulkActionBar'
 import type { ITaskCard } from '@/entities/task/types'
 
 type TaskListPageProps = {
@@ -40,6 +42,25 @@ export const TaskListPage = memo(function TaskListPageInner({
 
   // Порядок секций: активный → плановые (по дате старта) → Бэклог.
   const { sortedSprints } = useSortedSprints(sprints)
+
+  // T-309. Бэкенд массовых операций атомарен: один исчезнувший id роняет всю
+  // операцию. Список поллится, поэтому выбор чистится от задач, которых в
+  // данных больше нет, — иначе действие падало бы из-за отметки, сделанной
+  // до чужого удаления. Выбор снимается и при уходе со страницы, и при смене
+  // проекта: отметки одного проекта в другом бессмысленны.
+  const retainSelection = useTaskSelectionStore((s) => s.retain)
+  const clearSelection = useTaskSelectionStore((s) => s.clear)
+
+  useEffect(() => {
+    if (!sprints) return
+    const existing = new Set(sprints.flatMap((s) => s.tasks.map((t) => t.id)))
+    retainSelection(existing)
+  }, [sprints, retainSelection])
+
+  useEffect(() => {
+    clearSelection()
+    return () => clearSelection()
+  }, [projectId, clearSelection])
 
   // ТП-188: код/название фильтруются мгновенно на клиенте; описание —
   // серверным поиском (тело описания в списки не грузится, ТП-187), его
@@ -156,6 +177,7 @@ export const TaskListPage = memo(function TaskListPageInner({
                 projectId={projectId}
                 taskFilter={combinedFilter}
                 droppableId={dndEnabled ? sprint.id : undefined}
+                selectable
               />
             </li>
           ))}
@@ -173,6 +195,9 @@ export const TaskListPage = memo(function TaskListPageInner({
         />
       </Stack>
       <MoveToSprintMenu />
+      {/* T-309: панель массовых действий — снизу, поверх списка, только при
+          выбранных задачах (паттерн Linear). */}
+      <BulkActionBar projectId={projectId} />
     </Stack>
   )
 })
