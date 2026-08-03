@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import { Stack } from '@mui/material'
 import { BackButton } from '@/features/navigation/BackButton'
-import { useProjectData } from '@/features/project/query/useProjectData'
+import { useDeclareCurrentProject } from '@/features/project/model/currentProjectStore'
 import { Loader } from '@/shared/ui/components/Loader'
 import { Headline } from './styles'
 import { useTaskByCode } from '@/features/task/query/useTaskByCode'
@@ -13,15 +13,26 @@ import { UnsavedChangesGuardDialog } from '@/features/task/UnsavedChangesGuardDi
 import { useBlocker, useNavigate } from '@tanstack/react-router'
 import type { ITaskCard } from '@/entities/task/types'
 
+/**
+ * G-4: проект приходит из адреса (`/project/$projectId/task/$code`), а не
+ * подставляется «текущим». Раньше страница брала его из `useProjectData()`,
+ * поэтому ссылка на задачу была двусмысленной: у получателя с другим текущим
+ * проектом она открывала чужую задачу или 404.
+ */
 export const EditTaskPage = memo(function EditTaskPageInner({
+  projectId,
   code,
 }: {
+  projectId: string
   code: string
 }) {
-  const { activeProject } = useProjectData()
+  // Тот же шов, что у доски и бэклога: маршрут объявляет проект, а потребители
+  // (в т.ч. TaskCardContent внутри) читают его из стора вкладки. Router-хук в
+  // общем `useProjectData` уронил бы модалки, живущие вне роутера (**R-02**).
+  useDeclareCurrentProject(projectId)
 
   const taskByCodeQuery = useTaskByCode({
-    projectId: activeProject?.id,
+    projectId,
     taskCode: code,
   })
 
@@ -37,12 +48,18 @@ export const EditTaskPage = memo(function EditTaskPageInner({
       <BackButton />
 
       {!fullTask && !taskByCodeQuery.isError && <Loader isLoading={true} />}
-      {fullTask && <TaskPageBody task={fullTask} />}
+      {fullTask && <TaskPageBody task={fullTask} projectId={projectId} />}
     </>
   )
 })
 
-function TaskPageBody({ task }: { task: ITaskCard }) {
+function TaskPageBody({
+  task,
+  projectId,
+}: {
+  task: ITaskCard
+  projectId: string
+}) {
   const navigate = useNavigate()
   // ТП-195: та же защита несохранённых изменений (ТП-34), что и в
   // TaskCardModal, — карточка ведёт себя одинаково и в модалке, и на
@@ -91,7 +108,15 @@ function TaskPageBody({ task }: { task: ITaskCard }) {
       <Stack mt={2}>
         <TaskCardContent
           task={task}
-          onDeleted={() => navigate({ to: '/main' })}
+          // G-4: возврат на доску ИМЕННО этого проекта. Прежний `/main` вёл на
+          // «последний открытый», и после удаления задачи из проекта, открытого
+          // по ссылке, пользователь оказывался в чужом.
+          onDeleted={() =>
+            navigate({
+              to: '/project/$projectId/board',
+              params: { projectId },
+            })
+          }
           guardRef={guardRef}
         />
       </Stack>
