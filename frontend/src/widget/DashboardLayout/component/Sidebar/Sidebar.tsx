@@ -16,6 +16,7 @@ import ViewKanbanOutlinedIcon from '@mui/icons-material/ViewKanbanOutlined'
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted'
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
+import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined'
 
 interface SideBarProps {
   className?: string
@@ -90,6 +91,16 @@ export function Sidebar({ className }: SideBarProps) {
             >
               <CalendarMonthOutlinedIcon fontSize="small" />
               <NavLabel>Календарь</NavLabel>
+            </NavItem>
+            {/* T-510: настройки ПРОЕКТА — внутри блока проекта, рядом с его
+                разделами. Без ссылки раздел был бы недоступен пользователю,
+                то есть недоступной функциональностью (K-32). */}
+            <NavItem
+              to={`/project/${activeProject.id}/settings`}
+              title="Настройки проекта"
+            >
+              <TuneOutlinedIcon fontSize="small" />
+              <NavLabel>Настройки проекта</NavLabel>
             </NavItem>
           </>
         )}
