@@ -38,6 +38,20 @@ export const API_ENDPOINT_PATH = {
     SETTINGS: () => `/users/settings`,
   },
 
+  // T-510: привязка проекта к репозиторию. Проект в пути — как во всех
+  // проектных запросах после T-518.
+  REPO_BINDINGS: {
+    LIST: ({ projectId }: ProjectId) => `/repo-bindings/project/${projectId}`,
+
+    CREATE: ({ projectId }: ProjectId) => `/repo-bindings/project/${projectId}`,
+
+    UPDATE: ({ projectId, bindingId }: ProjectId & { bindingId: string }) =>
+      `/repo-bindings/project/${projectId}/${bindingId}`,
+
+    DELETE: ({ projectId, bindingId }: ProjectId & { bindingId: string }) =>
+      `/repo-bindings/project/${projectId}/${bindingId}`,
+  },
+
   PROJECTS: {
     CREATE: () => `/projects/create`,
 
