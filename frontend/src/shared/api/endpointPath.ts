@@ -82,6 +82,10 @@ export const API_ENDPOINT_PATH = {
     }: { referenceId: string } & ProjectId) =>
       `/rule-sets/reference/${referenceId}/project/${projectId}`,
 
+    // T-514: выгрузка правил проекта в AGENTS.md (ADR-023).
+    EXPORT_AGENTS_MD: ({ projectId }: ProjectId) =>
+      `/rule-sets/project/${projectId}/agents-md`,
+
     LIST_RULES: ({ ruleSetId }: RuleSetId) => `/rule-sets/${ruleSetId}/rules`,
     ADD_RULE: ({ ruleSetId }: RuleSetId) => `/rule-sets/${ruleSetId}/rules`,
     UPDATE_RULE: ({ ruleSetId, ruleId }: RuleSetId & { ruleId: string }) =>

@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.worktechlab.work_task.dto.ApiResponse;
+import ru.worktechlab.work_task.dto.rules.AgentsFileDto;
 import ru.worktechlab.work_task.dto.rules.ReferenceSetDto;
 import ru.worktechlab.work_task.dto.rules.RuleDto;
 import ru.worktechlab.work_task.dto.rules.RuleRequestDto;
@@ -15,6 +16,7 @@ import ru.worktechlab.work_task.dto.rules.RuleSetDto;
 import ru.worktechlab.work_task.dto.rules.RuleSetRequestDto;
 import ru.worktechlab.work_task.exceptions.BadRequestException;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
+import ru.worktechlab.work_task.services.AgentsMdExportService;
 import ru.worktechlab.work_task.services.ReferenceRuleImportService;
 import ru.worktechlab.work_task.services.RuleSetService;
 
@@ -39,6 +41,23 @@ public class RuleSetController {
 
     private final RuleSetService ruleSetService;
     private final ReferenceRuleImportService referenceRuleImportService;
+    private final AgentsMdExportService agentsMdExportService;
+
+    // --- выгрузка правил в репозиторий (T-514) -------------------------------
+
+    /**
+     * Содержимое `AGENTS.md`. Коммит в репозиторий делает человек или агент: интеграция с
+     * GitHub здесь read-only и без токена, а заводить токены — действие владельца (**K-33**).
+     */
+    @RolesAllowed({ADMIN, PROJECT_OWNER, POWER_USER, PROJECT_MEMBER})
+    @GetMapping("/project/{projectId}/agents-md")
+    @Operation(summary = "Выгрузить правила проекта в AGENTS.md")
+    public AgentsFileDto exportAgentsMd(
+            @Parameter(description = "ИД проекта", required = true)
+            @PathVariable String projectId
+    ) throws NotFoundException, BadRequestException {
+        return agentsMdExportService.export(projectId);
+    }
 
     // --- эталонные наборы (T-513) -------------------------------------------
 

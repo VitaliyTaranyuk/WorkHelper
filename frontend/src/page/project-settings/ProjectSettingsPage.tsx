@@ -5,6 +5,7 @@ import { useDeclareCurrentProject } from '@/features/project/model/currentProjec
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { RepoBindingsSection } from '@/features/project/RepoBindingsSection'
 import { RuleSetsSection } from '@/features/rules/RuleSetsSection'
+import { AgentsExportSection } from '@/features/rules/AgentsExportSection'
 
 /**
  * Настройки проекта (фаза 5).
@@ -36,6 +37,7 @@ export const ProjectSettingsPage = memo(function ProjectSettingsPageInner({
       <Stack gap={2}>
         <RepoBindingsSection projectId={projectId} />
         <RuleSetsSection projectId={projectId} />
+        <AgentsExportSection projectId={projectId} />
       </Stack>
     </Stack>
   )
