@@ -94,6 +94,20 @@ export const API_ENDPOINT_PATH = {
       `/rule-sets/${ruleSetId}/rules/${ruleId}`,
   },
 
+  // T-515: этапы процесса задачи принадлежат проекту (ADR-021).
+  PROCESS_STEPS: {
+    LIST: ({ projectId }: ProjectId) => `/process-steps/project/${projectId}`,
+    CREATE: ({ projectId }: ProjectId) => `/process-steps/project/${projectId}`,
+    CREATE_DEFAULTS: ({ projectId }: ProjectId) =>
+      `/process-steps/project/${projectId}/defaults`,
+    UPDATE: ({ projectId, stepId }: ProjectId & { stepId: string }) =>
+      `/process-steps/project/${projectId}/${stepId}`,
+    MOVE: ({ projectId, stepId, up }: ProjectId & { stepId: string; up: boolean }) =>
+      `/process-steps/project/${projectId}/${stepId}/move?up=${up}`,
+    DELETE: ({ projectId, stepId }: ProjectId & { stepId: string }) =>
+      `/process-steps/project/${projectId}/${stepId}`,
+  },
+
   PROJECTS: {
     CREATE: () => `/projects/create`,
 

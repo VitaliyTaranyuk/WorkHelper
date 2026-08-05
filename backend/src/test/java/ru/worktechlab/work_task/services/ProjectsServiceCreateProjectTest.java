@@ -48,6 +48,7 @@ class ProjectsServiceCreateProjectTest {
     @Mock private TaskMapper taskMapper;
     @Mock private RoleService roleService;
     @Mock private RuleTransferService ruleTransferService;
+    @Mock private ProcessStepService processStepService;
     @Mock private EntityManager entityManager;
 
     @InjectMocks private ProjectsService projectsService;
@@ -85,6 +86,44 @@ class ProjectsServiceCreateProjectTest {
         projectsService.createProject(request("project-donor"));
 
         verify(ruleTransferService).copyIntoNewProject(any(Project.class), eq(user), eq("project-donor"));
+    }
+
+    /**
+     * T-515 (ADR-021): процесс переносится вместе с правилами. Донор задаёт процесс, если
+     * он у него есть.
+     */
+    @Test
+    void createProjectCopiesProcessFromDonorWhenDonorHasOne() throws Exception {
+        stubCurrentUser();
+        when(processStepService.copyIntoNewProject(any(Project.class), eq("project-donor")))
+                .thenReturn(true);
+
+        projectsService.createProject(request("project-donor"));
+
+        verify(processStepService, never()).createDefaultSteps(any());
+    }
+
+    /** У донора процесса нет — новый проект не остаётся без процесса вовсе. */
+    @Test
+    void createProjectFallsBackToDefaultProcessWhenDonorHasNone() throws Exception {
+        stubCurrentUser();
+        when(processStepService.copyIntoNewProject(any(Project.class), eq("project-donor")))
+                .thenReturn(false);
+
+        projectsService.createProject(request("project-donor"));
+
+        verify(processStepService).createDefaultSteps(any(Project.class));
+    }
+
+    /** Без донора новый проект получает дефолтный процесс — как получает колонки доски. */
+    @Test
+    void createProjectWithoutDonorGetsDefaultProcess() throws Exception {
+        stubCurrentUser();
+
+        projectsService.createProject(request(null));
+
+        verify(processStepService).createDefaultSteps(any(Project.class));
+        verify(processStepService, never()).copyIntoNewProject(any(), any());
     }
 
     /**
