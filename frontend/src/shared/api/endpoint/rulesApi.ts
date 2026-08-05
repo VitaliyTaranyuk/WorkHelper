@@ -192,6 +192,31 @@ export function importReferenceIntoProject({
   })
 }
 
+/**
+ * T-514: сгенерированный `AGENTS.md`. Отдаётся содержимым, а не файлом — из строки
+ * доступны и предпросмотр, и копирование, и скачивание, из потока байт только последнее.
+ */
+export type AgentsFileDto = {
+  fileName: string
+  content: string
+  rulesCount: number
+  generatedAt: string
+}
+
+export function exportAgentsMd({
+  projectId,
+  otherParams = {},
+}: {
+  projectId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<AgentsFileDto>({
+    method: 'GET',
+    url: API_ENDPOINT_PATH.RULE_SETS.EXPORT_AGENTS_MD({ projectId }),
+    ...otherParams,
+  })
+}
+
 export function getRules({
   ruleSetId,
   otherParams = {},

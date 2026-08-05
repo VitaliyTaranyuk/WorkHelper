@@ -127,6 +127,19 @@ export function useDeleteRule(projectId: string | undefined, ruleSetId: string) 
   })
 }
 
+/**
+ * T-514: выгрузка `AGENTS.md`. Мутация, а не запрос: файл порождается по требованию и
+ * несёт отметку времени — кэшировать его как «данные проекта» значило бы показывать
+ * вчерашнюю выгрузку как сегодняшнюю.
+ */
+export function useExportAgentsMd(projectId: string) {
+  return useMutation({
+    mutationFn: () =>
+      workTechApi.rule.exportAgentsMd({ projectId }).then((res) => res.data),
+    onError: (error) => toast.error(message(error, 'Не удалось сформировать AGENTS.md')),
+  })
+}
+
 function message(error: unknown, fallback: string): string {
   return extractGeneralError(error) ?? fallback
 }
