@@ -20,6 +20,7 @@ import { useThemeMode, type ThemeMode } from '@/features/settings/themeMode'
 import { VoiceHelpContent } from '@/features/voice/command/VoiceHelpContent'
 import { useHotkeySetting, formatHotkey } from '@/features/voice/useVoiceHotkey'
 import { useOnboardingTrigger } from '@/features/voice/onboarding/onboardingTrigger'
+import { RuleSetsSection } from '@/features/rules/RuleSetsSection'
 import { SettingsSection } from './SettingsSection'
 
 /**
@@ -46,6 +47,9 @@ export const SettingsPage = memo(function SettingsPageInner() {
       <Stack gap={2}>
         <ThemeSection />
         <VoiceAssistantSection />
+        {/* T-511: общие правила пользователя — набор без проекта (ADR-018).
+            Правила проекта живут в его собственных настройках: другой скоуп. */}
+        <RuleSetsSection />
         <InterfaceDataSection />
       </Stack>
     </Box>

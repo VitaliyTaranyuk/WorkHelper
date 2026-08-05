@@ -1,0 +1,126 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- T-511 (ADR-017/ADR-018): правила как данные.
+
+         Уровень набора — это не отдельная таблица, а признак «есть ли проект»:
+         project_id IS NULL означает общие правила пользователя, заполненный —
+         правила проекта. Прецедент nullable-связи с проектом уже есть
+         (notification.project_id).
+
+         Строго аддитивно (PHASE5_INVARIANTS §4): существующие проекты живут без
+         единой строки здесь (инвариант I-03), и `<rollback>` задан явно — правило
+         №2 фазы, потому что цепочка отката иначе упрётся в старые необратимые
+         changeSet. -->
+    <changeSet id="20260805-add-table-rule-set" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="rule_set"/></not>
+        </preConditions>
+
+        <createTable tableName="rule_set">
+            <column name="id" type="varchar(255)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="owner_user_id" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- NULL = набор уровня пользователя («общие правила»). -->
+            <column name="project_id" type="varchar(255)"/>
+            <column name="name" type="varchar(128)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(512)"/>
+            <column name="version" type="int" defaultValueNumeric="1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="rule_set" baseColumnNames="owner_user_id"
+                                 constraintName="fk_rule_set_owner"
+                                 referencedTableName="users" referencedColumnNames="id"/>
+
+        <!-- Удаление проекта мягкое (status=DELETED, TD-010), но каскад оставляем
+             на случай физического удаления: набор правил без проекта, к которому
+             он принадлежал, смысла не имеет. -->
+        <addForeignKeyConstraint baseTableName="rule_set" baseColumnNames="project_id"
+                                 constraintName="fk_rule_set_project"
+                                 referencedTableName="project" referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <createIndex tableName="rule_set" indexName="idx_rule_set_project">
+            <column name="project_id"/>
+        </createIndex>
+
+        <createIndex tableName="rule_set" indexName="idx_rule_set_owner">
+            <column name="owner_user_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="rule_set"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="20260805-add-table-rule" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="rule"/></not>
+        </preConditions>
+
+        <createTable tableName="rule">
+            <column name="id" type="varchar(255)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="rule_set_id" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="code" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="level" type="varchar(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="kind" type="varchar(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="strength" type="varchar(8)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Не `trigger`: TRIGGER — ключевое слово SQL, и колонка с таким
+                 именем в части диалектов требует кавычек. -->
+            <column name="trigger_condition" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="verification" type="varchar(8)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="body" type="varchar(4000)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Провенанс, а не связь: источник может быть удалён, происхождение
+                 обязано остаться. Поэтому обычная колонка, без внешнего ключа. -->
+            <column name="source_rule_id" type="varchar(255)"/>
+            <column name="system_rule" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="rule" baseColumnNames="rule_set_id"
+                                 constraintName="fk_rule_rule_set"
+                                 referencedTableName="rule_set" referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <!-- Один код — одно правило внутри набора: иначе выгрузка (T-514) дала бы
+             два разных требования под одним идентификатором. -->
+        <addUniqueConstraint tableName="rule" columnNames="rule_set_id, code"
+                             constraintName="uq_rule_set_code"/>
+
+        <rollback>
+            <dropTable tableName="rule"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -7,6 +7,7 @@ import * as project from './projectsApi'
 import * as registration from './registrationApi'
 import * as repoBinding from './repoBindingsApi'
 import * as role from './rolesApi'
+import * as rule from './rulesApi'
 import * as sprint from './sprintsApi'
 import * as status from './statusesApi'
 import * as task from './tasksApi'
@@ -23,6 +24,7 @@ export const workTechApi = {
   registration,
   repoBinding,
   role,
+  rule,
   sprint,
   status,
   task,
