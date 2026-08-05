@@ -3,6 +3,7 @@ package ru.worktechlab.work_task.models.tables;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import ru.worktechlab.work_task.models.enums.TaskSize;
 
 /**
  * T-515 (ADR-021): этап процесса задачи.
@@ -43,18 +44,39 @@ public class ProcessStep {
     @Column(name = "position", nullable = false)
     private int position;
 
+    /**
+     * T-516: с какого размера задачи этап обязателен. {@code null} — этап необязателен ни
+     * при каком размере: дефолт выбран так, чтобы уже существующие этапы не стали
+     * обязательными задним числом.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "required_from_size", length = 8)
+    private TaskSize requiredFromSize;
+
     public ProcessStep(Project project, String code, String name, String description, int position) {
+        this(project, code, name, description, position, null);
+    }
+
+    public ProcessStep(Project project, String code, String name, String description, int position,
+                       TaskSize requiredFromSize) {
         this.project = project;
         this.code = code;
         this.name = name;
         this.description = description;
         this.position = position;
+        this.requiredFromSize = requiredFromSize;
     }
 
-    public void update(String code, String name, String description) {
+    public void update(String code, String name, String description, TaskSize requiredFromSize) {
         this.code = code;
         this.name = name;
         this.description = description;
+        this.requiredFromSize = requiredFromSize;
+    }
+
+    /** Обязателен ли этап для задачи такого размера (T-516). */
+    public boolean isRequiredFor(TaskSize size) {
+        return requiredFromSize != null && size != null && size.atLeast(requiredFromSize);
     }
 
     public void moveTo(int position) {

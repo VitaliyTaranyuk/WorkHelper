@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import ru.worktechlab.work_task.dto.task_history.TaskHistoryDto;
+import ru.worktechlab.work_task.models.enums.TaskSize;
 import ru.worktechlab.work_task.utils.TaskChangeDetector;
 
 import java.time.LocalDateTime;
@@ -80,6 +81,23 @@ public class TaskModel {
     @Column(name = "position", nullable = false)
     private int position = 0;
 
+    /**
+     * T-516: размер задачи — насколько глубоко идёт разбор. Nullable: 184 существующие
+     * задачи размера не имеют, и это нормальное состояние, а не незаполненное поле
+     * (правило №5 `PHASE5_INVARIANTS §4`).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "size", length = 8)
+    private TaskSize size;
+
+    /**
+     * T-516: текущий этап процесса проекта. Nullable по той же причине: процесс
+     * необязателен, и задача без этапа работает как раньше (I-03).
+     */
+    @ManyToOne
+    @JoinColumn(name = "current_process_step_id")
+    private ProcessStep currentProcessStep;
+
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<Comment> comments = new ArrayList<>();
 
@@ -135,6 +153,31 @@ public class TaskModel {
 
     public void setPosition(int position) {
         this.position = position;
+    }
+
+    /**
+     * T-516. **Понижение размера фиксируется** (**K-44**): протокол разрешает уменьшать
+     * объём разбора, но требует записывать это. Отдельного механизма для записи не
+     * заводится — понижение попадает в ту же историю задачи, что и остальные изменения,
+     * и отличается формулировкой поля (**K-38**).
+     */
+    public void setSize(TaskSize newValue) {
+        String field = TaskSize.isLowering(this.size, newValue)
+                ? "Размер задачи (понижен)"
+                : "Размер задачи";
+        taskChangeDetector.add(field, name(this.size), name(newValue));
+        this.size = newValue;
+    }
+
+    public void setCurrentProcessStep(ProcessStep newValue) {
+        taskChangeDetector.add("Этап процесса",
+                this.currentProcessStep != null ? this.currentProcessStep.getCode() : null,
+                newValue != null ? newValue.getCode() : null);
+        this.currentProcessStep = newValue;
+    }
+
+    private static String name(TaskSize size) {
+        return size == null ? null : size.name();
     }
 
     public void setArchived(boolean archived) {

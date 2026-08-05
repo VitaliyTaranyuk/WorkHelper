@@ -108,6 +108,16 @@ export const API_ENDPOINT_PATH = {
       `/process-steps/project/${projectId}/${stepId}`,
   },
 
+  // T-516: размер задачи и её этап процесса.
+  TASK_PROCESS: {
+    GET: ({ projectId, taskId }: ProjectId & TaskId) =>
+      `/task-process/project/${projectId}/${taskId}`,
+    SET_SIZE: ({ projectId, taskId }: ProjectId & TaskId) =>
+      `/task-process/project/${projectId}/${taskId}/size`,
+    SET_STEP: ({ projectId, taskId }: ProjectId & TaskId) =>
+      `/task-process/project/${projectId}/${taskId}/step`,
+  },
+
   PROJECTS: {
     CREATE: () => `/projects/create`,
 

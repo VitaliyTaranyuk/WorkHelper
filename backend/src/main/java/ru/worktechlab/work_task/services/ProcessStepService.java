@@ -58,7 +58,7 @@ public class ProcessStepService {
         int nextPosition = existing.isEmpty() ? 1 : existing.get(existing.size() - 1).getPosition() + 1;
 
         ProcessStep step = new ProcessStep(project, code, data.getName().trim(),
-                trimmed(data.getDescription()), nextPosition);
+                trimmed(data.getDescription()), nextPosition, data.getRequiredFromSize());
         processStepRepository.saveAndFlush(step);
         return toDto(step);
     }
@@ -73,7 +73,8 @@ public class ProcessStepService {
         if (!step.getCode().equals(code) && processStepRepository.existsByProjectIdAndCode(projectId, code))
             throw new BadRequestException(String.format("Этап %s уже есть в процессе проекта", code));
 
-        step.update(code, data.getName().trim(), trimmed(data.getDescription()));
+        step.update(code, data.getName().trim(), trimmed(data.getDescription()),
+                data.getRequiredFromSize());
         processStepRepository.saveAndFlush(step);
         return toDto(step);
     }
@@ -147,7 +148,8 @@ public class ProcessStepService {
     @TransactionMandatory
     public void createDefaultSteps(Project project) {
         processStepRepository.saveAllAndFlush(Arrays.stream(ProcessStepName.values())
-                .map(s -> new ProcessStep(project, s.getCode(), s.getName(), null, s.getPosition()))
+                .map(s -> new ProcessStep(project, s.getCode(), s.getName(), null, s.getPosition(),
+                        ProcessStepName.DEFAULT_REQUIRED_FROM_SIZE))
                 .toList());
     }
 
@@ -164,7 +166,8 @@ public class ProcessStepService {
         if (source.isEmpty()) return false;
 
         processStepRepository.saveAllAndFlush(source.stream()
-                .map(s -> new ProcessStep(target, s.getCode(), s.getName(), s.getDescription(), s.getPosition()))
+                .map(s -> new ProcessStep(target, s.getCode(), s.getName(), s.getDescription(),
+                        s.getPosition(), s.getRequiredFromSize()))
                 .toList());
         log.info("Process steps copied into project {}: {}", target.getId(), source.size());
         return true;
@@ -197,8 +200,9 @@ public class ProcessStepService {
         return steps.stream().map(ProcessStepService::toDto).toList();
     }
 
-    private static ProcessStepDto toDto(ProcessStep step) {
+    static ProcessStepDto toDto(ProcessStep step) {
         return new ProcessStepDto(step.getId(), step.getCode(), step.getName(),
-                step.getDescription(), step.getPosition());
+                step.getDescription(), step.getPosition(),
+                step.getRequiredFromSize() == null ? null : step.getRequiredFromSize().name());
     }
 }

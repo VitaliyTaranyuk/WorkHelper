@@ -30,6 +30,7 @@ import { TaskHistory } from './TaskHistory'
 import { TaskAttachments } from './TaskAttachments'
 import { TaskLinks } from './TaskLinks'
 import { TaskDevPanel } from './TaskDevPanel'
+import { TaskProcessPanel } from './TaskProcessPanel'
 import { TaskDescriptionField } from './TaskDescriptionField'
 import { TaskFormFields } from './TaskFormFields'
 import { formatUserName } from '@/entities/user/utils'
@@ -367,6 +368,12 @@ export function TaskCardContent({ task, onDeleted, guardRef }: TaskCardContentPr
         )}
 
         <Divider />
+
+        {/* T-516: размер задачи и её этап процесса. Панель сама скрывается, если у
+            проекта процесса нет, — пустой блок в каждой карточке был бы шумом (F-04). */}
+        {activeProject && (
+          <TaskProcessPanel projectId={activeProject.id} taskId={task.id} />
+        )}
 
         {/* Панель «Разработка» (ТП-21): ветки и PR GitHub по коду задачи. */}
         {activeProject && (

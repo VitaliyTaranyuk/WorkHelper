@@ -7,6 +7,7 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
+import MenuItem from '@mui/material/MenuItem'
 import { TextField } from '@/shared/ui/mui/TextFileld'
 import { SettingsSection } from '@/page/settings/SettingsSection'
 import { SkeletonLine } from '@/shared/ui/components/Skeleton'
@@ -31,6 +32,10 @@ import {
  * этапы заводятся **явной командой**: молча дописывать строки в проекты, которые о фазе
  * не просили, запрещено условием 4 ADR-027.
  */
+/** Значение «этап необязателен ни при каком размере» в выпадающем списке (T-516). */
+const NO_SIZE = ''
+const SIZES = ['XS', 'S', 'M', 'L'] as const
+
 export function ProcessStepsSection({ projectId }: { projectId: string }) {
   const { data, isLoading, isError, refetch } = useProcessSteps(projectId)
   const createStep = useCreateProcessStep(projectId)
@@ -40,6 +45,8 @@ export function ProcessStepsSection({ projectId }: { projectId: string }) {
 
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
+  // T-516: с какого размера задачи этап обязателен. Пусто — необязателен ни при каком.
+  const [requiredFromSize, setRequiredFromSize] = useState<string>(NO_SIZE)
 
   const steps = data ?? []
   const busy =
@@ -51,7 +58,11 @@ export function ProcessStepsSection({ projectId }: { projectId: string }) {
   const submit = async () => {
     if (!code.trim() || !name.trim()) return
     try {
-      await createStep.mutateAsync({ code: code.trim(), name: name.trim() })
+      await createStep.mutateAsync({
+        code: code.trim(),
+        name: name.trim(),
+        requiredFromSize: requiredFromSize === NO_SIZE ? null : requiredFromSize,
+      })
       setCode('')
       setName('')
     } catch {
@@ -110,11 +121,12 @@ export function ProcessStepsSection({ projectId }: { projectId: string }) {
                     <Typography sx={{ fontSize: 14 }}>
                       <b>{step.code}</b> — {step.name}
                     </Typography>
-                    {step.description && (
-                      <Typography variant="body2" color="text.secondary">
-                        {step.description}
-                      </Typography>
-                    )}
+                    <Typography variant="body2" color="text.secondary">
+                      {step.description ? `${step.description} · ` : ''}
+                      {step.requiredFromSize
+                        ? `обязателен с ${step.requiredFromSize}`
+                        : 'необязателен'}
+                    </Typography>
                   </Stack>
                   <IconButton
                     size="small"
@@ -177,6 +189,21 @@ export function ProcessStepsSection({ projectId }: { projectId: string }) {
               onChange={(e) => setName(e.target.value)}
               sx={{ flex: 1, minWidth: 200 }}
             />
+            <TextField
+              select
+              size="small"
+              label="Обязателен с размера"
+              value={requiredFromSize}
+              onChange={(e) => setRequiredFromSize(e.target.value)}
+              sx={{ minWidth: 180 }}
+            >
+              <MenuItem value={NO_SIZE}>Необязателен</MenuItem>
+              {SIZES.map((size) => (
+                <MenuItem key={size} value={size}>
+                  {size}
+                </MenuItem>
+              ))}
+            </TextField>
             <Button
               variant="contained"
               disabled={!code.trim() || !name.trim() || busy}

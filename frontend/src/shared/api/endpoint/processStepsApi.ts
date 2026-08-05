@@ -15,12 +15,16 @@ export type ProcessStepDto = {
   name: string
   description: string | null
   position: number
+  /** T-516: с какого размера задачи этап обязателен. `null` — необязателен. */
+  requiredFromSize: string | null
 }
 
 export type ProcessStepRequest = {
   code: string
   name: string
   description?: string
+  /** T-516. Пусто/`null` — этап необязателен ни при каком размере. */
+  requiredFromSize?: string | null
 }
 
 export function getProcessSteps({
