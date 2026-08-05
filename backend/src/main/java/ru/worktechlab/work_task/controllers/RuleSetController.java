@@ -8,12 +8,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.worktechlab.work_task.dto.ApiResponse;
+import ru.worktechlab.work_task.dto.rules.ReferenceSetDto;
 import ru.worktechlab.work_task.dto.rules.RuleDto;
 import ru.worktechlab.work_task.dto.rules.RuleRequestDto;
 import ru.worktechlab.work_task.dto.rules.RuleSetDto;
 import ru.worktechlab.work_task.dto.rules.RuleSetRequestDto;
 import ru.worktechlab.work_task.exceptions.BadRequestException;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
+import ru.worktechlab.work_task.services.ReferenceRuleImportService;
 import ru.worktechlab.work_task.services.RuleSetService;
 
 import java.util.List;
@@ -36,6 +38,34 @@ import static ru.worktechlab.work_task.models.enums.Roles.Fields.*;
 public class RuleSetController {
 
     private final RuleSetService ruleSetService;
+    private final ReferenceRuleImportService referenceRuleImportService;
+
+    // --- эталонные наборы (T-513) -------------------------------------------
+
+    @RolesAllowed({ADMIN, PROJECT_OWNER, POWER_USER, PROJECT_MEMBER})
+    @GetMapping("/reference")
+    @Operation(summary = "Эталонные наборы правил WorkHelper, доступные для импорта")
+    public List<ReferenceSetDto> referenceSets() {
+        return referenceRuleImportService.available();
+    }
+
+    @RolesAllowed({ADMIN, PROJECT_OWNER, POWER_USER, PROJECT_MEMBER})
+    @PostMapping("/reference/{referenceId}/my")
+    @Operation(summary = "Импортировать эталонный набор в общие правила пользователя")
+    public RuleSetDto importReferenceIntoMy(@PathVariable String referenceId)
+            throws NotFoundException, BadRequestException {
+        return referenceRuleImportService.importIntoMy(referenceId);
+    }
+
+    @RolesAllowed({ADMIN, PROJECT_OWNER, POWER_USER, PROJECT_MEMBER})
+    @PostMapping("/reference/{referenceId}/project/{projectId}")
+    @Operation(summary = "Импортировать эталонный набор в правила проекта")
+    public RuleSetDto importReferenceIntoProject(
+            @PathVariable String referenceId,
+            @PathVariable String projectId
+    ) throws NotFoundException, BadRequestException {
+        return referenceRuleImportService.importIntoProject(projectId, referenceId);
+    }
 
     @RolesAllowed({ADMIN, PROJECT_OWNER, POWER_USER, PROJECT_MEMBER})
     @GetMapping("/my")

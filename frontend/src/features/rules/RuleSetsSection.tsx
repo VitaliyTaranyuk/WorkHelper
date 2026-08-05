@@ -17,10 +17,13 @@ import { SkeletonLine } from '@/shared/ui/components/Skeleton'
 import { LoadErrorState } from '@/shared/ui/components/LoadErrorState'
 import { confirmDialog } from '@/shared/ui/components/ConfirmDialog'
 import type { RuleDto, RuleRequest } from '@/shared/api/endpoint/rulesApi'
+import MenuItem from '@mui/material/MenuItem'
 import {
   useCreateRuleSet,
   useDeleteRule,
   useDeleteRuleSet,
+  useImportReferenceSet,
+  useReferenceSets,
   useRuleSets,
   useRules,
   useSaveRule,
@@ -48,11 +51,16 @@ export function RuleSetsSection({ projectId }: { projectId?: string }) {
   const createSet = useCreateRuleSet(projectId)
   const deleteSet = useDeleteRuleSet(projectId)
 
+  const referenceSets = useReferenceSets()
+  const importReference = useImportReferenceSet(projectId)
+
   const [name, setName] = useState('')
   const [openSetId, setOpenSetId] = useState<string | null>(null)
+  const [referenceId, setReferenceId] = useState('')
 
   const scopeIsProject = !!projectId
-  const busy = createSet.isPending || deleteSet.isPending
+  const busy =
+    createSet.isPending || deleteSet.isPending || importReference.isPending
 
   const submit = async () => {
     if (!name.trim()) return
@@ -172,6 +180,37 @@ export function RuleSetsSection({ projectId }: { projectId?: string }) {
               Создать набор
             </Button>
           </Stack>
+
+          {/* T-513: эталонные наборы WorkHelper. Список приезжает с сервера —
+              если каталога нет, блока тоже нет, а не пустой выпадающий список
+              с неработающей кнопкой (K-32). */}
+          {referenceSets.data && referenceSets.data.length > 0 && (
+            <Stack direction={{ xs: 'column', md: 'row' }} gap={1.5}>
+              <TextField
+                select
+                size="small"
+                label="Готовый набор WorkHelper"
+                value={referenceId}
+                onChange={(e) => setReferenceId(e.target.value)}
+                sx={{ flex: 1, minWidth: 220 }}
+                helperText="Импортированный набор дальше живёт своей жизнью: его можно править и перенести в другой проект."
+              >
+                {referenceSets.data.map((ref) => (
+                  <MenuItem key={ref.id} value={ref.id}>
+                    {ref.name} — {ref.rulesCount}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <Button
+                variant="outlined"
+                disabled={!referenceId || busy}
+                onClick={() => importReference.mutate(referenceId)}
+                sx={{ alignSelf: { xs: 'flex-start', md: 'center' }, textTransform: 'none' }}
+              >
+                Импортировать
+              </Button>
+            </Stack>
+          )}
         </Stack>
       )}
     </SettingsSection>

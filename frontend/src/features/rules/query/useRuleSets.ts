@@ -55,6 +55,33 @@ export function useCreateRuleSet(projectId: string | undefined) {
   })
 }
 
+/**
+ * T-513: каталог эталонных наборов. Один и тот же список на оба уровня — он не
+ * зависит ни от проекта, ни от пользователя, поэтому и ключ у него общий.
+ */
+export function useReferenceSets() {
+  return useQuery({
+    queryKey: ['referenceRuleSets'],
+    queryFn: () => workTechApi.rule.getReferenceSets().then((res) => res.data),
+    // Каталог порождается из файла реестра и меняется вместе со сборкой —
+    // перезапрашивать его при каждом открытии раздела незачем.
+    staleTime: 30 * 60 * 1000,
+  })
+}
+
+export function useImportReferenceSet(projectId: string | undefined) {
+  const invalidate = useInvalidateSets(projectId)
+  return useMutation({
+    mutationFn: (referenceId: string) =>
+      projectId
+        ? workTechApi.rule.importReferenceIntoProject({ referenceId, projectId })
+        : workTechApi.rule.importReferenceIntoMy({ referenceId }),
+    onSuccess: () => void invalidate(),
+    // «Набор уже импортирован» — сообщение с сервера полезнее общей фразы (K-34).
+    onError: (error) => toast.error(message(error, 'Не удалось импортировать набор')),
+  })
+}
+
 export function useDeleteRuleSet(projectId: string | undefined) {
   const invalidate = useInvalidateSets(projectId)
   return useMutation({

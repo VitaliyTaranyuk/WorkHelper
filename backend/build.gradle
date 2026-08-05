@@ -71,6 +71,15 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+
+    // T-513: эталонный каталог правил порождается из `.ai/PROJECT_RULES.md` и
+    // сверяется с ним на каждом прогоне (ReferenceCatalogSyncTest). Перегенерация —
+    // `./gradlew test -Drules.regenerate=true --tests '*ReferenceCatalogSyncTest'`.
+    // Тесты идут в форкнутой JVM, поэтому свойство нужно пробросить явно: без
+    // этого флаг молча не доезжает и выглядит как «перегенерация не работает».
+    if (System.getProperty('rules.regenerate') != null) {
+        systemProperty 'rules.regenerate', System.getProperty('rules.regenerate')
+    }
 }
 
 /*
