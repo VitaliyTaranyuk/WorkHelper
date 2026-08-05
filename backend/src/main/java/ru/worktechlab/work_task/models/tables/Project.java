@@ -3,6 +3,7 @@ package ru.worktechlab.work_task.models.tables;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import ru.worktechlab.work_task.models.enums.BoardMode;
 import ru.worktechlab.work_task.models.enums.ProjectStatus;
 
 import java.time.LocalDate;
@@ -43,6 +44,13 @@ public class Project {
     private String code;
     @Column
     private Integer taskCounter;
+    /**
+     * T-519: режим доски. {@code null} = {@link BoardMode#SPRINT} — так колонка осталась
+     * строго аддитивной и существующие проекты сохранили прежнее поведение.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "board_mode", length = 16)
+    private BoardMode boardMode;
     @OneToMany(mappedBy = "project")
     private final List<TaskStatus> statuses = new ArrayList<>();
     @OneToMany(mappedBy = "project")
@@ -74,6 +82,17 @@ public class Project {
         LocalDate date = LocalDate.now();
         this.updateDate = date;
         this.finishDate = date;
+    }
+
+    /** T-519: переключение режима доски. Спринты при этом не трогаются. */
+    public void setBoardMode(BoardMode boardMode) {
+        this.boardMode = boardMode;
+        this.updateDate = LocalDate.now();
+    }
+
+    /** Режим доски с учётом того, что незаполненное поле означает «спринты» (T-519). */
+    public BoardMode boardModeOrDefault() {
+        return BoardMode.orDefault(boardMode);
     }
 
     public void startProject() {

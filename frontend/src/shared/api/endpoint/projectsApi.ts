@@ -9,6 +9,7 @@ import type {
   GetProjectDataByFilterData,
   GetProjectDataData,
   ProjectDataFilterDto,
+  ProjectDto,
   ProjectRequestDto,
   StartProjectData,
   StringIdsDto,
@@ -31,6 +32,27 @@ import type { RequestParams } from './type'
  */
 export type CreateProjectRequest = ProjectRequestDto & {
   donorProjectId?: string
+}
+
+/**
+ * T-519: переключить режим доски проекта. Спринты при этом не удаляются — переключение
+ * обратимо, и возврат в `SPRINT` возвращает активный спринт на доску.
+ */
+export function setBoardMode({
+  projectId,
+  boardMode,
+  otherParams = {},
+}: {
+  projectId: string
+  boardMode: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<ProjectDto>({
+    method: 'PUT',
+    url: API_ENDPOINT_PATH.PROJECT_BOARD_MODE.SET({ projectId }),
+    data: { boardMode },
+    ...otherParams,
+  })
 }
 
 export function createProject({

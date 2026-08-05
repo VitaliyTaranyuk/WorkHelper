@@ -48,6 +48,14 @@ public class ProjectDto {
     @NotNull
     @Schema(description = "Код проекта")
     private String code;
+    /**
+     * T-519: режим доски. Отдаётся строкой и **никогда не пустой** — незаполненное поле
+     * проекта превращается в {@code SPRINT} здесь, а не в каждом потребителе. Строка, а не
+     * enum: перечисление расширяется аддитивно, и фронтенд обязан деградировать к
+     * безопасному поведению на незнакомом значении (**W-08**).
+     */
+    @Schema(description = "Режим доски: SPRINT или KANBAN", example = "SPRINT")
+    private String boardMode;
     @Schema(description = "Статусы проекта")
     private List<TaskStatusDto> statuses = new ArrayList<>();
     @Schema(description = "Пользователи проекта")

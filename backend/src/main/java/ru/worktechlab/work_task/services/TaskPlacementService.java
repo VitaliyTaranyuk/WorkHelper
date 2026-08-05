@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.worktechlab.work_task.annotations.TransactionMandatory;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
+import ru.worktechlab.work_task.models.enums.BoardMode;
 import ru.worktechlab.work_task.models.tables.Project;
 import ru.worktechlab.work_task.models.tables.Sprint;
 import ru.worktechlab.work_task.models.tables.TaskModel;
@@ -22,9 +23,11 @@ import java.util.Optional;
  * Бэклог — это СПРИНТ (defaultSprint), а не статус и не колонка доски:
  * задача в бэклоге имеет обычный статус (по умолчанию — первая колонка),
  * но на доску не попадает, потому что доска показывает только задачи
- * доскового спринта (активный; без активного — kanban-режим по Backlog-
- * спринту). Скрытого BACKLOG-статуса больше не существует (миграция
+ * доскового спринта. Скрытого BACKLOG-статуса больше не существует (миграция
  * 20260705 перевела задачи и удалила его).
+ *
+ * T-519: какой спринт «досковый», решает режим проекта ({@code BoardMode}),
+ * а не отсутствие активного спринта — см. {@link #boardSprint(Project)}.
  */
 @Service
 @Slf4j
@@ -45,11 +48,21 @@ public class TaskPlacementService {
     }
 
     /**
-     * Спринт, задачи которого показывает доска: активный; если активного нет —
-     * Backlog-спринт (kanban-режим без спринтов).
+     * Спринт, задачи которого показывает доска.
+     *
+     * <p>В режиме {@code SPRINT} — активный спринт, а если активного нет — Backlog-спринт.
+     * В режиме {@code KANBAN} (T-519) — всегда Backlog-спринт: проект спринтами не
+     * пользуется, и активный спринт, оставшийся с прежних времён, не должен молча
+     * подменять содержимое доски.
+     *
+     * <p>Kanban-поведение существовало и раньше, но включалось **отсутствием** активного
+     * спринта — то есть режимом никто не управлял. Теперь им управляет поле проекта, а
+     * спринты не удаляются: переключение обратимо (T-156 отменена решением владельца).
      */
     @TransactionMandatory
     public Sprint boardSprint(Project project) throws NotFoundException {
+        if (project.boardModeOrDefault() == BoardMode.KANBAN)
+            return defaultSprint(project);
         Optional<Sprint> active = activeSprint(project);
         return active.isPresent() ? active.get() : defaultSprint(project);
     }

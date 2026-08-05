@@ -19,9 +19,14 @@ export function HeaderActions({ actions }: { actions: HeaderActionsProps }) {
   if (projectData.isLoading || sprintsInfoQuery.isLoading)
     return <Loader isLoading={true} />
 
+  // T-519: в Kanban-режиме проект спринтами не пользуется — кнопка «Создать спринт»
+  // была бы мёртвым контролом (K-32). Незнакомое значение режима трактуется как
+  // «спринты»: деградация к прежнему поведению, а не к исчезнувшей кнопке (W-08).
+  const kanbanMode = projectData.activeProject?.boardMode === 'KANBAN'
+
   return (
     <Stack flexDirection={'row'} justifyContent="flex-end" gap={'20px'}>
-      {actions.createSprint && <CreateSprintButton size="medium" />}
+      {actions.createSprint && !kanbanMode && <CreateSprintButton size="medium" />}
       {actions.createTask && <CreateTaskButton size="medium" />}
     </Stack>
   )
