@@ -3,6 +3,7 @@ import * as auth from './authApi'
 import * as meet from './meetApi'
 import * as meeting from './meetingsApi'
 import * as notification from './notificationsApi'
+import * as processStep from './processStepsApi'
 import * as project from './projectsApi'
 import * as registration from './registrationApi'
 import * as repoBinding from './repoBindingsApi'
@@ -20,6 +21,7 @@ export const workTechApi = {
   meet,
   meeting,
   notification,
+  processStep,
   project,
   registration,
   repoBinding,

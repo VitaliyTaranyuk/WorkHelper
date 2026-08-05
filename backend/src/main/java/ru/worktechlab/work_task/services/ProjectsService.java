@@ -48,6 +48,7 @@ public class ProjectsService {
     private final TaskMapper taskMapper;
     private final RoleService roleService;
     private final RuleTransferService ruleTransferService;
+    private final ProcessStepService processStepService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -125,11 +126,26 @@ public class ProjectsService {
         // не оставляет наполовину созданный проект. У пользователя без общих
         // наборов и без донора шаг не создаёт ни одной записи (I-03).
         ruleTransferService.copyIntoNewProject(project, user, data.getDonorProjectId());
+        // T-515 (ADR-021): процесс переносится вместе с правилами, а не отдельным
+        // механизмом. Донор задаёт процесс, если он у него есть; иначе новый проект
+        // получает дефолтные этапы — так же, как получает колонки доски.
+        //
+        // Порядок важен: доступ к донору проверяет шаг выше, и он же обрывает
+        // создание при отказе. Поэтому здесь донор уже заведомо доступен — второй
+        // проверки не нужно, но и переставлять строки местами нельзя.
+        boolean processCopied = hasDonor(data)
+                && processStepService.copyIntoNewProject(project, data.getDonorProjectId());
+        if (!processCopied)
+            processStepService.createDefaultSteps(project);
         // Default statuses, sprint and membership were persisted through their own
         // repositories, so the managed `project` instance still holds empty collections.
         // Refresh it from the DB so the returned DTO contains the full graph (statuses, users).
         entityManager.refresh(project);
         return projectMapper.toProjectDto(project);
+    }
+
+    private static boolean hasDonor(ProjectRequestDto data) {
+        return data.getDonorProjectId() != null && !data.getDonorProjectId().isBlank();
     }
 
     @TransactionMandatory

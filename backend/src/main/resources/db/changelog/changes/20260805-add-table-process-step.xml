@@ -1,0 +1,61 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- T-515 (ADR-021): этапы процесса задачи принадлежат проекту.
+
+         Процесс — такая же переносимая часть метода работы, как правила, поэтому
+         он живёт рядом с ними и копируется тем же шагом создания проекта.
+
+         Строго аддитивно (PHASE5_INVARIANTS §4): существующие проекты живут без
+         единой строки здесь (инвариант I-03) — этапы необязательны, и связь
+         задачи с этапом в этой миграции не вводится вовсе (правило №5 фазы:
+         обязательное поле вводится вторым шагом, после бэкофилла).
+         `<rollback>` задан явно — правило №2 фазы. -->
+    <changeSet id="20260805-add-table-process-step" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="process_step"/></not>
+        </preConditions>
+
+        <createTable tableName="process_step">
+            <column name="id" type="varchar(255)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="project_id" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="code" type="varchar(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="varchar(128)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(512)"/>
+            <column name="position" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Удаление проекта мягкое (status=DELETED, TD-010), но каскад оставляем
+             на случай физического удаления: этап без проекта смысла не имеет. -->
+        <addForeignKeyConstraint baseTableName="process_step" baseColumnNames="project_id"
+                                 constraintName="fk_process_step_project"
+                                 referencedTableName="project" referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <!-- Один код — один этап внутри проекта: два «A1» были бы не двумя этапами,
+             а ошибкой ввода. -->
+        <addUniqueConstraint tableName="process_step" columnNames="project_id, code"
+                             constraintName="uq_process_step_project_code"/>
+
+        <createIndex tableName="process_step" indexName="idx_process_step_project">
+            <column name="project_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="process_step"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

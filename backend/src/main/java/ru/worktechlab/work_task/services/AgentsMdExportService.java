@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.worktechlab.work_task.annotations.TransactionRequired;
 import ru.worktechlab.work_task.dto.rules.AgentsFileDto;
+import ru.worktechlab.work_task.dto.rules.ProcessStepDto;
 import ru.worktechlab.work_task.dto.rules.RuleDto;
 import ru.worktechlab.work_task.dto.rules.RuleSetDto;
 import ru.worktechlab.work_task.exceptions.BadRequestException;
@@ -52,6 +53,7 @@ public class AgentsMdExportService {
             "AUTO", "авто", "SEMI", "полуавто", "MANUAL", "ручная");
 
     private final RuleSetService ruleSetService;
+    private final ProcessStepService processStepService;
     private final RepoBindingRepository repoBindingRepository;
     private final CheckerUtil checkerUtil;
 
@@ -74,6 +76,9 @@ public class AgentsMdExportService {
 
         out.append(header(projectName, generatedAt));
         out.append(repositories(projectId));
+        // T-515: процесс — такая же переносимая часть метода, как правила (ADR-021),
+        // поэтому он едет в тот же файл. Правила без порядка работы неполны.
+        out.append(process(projectId));
         out.append(legend());
 
         for (RuleSetDto set : sets) {
@@ -133,6 +138,33 @@ public class AgentsMdExportService {
         bindings.forEach(b -> out.append("| ").append(cell(b.getProvider()))
                 .append(" | ").append(cell(b.getUrl()))
                 .append(" | ").append(cell(b.getDefaultBranch()))
+                .append(" |\n"));
+        return out.append('\n').toString();
+    }
+
+    private String process(String projectId) throws NotFoundException {
+        List<ProcessStepDto> steps = processStepService.list(projectId);
+        if (steps.isEmpty())
+            // Молчать нельзя: отсутствие раздела читалось бы как «процесс забыли
+            // выгрузить», а не как «его нет» (**W-06**).
+            return """
+                    ## Процесс задачи
+
+                    Процесс для проекта не задан.
+
+                    """;
+
+        StringBuilder out = new StringBuilder("""
+                ## Процесс задачи
+
+                Этапы идут в этом порядке; ни один не пропускается молча.
+
+                | # | Этап | Что делается |
+                |---|---|---|
+                """);
+        steps.forEach(s -> out.append("| ").append(s.position())
+                .append(" | **").append(cell(s.code())).append("** ").append(cell(s.name()))
+                .append(" | ").append(s.description() == null ? "—" : cell(s.description()))
                 .append(" |\n"));
         return out.append('\n').toString();
     }

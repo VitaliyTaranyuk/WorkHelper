@@ -9,6 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import ru.worktechlab.work_task.TestFixtures;
 import ru.worktechlab.work_task.dto.UserAndProjectData;
 import ru.worktechlab.work_task.dto.rules.AgentsFileDto;
+import ru.worktechlab.work_task.dto.rules.ProcessStepDto;
 import ru.worktechlab.work_task.dto.rules.RuleDto;
 import ru.worktechlab.work_task.dto.rules.RuleSetDto;
 import ru.worktechlab.work_task.exceptions.BadRequestException;
@@ -39,6 +40,7 @@ import static org.mockito.Mockito.*;
 class AgentsMdExportServiceTest {
 
     @Mock private RuleSetService ruleSetService;
+    @Mock private ProcessStepService processStepService;
     @Mock private RepoBindingRepository repoBindingRepository;
     @Mock private CheckerUtil checkerUtil;
 
@@ -60,6 +62,11 @@ class AgentsMdExportServiceTest {
                 .thenReturn(new UserAndProjectData(project, owner));
     }
 
+    /** T-515: процесс едет в тот же файл — правила без порядка работы неполны. */
+    private void stubNoProcess() throws NotFoundException {
+        when(processStepService.list(PROJECT_ID)).thenReturn(List.of());
+    }
+
     private static RuleSetDto set(String id, String name) {
         return new RuleSetDto(id, PROJECT_ID, name, "описание набора", 1, 1, LocalDateTime.now());
     }
@@ -72,6 +79,7 @@ class AgentsMdExportServiceTest {
     @Test
     void exportedFileIsMarkedGeneratedAndSelfSufficient() throws Exception {
         stubProjectAccess();
+        stubNoProcess();
         when(ruleSetService.listForProject(PROJECT_ID)).thenReturn(List.of(set("s1", "Ядро WorkHelper")));
         when(ruleSetService.listRules("s1")).thenReturn(List.of(rule("K-01", "Одна задача = одна ветка")));
         when(repoBindingRepository.findByProjectIdOrderByCreatedAtAsc(PROJECT_ID)).thenReturn(List.of());
@@ -96,6 +104,7 @@ class AgentsMdExportServiceTest {
     @Test
     void unknownEnumValueIsRenderedAsIs() throws Exception {
         stubProjectAccess();
+        stubNoProcess();
         when(ruleSetService.listForProject(PROJECT_ID)).thenReturn(List.of(set("s1", "Набор")));
         when(ruleSetService.listRules("s1")).thenReturn(List.of(
                 new RuleDto("r1", "X-01", "EXPERIMENTAL", "CHECKLIST", "MUST",
@@ -114,6 +123,7 @@ class AgentsMdExportServiceTest {
     @Test
     void pipeAndNewlineInRuleBodyDoNotBreakTheTable() throws Exception {
         stubProjectAccess();
+        stubNoProcess();
         when(ruleSetService.listForProject(PROJECT_ID)).thenReturn(List.of(set("s1", "Набор")));
         when(ruleSetService.listRules("s1")).thenReturn(List.of(
                 rule("K-99", "Ветка feature|fix\nи вторая строка")));
@@ -134,6 +144,7 @@ class AgentsMdExportServiceTest {
     @Test
     void repositoryBindingsAreIncluded() throws Exception {
         stubProjectAccess();
+        stubNoProcess();
         when(ruleSetService.listForProject(PROJECT_ID)).thenReturn(List.of(set("s1", "Набор")));
         when(ruleSetService.listRules("s1")).thenReturn(List.of(rule("K-01", "тело")));
         when(repoBindingRepository.findByProjectIdOrderByCreatedAtAsc(PROJECT_ID)).thenReturn(List.of(
@@ -146,11 +157,46 @@ class AgentsMdExportServiceTest {
     @Test
     void projectWithoutBindingsSaysSoExplicitly() throws Exception {
         stubProjectAccess();
+        stubNoProcess();
         when(ruleSetService.listForProject(PROJECT_ID)).thenReturn(List.of(set("s1", "Набор")));
         when(ruleSetService.listRules("s1")).thenReturn(List.of(rule("K-01", "тело")));
         when(repoBindingRepository.findByProjectIdOrderByCreatedAtAsc(PROJECT_ID)).thenReturn(List.of());
 
         assertThat(service.export(PROJECT_ID).content()).contains("Репозиторий к проекту не привязан");
+    }
+
+    /**
+     * T-515: процесс — такая же переносимая часть метода, как правила (ADR-021), поэтому
+     * он едет в тот же файл. Правила без порядка работы неполны.
+     */
+    @Test
+    void processStepsAreIncludedInTheFile() throws Exception {
+        stubProjectAccess();
+        when(processStepService.list(PROJECT_ID)).thenReturn(List.of(
+                new ProcessStepDto("s1", "A0", "Актуальность", "Сверить описание с репозиторием", 1),
+                new ProcessStepDto("s2", "A1", "Анализ", null, 2)));
+        when(ruleSetService.listForProject(PROJECT_ID)).thenReturn(List.of(set("rs1", "Набор")));
+        when(ruleSetService.listRules("rs1")).thenReturn(List.of(rule("K-01", "тело")));
+        when(repoBindingRepository.findByProjectIdOrderByCreatedAtAsc(PROJECT_ID)).thenReturn(List.of());
+
+        String content = service.export(PROJECT_ID).content();
+
+        assertThat(content).contains("## Процесс задачи", "A0", "Актуальность", "A1", "Анализ");
+        // Этап без описания не должен оставлять пустую ячейку — иначе таблица
+        // читается как «здесь что-то потерялось».
+        assertThat(content).contains("| — |");
+    }
+
+    /** Отсутствие процесса объясняется, а не молчит (**W-06**). */
+    @Test
+    void projectWithoutProcessSaysSoExplicitly() throws Exception {
+        stubProjectAccess();
+        stubNoProcess();
+        when(ruleSetService.listForProject(PROJECT_ID)).thenReturn(List.of(set("s1", "Набор")));
+        when(ruleSetService.listRules("s1")).thenReturn(List.of(rule("K-01", "тело")));
+        when(repoBindingRepository.findByProjectIdOrderByCreatedAtAsc(PROJECT_ID)).thenReturn(List.of());
+
+        assertThat(service.export(PROJECT_ID).content()).contains("Процесс для проекта не задан");
     }
 
     /**
@@ -178,6 +224,6 @@ class AgentsMdExportServiceTest {
         assertThatThrownBy(() -> service.export("foreign"))
                 .isInstanceOf(NotFoundException.class);
 
-        verifyNoInteractions(ruleSetService, repoBindingRepository);
+        verifyNoInteractions(ruleSetService, processStepService, repoBindingRepository);
     }
 }

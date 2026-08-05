@@ -53,6 +53,7 @@ class ProjectsServiceCurrentProjectTest {
     // T-512: зависимость появилась у ProjectsService; здесь она не используется,
     // но без объявления @InjectMocks подставил бы null.
     @Mock private RuleTransferService ruleTransferService;
+    @Mock private ProcessStepService processStepService;
 
     @InjectMocks
     private ProjectsService projectsService;

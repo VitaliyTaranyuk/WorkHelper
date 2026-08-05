@@ -5,6 +5,7 @@ import { useDeclareCurrentProject } from '@/features/project/model/currentProjec
 import { useProjectData } from '@/features/project/query/useProjectData'
 import { RepoBindingsSection } from '@/features/project/RepoBindingsSection'
 import { RuleSetsSection } from '@/features/rules/RuleSetsSection'
+import { ProcessStepsSection } from '@/features/rules/ProcessStepsSection'
 import { AgentsExportSection } from '@/features/rules/AgentsExportSection'
 
 /**
@@ -14,8 +15,9 @@ import { AgentsExportSection } from '@/features/rules/AgentsExportSection'
  * скоуп — тема, голос, данные пользователя. Проектные настройки принадлежат
  * проекту и живут по его адресу, как доска и бэклог (ADR-026).
  *
- * Правила проекта (T-511) уже здесь; сюда же придут процесс задачи (T-515) и
- * режим доски (T-519) — раздел заведён под них, а не только под репозитории.
+ * Правила проекта (T-511), процесс задачи (T-515) и выгрузка `AGENTS.md` (T-514)
+ * уже здесь; сюда же придёт режим доски (T-519) — раздел заведён под них, а не
+ * только под репозитории.
  */
 export const ProjectSettingsPage = memo(function ProjectSettingsPageInner({
   projectId,
@@ -37,6 +39,7 @@ export const ProjectSettingsPage = memo(function ProjectSettingsPageInner({
       <Stack gap={2}>
         <RepoBindingsSection projectId={projectId} />
         <RuleSetsSection projectId={projectId} />
+        <ProcessStepsSection projectId={projectId} />
         <AgentsExportSection projectId={projectId} />
       </Stack>
     </Stack>
