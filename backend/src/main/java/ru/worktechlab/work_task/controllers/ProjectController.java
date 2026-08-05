@@ -85,7 +85,9 @@ public class ProjectController {
     @Operation(summary = "Создание проекта")
     public ProjectDto createProject(
             @RequestBody @Valid ProjectRequestDto data
-    ) {
+    ) throws NotFoundException {
+        // NotFoundException появился с T-512: недоступный проект-донор правил
+        // обрывает создание, а не создаёт проект молча без правил (W-06).
         return projectsService.createProject(data);
     }
 

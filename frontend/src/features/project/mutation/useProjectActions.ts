@@ -4,8 +4,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 export function useCreateProject() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: { name: string; description?: string; code: string }) =>
-      workTechApi.project.createProject({ data }),
+    mutationFn: (data: {
+      name: string
+      description?: string
+      code: string
+      /** T-512: скопировать правила этого проекта в новый. Необязательно. */
+      donorProjectId?: string
+    }) => workTechApi.project.createProject({ data }),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ['userProjects'] }),
   })

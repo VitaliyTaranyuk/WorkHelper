@@ -23,11 +23,21 @@ import type { RequestParams } from './type'
  * @summary Создание проекта
  * @request POST:/projects/create
  */
+/**
+ * T-512: `donorProjectId` описан здесь, а не в `data-contracts` — тот файл
+ * генерируется из OpenAPI (`npm run openapi-generate`), и правка руками
+ * потерялась бы при следующей генерации. Поле необязательное: запрос без него
+ * ведёт себя ровно как раньше.
+ */
+export type CreateProjectRequest = ProjectRequestDto & {
+  donorProjectId?: string
+}
+
 export function createProject({
   data,
   otherParams = {},
 }: {
-  data: ProjectRequestDto
+  data: CreateProjectRequest
   otherParams?: RequestParams
 }) {
   return workTechApiClient<CreateProjectData>({
