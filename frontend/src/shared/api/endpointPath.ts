@@ -18,6 +18,10 @@ type UserId = {
   userId: string | number
 }
 
+type RuleSetId = {
+  ruleSetId: string
+}
+
 export const API_ENDPOINT_PATH = {
   AUTH: {
     LOGIN: () => `/auth/login`,
@@ -50,6 +54,29 @@ export const API_ENDPOINT_PATH = {
 
     DELETE: ({ projectId, bindingId }: ProjectId & { bindingId: string }) =>
       `/repo-bindings/project/${projectId}/${bindingId}`,
+  },
+
+  // T-511: наборы правил. Общие наборы пользователя и наборы проекта — один
+  // ресурс с разным входом (ADR-018): уровень набора определяется тем, есть ли
+  // у него проект, а не отдельной сущностью.
+  RULE_SETS: {
+    LIST_MY: () => `/rule-sets/my`,
+    CREATE_MY: () => `/rule-sets/my`,
+
+    LIST_FOR_PROJECT: ({ projectId }: ProjectId) =>
+      `/rule-sets/project/${projectId}`,
+    CREATE_FOR_PROJECT: ({ projectId }: ProjectId) =>
+      `/rule-sets/project/${projectId}`,
+
+    UPDATE: ({ ruleSetId }: RuleSetId) => `/rule-sets/${ruleSetId}`,
+    DELETE: ({ ruleSetId }: RuleSetId) => `/rule-sets/${ruleSetId}`,
+
+    LIST_RULES: ({ ruleSetId }: RuleSetId) => `/rule-sets/${ruleSetId}/rules`,
+    ADD_RULE: ({ ruleSetId }: RuleSetId) => `/rule-sets/${ruleSetId}/rules`,
+    UPDATE_RULE: ({ ruleSetId, ruleId }: RuleSetId & { ruleId: string }) =>
+      `/rule-sets/${ruleSetId}/rules/${ruleId}`,
+    DELETE_RULE: ({ ruleSetId, ruleId }: RuleSetId & { ruleId: string }) =>
+      `/rule-sets/${ruleSetId}/rules/${ruleId}`,
   },
 
   PROJECTS: {

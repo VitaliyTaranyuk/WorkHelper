@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { workTechApi } from '@/shared/api/endpoint'
 import type { RepoBindingRequest } from '@/shared/api/endpoint/repoBindingsApi'
+import { extractGeneralError } from '@/shared/api/extractFieldErrors'
 import { notify as toast } from '@/shared/ui/notify'
 
 /**
@@ -61,12 +62,10 @@ export function useDeleteRepoBinding(projectId: string | undefined) {
   })
 }
 
+/**
+ * T-511: разбор ответа переехал на общий `extractGeneralError` — своя копия
+ * здесь повторяла его один в один, но не знала про 5xx и обрыв сети (K-22).
+ */
 function serverMessage(error: unknown, fallback: string): string {
-  const data = (error as { response?: { data?: unknown } })?.response?.data
-  if (typeof data === 'string' && data.trim()) return data
-  if (data && typeof data === 'object' && 'message' in data) {
-    const message = (data as { message?: unknown }).message
-    if (typeof message === 'string' && message.trim()) return message
-  }
-  return fallback
+  return extractGeneralError(error) ?? fallback
 }

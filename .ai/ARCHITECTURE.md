@@ -219,8 +219,8 @@ ConfirmationGate → CommandExecutor → Feedback/Log`. Эволюция дву�
 > `.ai/PHASE5_INVARIANTS.md` (T-502 — что обязано продолжать работать и правила миграций),
 > `.ai/RULES_TAXONOMY.md` (уровни правил), `.ai/PLATFORM_PRODUCT_MAP.md` (продуктовая рамка).
 >
-> **Схема спроектирована, реализация не начата.** Все таблицы аддитивны: существующий
-> проект работает без единой записи в них (инвариант I-03).
+> **Состояние реализации:** `repo_binding` — T-510; `rule_set` и `rule` — T-511. Все таблицы
+> аддитивны: существующий проект работает без единой записи в них (инвариант I-03).
 
 ### Сущности
 
@@ -255,7 +255,7 @@ ConfirmationGate → CommandExecutor → Feedback/Log`. Эволюция дву�
 | `level` | enum | `CORE` \| `PACK` \| `PROFILE` (уровни `RULES_TAXONOMY`) |
 | `kind` | enum | `PRINCIPLE` \| `GATE` \| `PROCEDURE` \| `PROHIBITION` |
 | `strength` | enum | `MUST` \| `SHOULD` |
-| `trigger` | String | условие загрузки (`всегда`, `багфикс`, `новая зависимость`…) |
+| `trigger_condition` | String | условие загрузки (`всегда`, `багфикс`, `новая зависимость`…). Реализовано под этим именем, а не `trigger`: `TRIGGER` — ключевое слово SQL (T-511) |
 | `verification` | enum | `AUTO` \| `SEMI` \| `MANUAL` |
 | `body` | text | формулировка |
 | `source_rule_id` | String, **nullable** | провенанс: из какого правила скопировано |
