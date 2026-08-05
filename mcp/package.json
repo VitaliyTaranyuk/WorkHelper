@@ -1,0 +1,28 @@
+{
+  "name": "worktask-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP-сервер WorkTask: задачи и телеметрия прохождения процесса. Правила сюда не входят (ADR-024).",
+  "type": "module",
+  "bin": {
+    "worktask-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.1.0",
+    "typescript": "~5.8.3",
+    "vitest": "^3.2.6"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

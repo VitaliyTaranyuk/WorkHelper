@@ -195,6 +195,7 @@ gh workflow run "Deploy to VDS" -f target=both
 WorkHelper/
 ├── backend/     # Java 21 + Spring Boot 3.4 — REST API, бизнес-логика
 ├── frontend/    # React 19 + TypeScript + Vite — веб-интерфейс
+├── mcp/         # MCP-сервер WorkTask (T-517): задачи и телеметрия, но НЕ правила (ADR-024)
 ├── docs/        # AsciiDoc, ER-диаграммы, диаграммы последовательностей
 ├── infra/       # nginx, GlitchTip
 └── .ai/         # Инженерная память: правила, чекпоинт, задачи, долг, ADR
@@ -221,6 +222,7 @@ Zustand, React Hook Form + Zod, Axios.
 | Тесты (frontend) | `npm run test` |
 | Production build | `npm run build` (`tsc -b && vite build`) |
 | Генерация типов из OpenAPI | `npm run openapi-generate` |
+| Проверка (MCP-сервер) | `npm run lint && npm test && npm run build` в `mcp/` |
 
 > **Новый маршрут TanStack Router** требует регенерации `src/routeTree.gen.ts` (Vite-плагин
 > `@tanstack/router-plugin` делает это при `npm run dev`/`build`). При ручной правке обновить
