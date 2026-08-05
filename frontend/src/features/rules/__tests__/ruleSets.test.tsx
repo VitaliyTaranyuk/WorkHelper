@@ -23,6 +23,9 @@ const getRules = vi.fn()
 const addRule = vi.fn()
 const updateRule = vi.fn()
 const deleteRule = vi.fn()
+const getReferenceSets = vi.fn()
+const importReferenceIntoMy = vi.fn()
+const importReferenceIntoProject = vi.fn()
 
 vi.mock('@/shared/api/endpoint', () => ({
   workTechApi: {
@@ -36,6 +39,9 @@ vi.mock('@/shared/api/endpoint', () => ({
       addRule: (a: unknown) => addRule(a),
       updateRule: (a: unknown) => updateRule(a),
       deleteRule: (a: unknown) => deleteRule(a),
+      getReferenceSets: () => getReferenceSets(),
+      importReferenceIntoMy: (a: unknown) => importReferenceIntoMy(a),
+      importReferenceIntoProject: (a: unknown) => importReferenceIntoProject(a),
     },
   },
 }))
@@ -81,6 +87,9 @@ describe('наборы правил (T-511)', () => {
     createProjectRuleSet.mockResolvedValue({ data: SET })
     createMyRuleSet.mockResolvedValue({ data: { ...SET, projectId: null } })
     addRule.mockResolvedValue({ data: RULE })
+    getReferenceSets.mockResolvedValue({ data: [] })
+    importReferenceIntoMy.mockResolvedValue({ data: SET })
+    importReferenceIntoProject.mockResolvedValue({ data: SET })
     client = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     })
@@ -215,6 +224,71 @@ describe('наборы правил (T-511)', () => {
         },
       }),
     )
+  })
+
+  /** T-513: каталог эталонных наборов. */
+  it('без каталога блока импорта нет', async () => {
+    render(<RuleSetsSection projectId="p1" />, { wrapper: wrapper(client) })
+    await screen.findByText(/Наборов правил нет/)
+
+    await waitFor(() => expect(getReferenceSets).toHaveBeenCalled())
+    // Пустой выпадающий список с неработающей кнопкой был бы мёртвым UI (K-32).
+    expect(
+      screen.queryByLabelText('Готовый набор WorkHelper'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('эталонный набор импортируется в проект из пропса', async () => {
+    getReferenceSets.mockResolvedValue({
+      data: [
+        {
+          id: 'core',
+          name: 'Ядро WorkHelper',
+          description: 'Переносится в любой проект',
+          rulesCount: 46,
+        },
+      ],
+    })
+
+    render(<RuleSetsSection projectId="p1" />, { wrapper: wrapper(client) })
+    const select = await screen.findByLabelText('Готовый набор WorkHelper')
+
+    fireEvent.mouseDown(select)
+    fireEvent.click(await screen.findByRole('option', { name: /Ядро WorkHelper/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Импортировать' }))
+
+    await waitFor(() =>
+      expect(importReferenceIntoProject).toHaveBeenCalledWith({
+        referenceId: 'core',
+        projectId: 'p1',
+      }),
+    )
+    expect(importReferenceIntoMy).not.toHaveBeenCalled()
+  })
+
+  it('без проекта импорт идёт в общие правила пользователя', async () => {
+    getReferenceSets.mockResolvedValue({
+      data: [
+        {
+          id: 'core',
+          name: 'Ядро WorkHelper',
+          description: 'Переносится в любой проект',
+          rulesCount: 46,
+        },
+      ],
+    })
+
+    render(<RuleSetsSection />, { wrapper: wrapper(client) })
+    const select = await screen.findByLabelText('Готовый набор WorkHelper')
+
+    fireEvent.mouseDown(select)
+    fireEvent.click(await screen.findByRole('option', { name: /Ядро WorkHelper/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Импортировать' }))
+
+    await waitFor(() =>
+      expect(importReferenceIntoMy).toHaveBeenCalledWith({ referenceId: 'core' }),
+    )
+    expect(importReferenceIntoProject).not.toHaveBeenCalled()
   })
 
   it('пустое название не даёт создать набор', async () => {

@@ -34,6 +34,9 @@ vi.mock('@/shared/api/endpoint', () => ({
       addRule: vi.fn(),
       updateRule: vi.fn(),
       deleteRule: vi.fn(),
+      getReferenceSets: vi.fn().mockResolvedValue({ data: [] }),
+      importReferenceIntoMy: vi.fn(),
+      importReferenceIntoProject: vi.fn(),
     },
   },
 }))

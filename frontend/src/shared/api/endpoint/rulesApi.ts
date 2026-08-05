@@ -141,6 +141,57 @@ export function deleteRuleSet({
   })
 }
 
+/** T-513: эталонный набор правил WorkHelper, доступный для импорта. */
+export type ReferenceSetDto = {
+  id: string
+  name: string
+  description: string
+  rulesCount: number
+}
+
+export function getReferenceSets({
+  otherParams = {},
+}: { otherParams?: RequestParams } = {}) {
+  return workTechApiClient<ReferenceSetDto[]>({
+    method: 'GET',
+    url: API_ENDPOINT_PATH.RULE_SETS.REFERENCE(),
+    ...otherParams,
+  })
+}
+
+export function importReferenceIntoMy({
+  referenceId,
+  otherParams = {},
+}: {
+  referenceId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<RuleSetDto>({
+    method: 'POST',
+    url: API_ENDPOINT_PATH.RULE_SETS.IMPORT_REFERENCE_MY({ referenceId }),
+    ...otherParams,
+  })
+}
+
+export function importReferenceIntoProject({
+  referenceId,
+  projectId,
+  otherParams = {},
+}: {
+  referenceId: string
+  projectId: string
+  otherParams?: RequestParams
+}) {
+  return workTechApiClient<RuleSetDto>({
+    method: 'POST',
+    url: API_ENDPOINT_PATH.RULE_SETS.IMPORT_REFERENCE_PROJECT({
+      referenceId,
+      projectId,
+    }),
+    ...otherParams,
+  })
+}
+
 export function getRules({
   ruleSetId,
   otherParams = {},

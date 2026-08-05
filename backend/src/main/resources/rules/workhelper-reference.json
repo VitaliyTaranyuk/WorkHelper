@@ -1,0 +1,522 @@
+[ {
+  "id" : "core",
+  "name" : "Ядро WorkHelper",
+  "description" : "Правила, которые переносятся в проект на любом стеке: процесс и Git, работа с фактами, подготовка к разработке, качество и тестирование, безопасность, архитектура и откат.",
+  "rules" : [ {
+    "code" : "K-01",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "всегда",
+    "verification" : "SEMI",
+    "body" : "Одна задача = одна ветка"
+  }, {
+    "code" : "K-02",
+    "level" : "CORE",
+    "kind" : "PROHIBITION",
+    "strength" : "MUST",
+    "triggerCondition" : "всегда",
+    "verification" : "MANUAL",
+    "body" : "Запрещено работать напрямую в `main` — без исключений, включая критические hotfix. Merge только через Pull Request"
+  }, {
+    "code" : "K-03",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "SHOULD",
+    "triggerCondition" : "старт задачи",
+    "verification" : "MANUAL",
+    "body" : "Ветка именуется по типу работы: `feature/`, `fix/`, `refactor/`, `test/`, `docs/`, `ci/`, `chore/`"
+  }, {
+    "code" : "K-04",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "коммит",
+    "verification" : "MANUAL",
+    "body" : "Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `ci:`, `chore:`)"
+  }, {
+    "code" : "K-05",
+    "level" : "CORE",
+    "kind" : "PRINCIPLE",
+    "strength" : "SHOULD",
+    "triggerCondition" : "коммит",
+    "verification" : "MANUAL",
+    "body" : "Коммит атомарный, логически завершённый, воспроизводимый, протестированный"
+  }, {
+    "code" : "K-06",
+    "level" : "CORE",
+    "kind" : "GATE",
+    "strength" : "MUST",
+    "triggerCondition" : "коммит",
+    "verification" : "SEMI",
+    "body" : "Перед коммитом пройден локальный quality gate (§Quality gate)"
+  }, {
+    "code" : "K-07",
+    "level" : "CORE",
+    "kind" : "PROHIBITION",
+    "strength" : "MUST",
+    "triggerCondition" : "коммит",
+    "verification" : "MANUAL",
+    "body" : "При падении любой проверки коммит запрещён, пока не устранена **причина** (не симптом)"
+  }, {
+    "code" : "K-08",
+    "level" : "CORE",
+    "kind" : "GATE",
+    "strength" : "MUST",
+    "triggerCondition" : "PR",
+    "verification" : "AUTO",
+    "body" : "Каждый PR проходит проверки CI; красный CI блокирует merge"
+  }, {
+    "code" : "K-09",
+    "level" : "CORE",
+    "kind" : "GATE",
+    "strength" : "MUST",
+    "triggerCondition" : "завершение",
+    "verification" : "SEMI",
+    "body" : "Definition of Done (§Definition of Done) выполнен целиком"
+  }, {
+    "code" : "K-44",
+    "level" : "CORE",
+    "kind" : "GATE",
+    "strength" : "MUST",
+    "triggerCondition" : "всегда",
+    "verification" : "MANUAL",
+    "body" : "Протокол исполнения задачи (`.ai/TASK_REGISTRY.md §ПРОТОКОЛ ИСПОЛНЕНИЯ ЗАДАЧИ`) обязателен для **каждой** задачи — независимо от фазы, размера и очевидности решения. Ни один этап не пропускается молча; глубина A1/A2 пропорциональна изменению (§Пропорциональность анализа), и понижение глубины фиксируется письменно"
+  }, {
+    "code" : "K-45",
+    "level" : "CORE",
+    "kind" : "GATE",
+    "strength" : "MUST",
+    "triggerCondition" : "находка / заведение задачи",
+    "verification" : "MANUAL",
+    "body" : "Находка (баг, расхождение, идея) не становится задачей до доказательства: A1 — факты со ссылкой `файл:строка` или измерением; A2 **отдельным проходом** — оспорить гипотезу и проверить, что это не ошибка наблюдения; затем убедиться, что решение дополняет систему, а не переписывает её (**K-38**, **K-23**). Только после этого — запись в `.ai/TASK_REGISTRY.md` по шаблону описания (§Как заводится задача из найденного дефекта). Немедленная фиксация находки в `.ai/TECH_DEBT.md` (**K-42**) анализа **не** требует и правилом не откладывается"
+  }, {
+    "code" : "K-46",
+    "level" : "CORE",
+    "kind" : "GATE",
+    "strength" : "MUST",
+    "triggerCondition" : "старт задачи",
+    "verification" : "MANUAL",
+    "body" : "Задача, взятая в работу, до анализа проверяется на **актуальность**: соответствует ли описание сегодняшнему состоянию репозитория и развёрнутого окружения, не решена ли побочно, не изменились ли предпосылки. Вердикт (`работать` / `переписать описание и работать` / `закрыть как отпавшую`) фиксируется. Проверка актуальности **не заменяет** A1 и A2 — они выполняются заново, даже если описание выглядит исчерпывающим: описание есть вход в анализ, а не готовый ответ"
+  }, {
+    "code" : "K-10",
+    "level" : "CORE",
+    "kind" : "PROHIBITION",
+    "strength" : "MUST",
+    "triggerCondition" : "всегда",
+    "verification" : "MANUAL",
+    "body" : "Запрещено выдумывать API, библиотеки, результаты тестов, результаты исследований, возможности платформы"
+  }, {
+    "code" : "K-11",
+    "level" : "CORE",
+    "kind" : "PROHIBITION",
+    "strength" : "MUST",
+    "triggerCondition" : "всегда",
+    "verification" : "MANUAL",
+    "body" : "Запрещено сообщать о выполнении действий, которые не выполнялись"
+  }, {
+    "code" : "K-12",
+    "level" : "CORE",
+    "kind" : "PRINCIPLE",
+    "strength" : "MUST",
+    "triggerCondition" : "всегда",
+    "verification" : "MANUAL",
+    "body" : "Приоритет источников истины при расхождениях: состояние репозитория → issues/PR/документация → `PROJECT_CHECKPOINT` и `TASK_REGISTRY` → код → внешние источники"
+  }, {
+    "code" : "K-13",
+    "level" : "CORE",
+    "kind" : "PRINCIPLE",
+    "strength" : "MUST",
+    "triggerCondition" : "всегда",
+    "verification" : "MANUAL",
+    "body" : "Предположение обозначается как предположение"
+  }, {
+    "code" : "K-14",
+    "level" : "CORE",
+    "kind" : "PRINCIPLE",
+    "strength" : "SHOULD",
+    "triggerCondition" : "всегда",
+    "verification" : "MANUAL",
+    "body" : "Не задавать вопросов, ответ на которые есть в коде, истории коммитов, документации или текущей реализации"
+  }, {
+    "code" : "K-15",
+    "level" : "CORE",
+    "kind" : "PRINCIPLE",
+    "strength" : "SHOULD",
+    "triggerCondition" : "неясные требования",
+    "verification" : "MANUAL",
+    "body" : "При неполных требованиях выбирается наиболее консервативный вариант, согласованный с существующей архитектурой"
+  }, {
+    "code" : "K-16",
+    "level" : "CORE",
+    "kind" : "PRINCIPLE",
+    "strength" : "SHOULD",
+    "triggerCondition" : "архитектурное решение",
+    "verification" : "MANUAL",
+    "body" : "Приоритет **качеств** при компромиссах: пользовательская ценность → надёжность → безопасность → поддерживаемость → производительность → масштабируемость → скорость разработки"
+  }, {
+    "code" : "K-17",
+    "level" : "CORE",
+    "kind" : "PRINCIPLE",
+    "strength" : "SHOULD",
+    "triggerCondition" : "планирование",
+    "verification" : "MANUAL",
+    "body" : "Приоритет **порядка поставки**: критичный функционал → основной сценарий → расширенные сценарии → дополнительные функции → косметика"
+  }, {
+    "code" : "K-18",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "SHOULD",
+    "triggerCondition" : "значимый функционал",
+    "verification" : "MANUAL",
+    "body" : "Перед значимым функционалом — исследование: конкуренты, лучшие практики, реальные боли пользователей, востребованные функции, неудачные решения конкурентов, минимум с максимальной ценностью"
+  }, {
+    "code" : "K-19",
+    "level" : "CORE",
+    "kind" : "PROHIBITION",
+    "strength" : "SHOULD",
+    "triggerCondition" : "значимый функционал",
+    "verification" : "MANUAL",
+    "body" : "Не реализовывать функционал без обоснования пользы"
+  }, {
+    "code" : "K-20",
+    "level" : "CORE",
+    "kind" : "PRINCIPLE",
+    "strength" : "SHOULD",
+    "triggerCondition" : "новая подсистема",
+    "verification" : "MANUAL",
+    "body" : "Build-vs-buy: проверенное open-source решение → адаптация существующего → собственная реализация. Запрещено изобретать уже решённые задачи"
+  }, {
+    "code" : "K-21",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "новая зависимость",
+    "verification" : "SEMI",
+    "body" : "Ветинг зависимости перед добавлением: активность поддержки, документация, лицензия, известные CVE, популярность, известные проблемы. Предпочитать официальные и широко используемые решения"
+  }, {
+    "code" : "K-22",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "всегда",
+    "verification" : "MANUAL",
+    "body" : "Перед новым кодом изучить существующий: возможность переиспользования, возможность расширения, существующие тесты и архитектуру. Новую сущность создавать, только если существующую нельзя безопасно расширить"
+  }, {
+    "code" : "K-23",
+    "level" : "CORE",
+    "kind" : "PROHIBITION",
+    "strength" : "MUST",
+    "triggerCondition" : "всегда",
+    "verification" : "SEMI",
+    "body" : "Не трогать модули, не связанные с задачей"
+  }, {
+    "code" : "K-24",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "SHOULD",
+    "triggerCondition" : "реализация",
+    "verification" : "MANUAL",
+    "body" : "Тесты пишутся до или одновременно с кодом"
+  }, {
+    "code" : "K-25",
+    "level" : "CORE",
+    "kind" : "GATE",
+    "strength" : "MUST",
+    "triggerCondition" : "реализация",
+    "verification" : "MANUAL",
+    "body" : "Критическая бизнес-логика имеет тестовое покрытие. Ориентир — 80% line coverage; это ориентир качества, **не блокирующий гейт**: приоритет у критичных путей и негативных сценариев, а не у «дотягивания процента» тестами на тривиальный код"
+  }, {
+    "code" : "K-26",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "падение тестов",
+    "verification" : "MANUAL",
+    "body" : "Не останавливаться на первой ошибке: найти первопричину, исправить, перезапустить затронутые **и зависимые** тесты. Никогда не отмечать работу завершённой при падающих тестах"
+  }, {
+    "code" : "K-27",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "багфикс",
+    "verification" : "MANUAL",
+    "body" : "Ошибка исправляется через первопричину: найти причину → исправить причину → добавить тест → проверить соседние компоненты"
+  }, {
+    "code" : "K-28",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "прод-баг",
+    "verification" : "SEMI",
+    "body" : "Сбежавший в прод баг сначала воспроизводится **падающим** тестом, затем чинится; тест остаётся навсегда. Шаблон и реестр — `.ai/POSTMORTEM_TEMPLATE.md`"
+  }, {
+    "code" : "K-29",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "багфикс",
+    "verification" : "MANUAL",
+    "body" : "Дефект получает уровень: `CRITICAL` (недоступен ключевой сценарий, потеря/повреждение данных, брешь в безопасности — чинить немедленно, блокирует релиз) · `HIGH` (основной сценарий работает некорректно, обходного пути нет — чинить до новых функций) · `MEDIUM` (есть обходной путь — планово) · `LOW` (косметика). Все `CRITICAL` и `HIGH` устраняются до разработки новых функций"
+  }, {
+    "code" : "K-30",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "завершение",
+    "verification" : "MANUAL",
+    "body" : "Самопроверка до завершения: архитектура, код, безопасность, производительность, тесты. Найденное устраняется **до** коммита"
+  }, {
+    "code" : "K-31",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "завершение",
+    "verification" : "MANUAL",
+    "body" : "Перед завершением проверить затронутые сценарии: навигацию, переходы состояний, persistence, права доступа, состояния loading/error/empty, граничные случаи. Найденные регрессии исправлять немедленно"
+  }, {
+    "code" : "K-32",
+    "level" : "CORE",
+    "kind" : "GATE",
+    "strength" : "MUST",
+    "triggerCondition" : "завершение",
+    "verification" : "MANUAL",
+    "body" : "Признаки незавершённости — работа не может быть закрыта, если есть хотя бы один: сломанная навигация, недоступная функциональность, мёртвые кнопки, разорванные сценарии, несогласованные состояния, необработанные ошибки, отсутствующая валидация, отсутствующий persistence, падающие тесты"
+  }, {
+    "code" : "K-33",
+    "level" : "CORE",
+    "kind" : "PROHIBITION",
+    "strength" : "MUST",
+    "triggerCondition" : "всегда",
+    "verification" : "MANUAL",
+    "body" : "Секреты никогда не попадают в репозиторий, в код или в текст команд — только переменные окружения, `.env` вне git, секреты CI. **Агент не запрашивает и не вводит приватные ключи и пароли** — их заводит владелец"
+  }, {
+    "code" : "K-34",
+    "level" : "CORE",
+    "kind" : "PROHIBITION",
+    "strength" : "MUST",
+    "triggerCondition" : "обработка ошибок",
+    "verification" : "SEMI",
+    "body" : "Наружу отдаётся понятное сообщение; SQL, имена constraint и stacktrace — только в логи"
+  }, {
+    "code" : "K-35",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "API / доступ",
+    "verification" : "SEMI",
+    "body" : "Проверять: права доступа (RBAC), валидацию пользовательского ввода на всех уровнях, уязвимости зависимостей"
+  }, {
+    "code" : "K-36",
+    "level" : "CORE",
+    "kind" : "PROHIBITION",
+    "strength" : "MUST",
+    "triggerCondition" : "работа с ПДн",
+    "verification" : "SEMI",
+    "body" : "Персональные данные (email, телефон, дата рождения, пол): минимизировать сбор, не логировать в открытом виде, ограничивать доступ по ролям, пароли хранить только хэшем (BCrypt)"
+  }, {
+    "code" : "K-37",
+    "level" : "CORE",
+    "kind" : "PROHIBITION",
+    "strength" : "MUST",
+    "triggerCondition" : "архитектурное изменение",
+    "verification" : "MANUAL",
+    "body" : "Архитектурный стиль, структура модулей и основные зависимости не меняются без технического обоснования и документирования"
+  }, {
+    "code" : "K-38",
+    "level" : "CORE",
+    "kind" : "PRINCIPLE",
+    "strength" : "MUST",
+    "triggerCondition" : "всегда",
+    "verification" : "MANUAL",
+    "body" : "Существующий паттерн проекта важнее нового — **consistency over novelty**. Предпочитать композицию наследованию, простое сложному, читаемость преждевременной оптимизации. Применять SOLID, DRY, KISS, YAGNI, Clean Architecture, Separation of Concerns, Dependency Injection"
+  }, {
+    "code" : "K-39",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "значимое решение",
+    "verification" : "MANUAL",
+    "body" : "Каждое значимое решение документируется как ADR в `.ai/ARCHITECTURE.md`: проблема → альтернативы → выбранный вариант → причины → последствия"
+  }, {
+    "code" : "K-40",
+    "level" : "CORE",
+    "kind" : "GATE",
+    "strength" : "MUST",
+    "triggerCondition" : "завершение",
+    "verification" : "MANUAL",
+    "body" : "Документация и правила соответствуют реальному состоянию репозитория. **Правило не имеет права описывать механизм, которого нет.** Расхождение «документация ↔ реальность» фиксируется немедленно в `.ai/TECH_DEBT.md`, даже если не относится к текущей задаче"
+  }, {
+    "code" : "K-41",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "значимое изменение",
+    "verification" : "MANUAL",
+    "body" : "Каждое изменение имеет план отката; для значимого изменения риски, точки восстановления и план отката определяются **до** реализации"
+  }, {
+    "code" : "K-42",
+    "level" : "CORE",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "обнаружение",
+    "verification" : "SEMI",
+    "body" : "Технический долг фиксируется явно в `.ai/TECH_DEBT.md` (ID, описание, причина, риск, статус) и не скрывается"
+  }, {
+    "code" : "K-43",
+    "level" : "CORE",
+    "kind" : "PRINCIPLE",
+    "strength" : "SHOULD",
+    "triggerCondition" : "архитектурное решение",
+    "verification" : "MANUAL",
+    "body" : "Оценивать решение по производительности, потреблению памяти, масштабируемости, поддерживаемости и стоимости сопровождения. Не принимать архитектурное решение исключительно ради скорости реализации"
+  } ]
+}, {
+  "id" : "pack-client-server",
+  "name" : "Пак «клиент-серверное приложение»",
+  "description" : "Уроки, купленные инцидентами: контракт фронтенд ↔ бэкенд, проверка на развёрнутом окружении, запрет молчаливого отказа.",
+  "rules" : [ {
+    "code" : "W-01",
+    "level" : "PACK",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "интеграция UI ↔ API",
+    "verification" : "MANUAL",
+    "body" : "Каждый эндпоинт, который вызывает фронтенд, существует на бэкенде с совпадающим путём, методом и формой DTO; проверяется полный путь end-to-end"
+  }, {
+    "code" : "W-02",
+    "level" : "PACK",
+    "kind" : "PRINCIPLE",
+    "strength" : "MUST",
+    "triggerCondition" : "диагностика",
+    "verification" : "MANUAL",
+    "body" : "401/404 на вызов из UI = несуществующий или несогласованный контракт, а не «проблема авторизации»"
+  }, {
+    "code" : "W-03",
+    "level" : "PACK",
+    "kind" : "GATE",
+    "strength" : "MUST",
+    "triggerCondition" : "завершение",
+    "verification" : "MANUAL",
+    "body" : "Изменения, видимые в приложении, проверяются на **развёрнутом** окружении с рабочей ссылкой, а не только локальной сборкой. «Смержено» ≠ «развёрнуто» ≠ «работает»"
+  }, {
+    "code" : "W-04",
+    "level" : "PACK",
+    "kind" : "PRINCIPLE",
+    "strength" : "MUST",
+    "triggerCondition" : "валидация",
+    "verification" : "MANUAL",
+    "body" : "Бизнес-доступ решается в сервисе; валидатор проверяет только существование и формат"
+  }, {
+    "code" : "W-05",
+    "level" : "PACK",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "права доступа",
+    "verification" : "MANUAL",
+    "body" : "Проверять граничные роли (только что зарегистрированный пользователь) и неактивные состояния сущностей (задача в backlog, архивный спринт)"
+  }, {
+    "code" : "W-06",
+    "level" : "PACK",
+    "kind" : "PROHIBITION",
+    "strength" : "MUST",
+    "triggerCondition" : "реализация",
+    "verification" : "MANUAL",
+    "body" : "Молчаливый отказ недопустим: каждый механизм либо падает явно (fail-fast), либо имеет безопасный дефолт. Экран, который умеет быть пустым, обязан отличать «пусто» от «не загрузилось»"
+  }, {
+    "code" : "W-07",
+    "level" : "PACK",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "анализ",
+    "verification" : "SEMI",
+    "body" : "Перед утверждением, что функциональность есть или отсутствует, сверить ветки (`git log --all --oneline`, сравнение с `origin/*`) — готовое может быть просто не смержено"
+  }, {
+    "code" : "W-08",
+    "level" : "PACK",
+    "kind" : "PRINCIPLE",
+    "strength" : "MUST",
+    "triggerCondition" : "контракт DTO",
+    "verification" : "AUTO",
+    "body" : "Расширение перечисления на бэкенде — аддитивное изменение; фронтенд обязан деградировать к безопасному дефолту, а не бросать исключение"
+  } ]
+}, {
+  "id" : "pack-frontend",
+  "name" : "Пак «фронтенд»",
+  "description" : "Skeleton-first, прогрессивная загрузка, честные состояния и удаление мёртвого интерфейса.",
+  "rules" : [ {
+    "code" : "F-01",
+    "level" : "PACK",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "новая модалка/панель",
+    "verification" : "MANUAL",
+    "body" : "Модалки и панели открываются skeleton-first: мгновенный каркас и уже известные данные вместо блокирующего спиннера. Стандарт — `.ai/SKELETON_FIRST_STANDARD.md`, эталон — `TaskCardModal` + `TaskCardSkeleton`"
+  }, {
+    "code" : "F-02",
+    "level" : "PACK",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "новая модалка/панель",
+    "verification" : "MANUAL",
+    "body" : "Тяжёлые блоки грузятся прогрессивно; состояния loading/error/empty честные **по блокам**"
+  }, {
+    "code" : "F-03",
+    "level" : "PACK",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "изменение UI",
+    "verification" : "MANUAL",
+    "body" : "UX-проверка: desktop и mobile, адаптивность, empty/loading/error, доступность, визуальная консистентность"
+  }, {
+    "code" : "F-04",
+    "level" : "PACK",
+    "kind" : "PROHIBITION",
+    "strength" : "MUST",
+    "triggerCondition" : "изменение UI",
+    "verification" : "MANUAL",
+    "body" : "Удалять дублирующие контролы, мёртвый и вводящий в заблуждение UI, визуальный шум"
+  } ]
+}, {
+  "id" : "pack-react",
+  "name" : "Пак «React»",
+  "description" : "Error boundary вне роутов и запрет router-хуков в модалках — оба правила куплены прод-инцидентом «белый экран».",
+  "rules" : [ {
+    "code" : "R-01",
+    "level" : "PACK",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "новый модальный компонент",
+    "verification" : "MANUAL",
+    "body" : "Дерево вне роутов (модалки) оборачивается `shared/ui/components/ErrorBoundary`; роуты покрыты `defaultErrorComponent`. Краш блока ≠ белый экран приложения"
+  }, {
+    "code" : "R-02",
+    "level" : "PACK",
+    "kind" : "PROHIBITION",
+    "strength" : "MUST",
+    "triggerCondition" : "компонент для модалки",
+    "verification" : "AUTO",
+    "body" : "Компоненты, переиспользуемые NiceModal-модалками, **не используют** `useNavigate`/`useRouter`/`useLinkProps` — модалка живёт вне Router-контекста и хук роняет всё дерево. Навигация — только прямой `router.navigate` из `@/application/router`"
+  } ]
+}, {
+  "id" : "pack-testing",
+  "name" : "Пак «тестирование»",
+  "description" : "Строгий режим стабов на JVM и красный тест на незамеченный console.error.",
+  "rules" : [ {
+    "code" : "T-01",
+    "level" : "PACK",
+    "kind" : "PROCEDURE",
+    "strength" : "MUST",
+    "triggerCondition" : "тесты на JVM",
+    "verification" : "MANUAL",
+    "body" : "Строгий режим стабов; фикстуры выносятся отдельно, без стабов в setup-методах"
+  }, {
+    "code" : "T-02",
+    "level" : "PACK",
+    "kind" : "GATE",
+    "strength" : "MUST",
+    "triggerCondition" : "тесты фронтенда",
+    "verification" : "AUTO",
+    "body" : "Незамеченный `console.error` или uncaught в тесте = красный тест (гейт в `src/test/setup.ts`)"
+  } ]
+} ]

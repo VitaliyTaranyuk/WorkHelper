@@ -17,4 +17,9 @@ public interface RuleSetRepository extends JpaRepository<RuleSet, String> {
     List<RuleSet> findByOwnerIdAndProjectIsNullOrderByCreatedAtAsc(String ownerId);
 
     List<RuleSet> findByProjectIdOrderByCreatedAtAsc(String projectId);
+
+    /** T-513: повторный импорт эталонного набора опознаётся по имени в той же области. */
+    boolean existsByOwnerIdAndProjectIsNullAndName(String ownerId, String name);
+
+    boolean existsByProjectIdAndName(String projectId, String name);
 }

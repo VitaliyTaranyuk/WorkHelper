@@ -71,6 +71,17 @@ export const API_ENDPOINT_PATH = {
     UPDATE: ({ ruleSetId }: RuleSetId) => `/rule-sets/${ruleSetId}`,
     DELETE: ({ ruleSetId }: RuleSetId) => `/rule-sets/${ruleSetId}`,
 
+    // T-513: эталонные наборы WorkHelper. Каталог порождён из
+    // `.ai/PROJECT_RULES.md`, импорт создаёт обычный набор.
+    REFERENCE: () => `/rule-sets/reference`,
+    IMPORT_REFERENCE_MY: ({ referenceId }: { referenceId: string }) =>
+      `/rule-sets/reference/${referenceId}/my`,
+    IMPORT_REFERENCE_PROJECT: ({
+      referenceId,
+      projectId,
+    }: { referenceId: string } & ProjectId) =>
+      `/rule-sets/reference/${referenceId}/project/${projectId}`,
+
     LIST_RULES: ({ ruleSetId }: RuleSetId) => `/rule-sets/${ruleSetId}/rules`,
     ADD_RULE: ({ ruleSetId }: RuleSetId) => `/rule-sets/${ruleSetId}/rules`,
     UPDATE_RULE: ({ ruleSetId, ruleId }: RuleSetId & { ruleId: string }) =>
