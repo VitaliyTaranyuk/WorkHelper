@@ -173,8 +173,8 @@ class AgentsMdExportServiceTest {
     void processStepsAreIncludedInTheFile() throws Exception {
         stubProjectAccess();
         when(processStepService.list(PROJECT_ID)).thenReturn(List.of(
-                new ProcessStepDto("s1", "A0", "Актуальность", "Сверить описание с репозиторием", 1),
-                new ProcessStepDto("s2", "A1", "Анализ", null, 2)));
+                new ProcessStepDto("s1", "A0", "Актуальность", "Сверить описание с репозиторием", 1, "XS"),
+                new ProcessStepDto("s2", "A1", "Анализ", null, 2, null)));
         when(ruleSetService.listForProject(PROJECT_ID)).thenReturn(List.of(set("rs1", "Набор")));
         when(ruleSetService.listRules("rs1")).thenReturn(List.of(rule("K-01", "тело")));
         when(repoBindingRepository.findByProjectIdOrderByCreatedAtAsc(PROJECT_ID)).thenReturn(List.of());

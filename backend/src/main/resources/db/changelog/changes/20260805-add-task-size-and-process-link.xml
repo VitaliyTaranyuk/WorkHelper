@@ -1,0 +1,69 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- T-516: размер задачи и обязательность этапов.
+
+         Все три колонки NULLABLE и без дефолта — это правило №5 фазы
+         (PHASE5_INVARIANTS §4): обязательное поле вводится в два шага, сначала
+         nullable, и только потом, при доказанной полноте данных, ограничение.
+         Существующие задачи (184 на момент миграции) остаются без размера и без
+         этапа, и это НЕ ошибочное состояние: задача без размера работает ровно
+         как раньше (инвариант I-01/I-03).
+
+         `<rollback>` задан явно — правило №2 фазы. -->
+    <changeSet id="20260805-add-task-size" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="task_model" columnName="size"/></not>
+        </preConditions>
+
+        <addColumn tableName="task_model">
+            <column name="size" type="varchar(8)"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="task_model" columnName="size"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="20260805-add-task-current-process-step" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="task_model" columnName="current_process_step_id"/></not>
+        </preConditions>
+
+        <addColumn tableName="task_model">
+            <column name="current_process_step_id" type="varchar(255)"/>
+        </addColumn>
+
+        <!-- SET NULL, а не CASCADE: удаление этапа процесса не имеет права уносить
+             задачу. Задача переживает свой этап — она просто остаётся без него. -->
+        <addForeignKeyConstraint baseTableName="task_model" baseColumnNames="current_process_step_id"
+                                 constraintName="fk_task_current_process_step"
+                                 referencedTableName="process_step" referencedColumnNames="id"
+                                 onDelete="SET NULL"/>
+
+        <rollback>
+            <dropForeignKeyConstraint baseTableName="task_model"
+                                      constraintName="fk_task_current_process_step"/>
+            <dropColumn tableName="task_model" columnName="current_process_step_id"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="20260805-add-process-step-required-from-size" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="process_step" columnName="required_from_size"/></not>
+        </preConditions>
+
+        <!-- NULL = этап необязателен ни при каком размере. Это осознанный дефолт:
+             старые строки не должны задним числом стать обязательными. -->
+        <addColumn tableName="process_step">
+            <column name="required_from_size" type="varchar(8)"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="process_step" columnName="required_from_size"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

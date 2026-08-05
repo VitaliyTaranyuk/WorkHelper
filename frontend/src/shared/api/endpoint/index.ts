@@ -12,6 +12,7 @@ import * as rule from './rulesApi'
 import * as sprint from './sprintsApi'
 import * as status from './statusesApi'
 import * as task from './tasksApi'
+import * as taskProcess from './taskProcessApi'
 import * as user from './usersApi'
 import * as voice from './voiceApi'
 
@@ -30,6 +31,7 @@ export const workTechApi = {
   sprint,
   status,
   task,
+  taskProcess,
   user,
   voice,
 }

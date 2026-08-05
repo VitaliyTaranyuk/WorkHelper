@@ -39,9 +39,30 @@ function wrapper(client: QueryClient) {
 }
 
 const STEPS = [
-  { id: 's1', code: 'A0', name: 'Актуальность', description: null, position: 1 },
-  { id: 's2', code: 'A1', name: 'Анализ', description: null, position: 2 },
-  { id: 's3', code: 'V', name: 'Верификация', description: null, position: 3 },
+  {
+    id: 's1',
+    code: 'A0',
+    name: 'Актуальность',
+    description: null,
+    position: 1,
+    requiredFromSize: 'XS',
+  },
+  {
+    id: 's2',
+    code: 'A1',
+    name: 'Анализ',
+    description: null,
+    position: 2,
+    requiredFromSize: 'XS',
+  },
+  {
+    id: 's3',
+    code: 'V',
+    name: 'Верификация',
+    description: null,
+    position: 3,
+    requiredFromSize: null,
+  },
 ]
 
 describe('процесс задачи (T-515)', () => {
@@ -100,6 +121,9 @@ describe('процесс задачи (T-515)', () => {
 
     expect(await screen.findByText(/Актуальность/)).toBeInTheDocument()
     expect(screen.getByText(/Верификация/)).toBeInTheDocument()
+    // T-516: порог обязательности виден прямо в списке этапов.
+    expect(screen.getAllByText(/обязателен с XS/)).toHaveLength(2)
+    expect(screen.getByText('необязателен')).toBeInTheDocument()
     // Раз процесс есть, предлагать «завести по умолчанию» уже незачем.
     expect(
       screen.queryByRole('button', { name: /Завести процесс по умолчанию/ }),
@@ -145,7 +169,8 @@ describe('процесс задачи (T-515)', () => {
     await waitFor(() =>
       expect(createProcessStep).toHaveBeenCalledWith({
         projectId: 'p1',
-        data: { code: 'X', name: 'Приёмка' },
+        // T-516: порог обязательности едет вместе с этапом; «Необязателен» = null.
+        data: { code: 'X', name: 'Приёмка', requiredFromSize: null },
       }),
     )
   })
