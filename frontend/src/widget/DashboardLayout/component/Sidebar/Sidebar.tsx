@@ -32,6 +32,10 @@ interface SideBarProps {
 export function Sidebar({ className }: SideBarProps) {
   const { activeProject } = useProjectData()
   const { data: activeSprint } = useActiveSprintQuery(activeProject?.id)
+  // T-519: в Kanban-режиме спринтовых контролов нет. Незнакомое значение режима
+  // трактуется как «спринты» — деградация к прежнему поведению, а не к пустому
+  // сайдбару (**W-08**).
+  const kanbanMode = activeProject?.boardMode === 'KANBAN'
 
   const sprintDateRange =
     activeSprint?.startDate && activeSprint?.endDate
@@ -73,8 +77,11 @@ export function Sidebar({ className }: SideBarProps) {
               <FormatListBulletedIcon fontSize="small" />
               <NavLabel>Список задач</NavLabel>
             </NavItem>
-            {/* Активный спринт: точка статуса + даты (введено в ТП-11). */}
-            {activeSprint && (
+            {/* Активный спринт: точка статуса + даты (введено в ТП-11).
+                T-519: в Kanban-режиме ссылки нет — доска спринт не показывает, и
+                живой контроль вёл бы в раздел, которого в этом режиме не существует
+                (мёртвый UI, K-32). Спринт при этом цел: режим обратим. */}
+            {activeSprint && !kanbanMode && (
               <SprintCaption
                 to={`/project/${activeProject.id}/sprint`}
                 title={sprintLabel}

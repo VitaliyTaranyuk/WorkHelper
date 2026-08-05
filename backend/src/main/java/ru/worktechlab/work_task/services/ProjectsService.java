@@ -17,6 +17,7 @@ import ru.worktechlab.work_task.exceptions.BadRequestException;
 import ru.worktechlab.work_task.exceptions.NotFoundException;
 import ru.worktechlab.work_task.mappers.ProjectMapper;
 import ru.worktechlab.work_task.mappers.TaskMapper;
+import ru.worktechlab.work_task.models.enums.BoardMode;
 import ru.worktechlab.work_task.models.enums.ProjectStatus;
 import ru.worktechlab.work_task.models.enums.Roles;
 import ru.worktechlab.work_task.models.enums.StatusName;
@@ -196,6 +197,25 @@ public class ProjectsService {
         UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, false, true);
         data.getUser().setLastProjectId(projectId);
         userRepository.flush();
+    }
+
+    /**
+     * T-519: переключить режим доски проекта.
+     *
+     * <p>Меняет владелец — это настройка проекта, а не работа над задачей. Спринты при
+     * переключении **не трогаются**: возврат в {@code SPRINT} возвращает и активный спринт
+     * на доску. Именно обратимость отличает режим от отменённой T-156, где спринты
+     * предлагалось удалить разрушающей миграцией.
+     */
+    @TransactionRequired
+    public ProjectDto setBoardMode(String projectId, BoardMode boardMode)
+            throws NotFoundException, BadRequestException {
+        UserAndProjectData data = checkerUtil.findAndCheckProjectUserData(projectId, true, false);
+        checkerUtil.checkProjectOwner(data.getProject(), data.getUser());
+        data.getProject().setBoardMode(boardMode);
+        projectRepository.flush();
+        log.info("Board mode changed: project={} mode={}", projectId, boardMode);
+        return projectMapper.toProjectDto(data.getProject());
     }
 
     @TransactionRequired

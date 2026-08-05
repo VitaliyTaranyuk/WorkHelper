@@ -1,0 +1,31 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- T-519: режим доски проекта.
+
+         Колонка NULLABLE и БЕЗ значения по умолчанию — это не небрежность:
+         `null` читается кодом как SPRINT (BoardMode.orDefault), поэтому миграция
+         не переписывает ни одной существующей строки, а поведение существующих
+         проектов не меняется (правило №6 PHASE5_INVARIANTS §4: существующий
+         проект обязан получать дефолт, сохраняющий текущее поведение).
+
+         Спринты НЕ удаляются: T-156 закрыта как отменённая решением владельца
+         2026-08-05. Переключение режима обратимо, данные целы. `<rollback>`
+         задан явно — правило №2 фазы. -->
+    <changeSet id="20260805-add-project-board-mode" author="claude">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="project" columnName="board_mode"/></not>
+        </preConditions>
+
+        <addColumn tableName="project">
+            <column name="board_mode" type="varchar(16)"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="project" columnName="board_mode"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

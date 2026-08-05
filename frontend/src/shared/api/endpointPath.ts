@@ -118,6 +118,11 @@ export const API_ENDPOINT_PATH = {
       `/task-process/project/${projectId}/${taskId}/step`,
   },
 
+  PROJECT_BOARD_MODE: {
+    // T-519: режим доски проекта — настройка проекта, меняет владелец.
+    SET: ({ projectId }: ProjectId) => `/projects/${projectId}/board-mode`,
+  },
+
   PROJECTS: {
     CREATE: () => `/projects/create`,
 

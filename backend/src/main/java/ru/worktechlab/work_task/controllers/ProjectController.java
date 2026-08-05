@@ -91,6 +91,20 @@ public class ProjectController {
         return projectsService.createProject(data);
     }
 
+    /**
+     * T-519: режим доски — настройка проекта, поэтому меняет её владелец (проверка в
+     * сервисе, **W-04**). Спринты при переключении не удаляются: переключение обратимо.
+     */
+    @RolesAllowed({ADMIN, PROJECT_OWNER, POWER_USER, PROJECT_MEMBER})
+    @PutMapping("/{projectId}/board-mode")
+    @Operation(summary = "Переключить режим доски проекта")
+    public ProjectDto setBoardMode(
+            @Parameter(description = "ИД проекта", required = true) @PathVariable String projectId,
+            @RequestBody @Valid BoardModeRequestDto data
+    ) throws NotFoundException, BadRequestException {
+        return projectsService.setBoardMode(projectId, data.getBoardMode());
+    }
+
     @RolesAllowed({ADMIN, PROJECT_MEMBER, PROJECT_OWNER, POWER_USER})
     @GetMapping("/{projectId}")
     @Operation(summary = "Получение данных проекта по ИД")
