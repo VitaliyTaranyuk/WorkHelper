@@ -47,6 +47,7 @@ public class ProjectsService {
     private final TaskRepository taskRepository;
     private final TaskMapper taskMapper;
     private final RoleService roleService;
+    private final RuleTransferService ruleTransferService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -110,7 +111,7 @@ public class ProjectsService {
     }
 
     @TransactionRequired
-    public ProjectDto createProject(ProjectRequestDto data) {
+    public ProjectDto createProject(ProjectRequestDto data) throws NotFoundException {
         String userId = userContext.getUserData().getUserId();
         User user = userService.findActiveUserById(userId);
         Project project = new Project(data.getName(), user, data.getDescription(), user, data.getCode());
@@ -119,6 +120,11 @@ public class ProjectsService {
         createDefaultSprint(user, project);
         usersProjectsRepository.saveAndFlush(new UsersProject(user, project));
         roleService.addUserRoles(user, Roles.PROJECT_OWNER);
+        // T-512 (ADR-019): правила переносятся тем же шагом наполнения нового
+        // проекта, что колонки и спринт, и в той же транзакции — отказ переноса
+        // не оставляет наполовину созданный проект. У пользователя без общих
+        // наборов и без донора шаг не создаёт ни одной записи (I-03).
+        ruleTransferService.copyIntoNewProject(project, user, data.getDonorProjectId());
         // Default statuses, sprint and membership were persisted through their own
         // repositories, so the managed `project` instance still holds empty collections.
         // Refresh it from the DB so the returned DTO contains the full graph (statuses, users).

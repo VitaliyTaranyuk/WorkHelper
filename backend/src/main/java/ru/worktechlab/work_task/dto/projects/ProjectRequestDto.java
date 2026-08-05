@@ -26,4 +26,8 @@ public class ProjectRequestDto {
     @Pattern(regexp = CODE_PATTERN, message = CODE_MESSAGE)
     @Schema(description = "Код проекта (2–6 символов, с буквы)")
     private String code;
+    // T-512: необязательный проект-донор правил. Поле аддитивно — запрос без
+    // него ведёт себя ровно как раньше (I-03), поэтому старый клиент не ломается.
+    @Schema(description = "ИД проекта, чьи правила скопировать в новый проект (необязательно)")
+    private String donorProjectId;
 }

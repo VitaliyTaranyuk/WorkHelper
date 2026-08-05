@@ -4,7 +4,12 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { useCurrentProjectStore } from '@/features/project/model/currentProjectStore'
 
-function useUserProjects() {
+/**
+ * Проекты пользователя. Экспортируется с T-512: список нужен не только для
+ * выбора активного проекта, но и для выбора проекта-донора правил при создании
+ * нового — второй запрос за тем же списком был бы дублем (**K-22**).
+ */
+export function useUserProjects() {
   return useQuery({
     queryKey: ['userProjects'],
     queryFn: () =>

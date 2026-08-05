@@ -50,6 +50,9 @@ class ProjectsServiceCurrentProjectTest {
     @Mock private TaskRepository taskRepository;
     @Mock private TaskMapper taskMapper;
     @Mock private RoleService roleService;
+    // T-512: зависимость появилась у ProjectsService; здесь она не используется,
+    // но без объявления @InjectMocks подставил бы null.
+    @Mock private RuleTransferService ruleTransferService;
 
     @InjectMocks
     private ProjectsService projectsService;
