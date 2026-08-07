@@ -31,7 +31,7 @@ jobs:
       # маскирует значения секретов).
       SSHPASS: ${{ secrets.SERVER_PASSWORD }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Доступ к серверу — ключом ИЛИ паролем. Ключ предпочтительнее: его
       # отзывают удалением строки в authorized_keys, не трогая учётную запись.
@@ -169,7 +169,7 @@ jobs:
 
       - name: Set up Node
         if: ${{ inputs.target == 'both' || inputs.target == 'frontend' }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
