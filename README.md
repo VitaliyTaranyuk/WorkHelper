@@ -51,6 +51,22 @@ WorkHelper/
 - Docker & Docker Compose
 - PostgreSQL (или запуск через Docker)
 
+### Настройка
+
+**Учётных данных в репозитории нет** — ни от боевой базы, ни от локальной (K-33). Два файла
+создаются из шаблонов, значения вы задаёте сами:
+
+```bash
+cp backend/enviroment/local/.env.example backend/enviroment/local/.env
+cp backend/src/main/resources/application-local.yml.example backend/src/main/resources/application-local.yml
+```
+
+Первый читает `docker-compose` при подъёме БД, второй — backend при старте. Значения в них
+должны совпадать. Оба файла в git не хранятся и в docker-образ не попадают.
+
+Дальше: `docker-compose up -d` в `backend/enviroment/local`, затем `./gradlew bootRun`
+в `backend/` и `npm install && npm run dev` во `frontend/`.
+
 ## Функциональность
 
 - Управление проектами

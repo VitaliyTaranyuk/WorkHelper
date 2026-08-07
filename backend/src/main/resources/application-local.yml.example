@@ -1,6 +1,6 @@
 # Шаблон локального профиля (T-103, TD-001).
 #
-# Скопировать рядом без суффикса .example и править под себя:
+# Скопировать рядом без суффикса .example и подставить свои значения:
 #   cp application-local.yml.example application-local.yml
 #
 # Сам application-local.yml в git НЕ хранится (.gitignore) и НЕ попадает
@@ -9,18 +9,15 @@
 # публичный — креды знал любой, кто открыл GitHub. Вдобавок `COPY src ./src`
 # запекал этот файл в КАЖДЫЙ образ, включая продовый.
 #
-# Значения ниже — не секреты: это те же параметры, что поднимает
-# backend/enviroment/local/docker-compose.yml. Локальная БД на localhost,
-# и ничего чувствительного здесь быть не должно. Если нужен доступ
-# к удалённой базе — держать его в своей копии файла, а не в шаблоне.
+# ЗНАЧЕНИЯ ЗДЕСЬ НЕ ПОДСТАВЛЕНЫ НАМЕРЕННО. В репозитории не должно быть
+# учётных данных ни от какой базы — ни боевой, ни локальной. Подставьте те же
+# значения, что задали в backend/enviroment/local/.env для docker-compose.
 
 spring:
   datasource:
-    # Соответствует backend/enviroment/local/docker-compose.yml:
-    #   docker-compose up -d  в  backend/enviroment/local
-    url: jdbc:postgresql://localhost:5432/mydb
-    username: myuser
-    password: 1234566
+    url: jdbc:postgresql://localhost:5432/<ИМЯ_БД>
+    username: <ПОЛЬЗОВАТЕЛЬ>
+    password: <ПАРОЛЬ>
   jpa:
     show-sql: true
     hibernate:

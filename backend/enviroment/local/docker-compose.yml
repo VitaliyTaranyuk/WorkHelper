@@ -13,10 +13,14 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=mydb
-      - POSTGRES_USER=myuser
-      - POSTGRES_PASSWORD=1234566
+      # Значения берутся из файла .env рядом с этим compose-файлом — он
+      # в git не хранится (.gitignore). Шаблон: .env.example.
+      # Раньше здесь стояли литералы, и они же были продублированы в README,
+      # в шаблоне профиля и в CI — учётные данные от базы в репозитории быть
+      # не должны ни в каком виде (K-33).
+      - POSTGRES_DB=${POSTGRES_DB:?задайте POSTGRES_DB в .env — см. .env.example}
+      - POSTGRES_USER=${POSTGRES_USER:?задайте POSTGRES_USER в .env — см. .env.example}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?задайте POSTGRES_PASSWORD в .env — см. .env.example}
 
 volumes:
   postgres_data:
-
