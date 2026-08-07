@@ -1,14 +1,25 @@
 name: Backend CI
 
-# docker-compose.vds.yml и deploy.yml перечислены наравне с кодом: их
-# согласованность с backend проверяет DeployGateContractTest (TD-029), и
-# правка гейта деплоя без прогона тестов прошла бы мимо этой проверки.
+# Принцип фильтра (T-311): в paths входит ВСЁ, от чего зависит РЕЗУЛЬТАТ
+# backend-тестов, а не только каталог backend/. Иначе гейт не срабатывает
+# ровно на том изменении, которое его ломает — класс TD-029.
+#
+# Файлы вне backend/, которые читают тесты (проверено grep по src/test):
+#   docker-compose.vds.yml + .github/workflows/deploy.yml → DeployGateContractTest (TD-029)
+#   .ai/PROJECT_RULES.md                                  → ReferenceCatalogSyncTest (T-513)
+#
+# Реестр правил добавлен в T-311 (TD-040): ADR-023 разрешает дубль эталонного
+# каталога ТОЛЬКО потому, что расхождение красит сборку, — а на PR, меняющем
+# один лишь реестр, сборка не запускалась вовсе.
+#
+# Сам workflow тоже в списке (как в mcp-ci.yml): без этого опечатка в paths
+# отключила бы проверки молча и не была бы замечена собственным прогоном.
 on:
   push:
     branches: [ main ]
-    paths: [ 'backend/**', 'docker-compose.vds.yml', '.github/workflows/deploy.yml' ]
+    paths: [ 'backend/**', 'docker-compose.vds.yml', '.github/workflows/deploy.yml', '.ai/PROJECT_RULES.md', '.github/workflows/backend-ci.yml' ]
   pull_request:
-    paths: [ 'backend/**', 'docker-compose.vds.yml', '.github/workflows/deploy.yml' ]
+    paths: [ 'backend/**', 'docker-compose.vds.yml', '.github/workflows/deploy.yml', '.ai/PROJECT_RULES.md', '.github/workflows/backend-ci.yml' ]
 
 jobs:
   build-and-test:
