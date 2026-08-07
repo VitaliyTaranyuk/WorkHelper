@@ -116,6 +116,12 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '1'
+          # TD-044: список известных находок, у которых ИСПРАВЛЕННОЙ ВЕРСИИ НЕ
+          # СУЩЕСТВУЕТ на Maven Central. Каждая — с письменной причиной и датой
+          # истечения, по норме backend/config/spotbugs/exclude.xml. По истечении
+          # даты сборка снова покраснеет: без этого исключение молча становится
+          # вечным и гейт перестаёт отличать «патча ещё нет» от «забыли обновиться».
+          trivyignores: .trivyignore.yaml
 
       - name: Run tests
         run: ./gradlew test
