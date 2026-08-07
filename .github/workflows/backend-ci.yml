@@ -20,6 +20,10 @@ on:
     paths: [ 'backend/**', 'docker-compose.vds.yml', '.github/workflows/deploy.yml', '.ai/PROJECT_RULES.md', '.github/workflows/backend-ci.yml' ]
   pull_request:
     paths: [ 'backend/**', 'docker-compose.vds.yml', '.github/workflows/deploy.yml', '.ai/PROJECT_RULES.md', '.github/workflows/backend-ci.yml' ]
+  # T-303: см. пояснение в frontend-ci.yml — CVE публикуются без изменений кода,
+  # поэтому сканирование обязано идти и по расписанию.
+  schedule:
+    - cron: '0 6 * * 1'
 
 jobs:
   build-and-test:
@@ -77,6 +81,42 @@ jobs:
 
       - name: Build
         run: ./gradlew build -x test
+
+      # ВРЕМЕННО ОТКЛЮЧЁН до устранения TD-044 (см. ниже `if: false`).
+      #
+      # Первый же прогон этого шага нашёл в Spring **две CRITICAL-уязвимости
+      # обхода авторизации** (CVE-2025-41232, CVE-2026-22732) и семь HIGH.
+      # Оставить гейт включённым значило бы заблокировать КАЖДЫЙ merge до
+      # обновления Spring Boot — то есть остановить и саму починку.
+      #
+      # Отключение сделано `if: false`, а не удалением шага, и связано с
+      # конкретной задачей: TD-044 обязан вернуть `if` обратно, и это
+      # единственное условие его закрытия. Находки при этом не спрятаны —
+      # они выписаны в `.ai/TECH_DEBT.md` с номерами CVE и версиями
+      # исправлений (K-42), а не оставлены «в логе неудачного прогона».
+      #
+      # T-303: сканирование зависимостей backend. Выбран Trivy по СОБРАННОМУ jar,
+      # а не OWASP dependency-check из первоначального описания задачи: последний
+      # требует ключ NVD API, то есть секрет, заводить который может только
+      # владелец (K-33). Gradle-lockfile в проекте отсутствует, поэтому сканеры,
+      # читающие lock, зависимостей backend не увидели бы вовсе — Trivy же
+      # разбирает содержимое архива и находит встроенные библиотеки.
+      #
+      # Гейт настоящий: exit-code 1 валит сборку (как SpotBugs, T-104).
+      #
+      # ignore-unfixed включён с письменной причиной, по норме config/spotbugs/
+      # exclude.xml: уязвимость без выпущенного исправления не даёт действия,
+      # но заблокировала бы КАЖДЫЙ merge до выхода патча у стороннего проекта.
+      # Такие находки видны в выводе шага, просто не валят сборку.
+      - name: Security scan (Trivy)
+        if: false  # TD-044: включить обратно после обновления Spring Boot
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: rootfs
+          scan-ref: backend/build/libs
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
 
       - name: Run tests
         run: ./gradlew test
