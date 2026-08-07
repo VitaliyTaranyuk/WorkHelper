@@ -15,6 +15,14 @@ ext {
     gitVersion = 'git rev-parse --short HEAD'.execute().text.trim()
     buildTime = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date())
     appVersion = "0.0.1-${gitVersion}"
+
+    // TD-044: Spring Boot 3.5.3 приносит tomcat-embed 10.1.42, в котором
+    // CRITICAL CVE-2026-41293 и ещё восемь CVE. Исправленная 10.1.55
+    // опубликована, а Boot-релиза с ней ещё нет — поднимаем управляемую
+    // версию явно. Это штатный механизм spring-boot-gradle-plugin, а не
+    // обход: BOM продолжает управлять остальными зависимостями.
+    // Убрать, когда Boot начнёт приносить >= 10.1.55 сам.
+    set('tomcat.version', '10.1.55')
 }
 
 version = appVersion
