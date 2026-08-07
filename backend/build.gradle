@@ -117,6 +117,17 @@ tasks.register('integrationTest', Test) {
     systemProperty 'spring.datasource.username', System.getenv('IT_DB_USER') ?: 'myuser'
     systemProperty 'spring.datasource.password', System.getenv('IT_DB_PASSWORD') ?: '1234566'
 
+    // Падение интеграционного теста почти всегда происходит при СТАРТЕ контекста,
+    // а стандартный вывод Gradle печатает только тип исключения («IllegalStateException
+    // at Assert.java:79») без сообщения — по такой строке причина неотличима от
+    // десятка других. Полный формат экономит круг «правка → пуш → прогон CI».
+    testLogging {
+        events 'failed'
+        exceptionFormat = 'full'
+        showCauses = true
+        showStackTraces = true
+    }
+
     shouldRunAfter tasks.named('test')
 }
 
