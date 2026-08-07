@@ -37,3 +37,10 @@ app:
   # заводить пользователей с предсказуемым паролем даже во временной БД.
   bootstrap:
     admin-password: ""
+  attachments:
+    # AttachmentStorage в @PostConstruct создаёт этот каталог, и без переопределения
+    # берёт дефолт `/var/lib/workhelper/attachments` — на раннере CI он не создаётся
+    # (не root), контекст падает с AccessDeniedException ещё до подключения к БД.
+    # Найдено первым же прогоном T-101 в CI. Каталог внутри build/ — его чистит
+    # `gradlew clean` и не видит git.
+    storage-dir: build/integration-test/attachments
