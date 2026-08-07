@@ -22,14 +22,14 @@ jobs:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Read .nvmrc
         id: nvmrc
         run: echo "version=$(cat .nvmrc)" >> $GITHUB_OUTPUT
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ steps.nvmrc.outputs.version }}
           cache: npm

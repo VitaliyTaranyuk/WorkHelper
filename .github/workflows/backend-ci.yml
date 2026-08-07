@@ -61,16 +61,16 @@ jobs:
         working-directory: backend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: corretto
           java-version: '21'
 
       - name: Cache Gradle packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.gradle/caches
           key: ${{ runner.os }}-gradle-${{ hashFiles('backend/**/*.gradle*') }}
@@ -82,18 +82,12 @@ jobs:
       - name: Build
         run: ./gradlew build -x test
 
-      # ВРЕМЕННО ОТКЛЮЧЁН до устранения TD-044 (см. ниже `if: false`).
-      #
-      # Первый же прогон этого шага нашёл в Spring **две CRITICAL-уязвимости
-      # обхода авторизации** (CVE-2025-41232, CVE-2026-22732) и семь HIGH.
-      # Оставить гейт включённым значило бы заблокировать КАЖДЫЙ merge до
-      # обновления Spring Boot — то есть остановить и саму починку.
-      #
-      # Отключение сделано `if: false`, а не удалением шага, и связано с
-      # конкретной задачей: TD-044 обязан вернуть `if` обратно, и это
-      # единственное условие его закрытия. Находки при этом не спрятаны —
-      # они выписаны в `.ai/TECH_DEBT.md` с номерами CVE и версиями
-      # исправлений (K-42), а не оставлены «в логе неудачного прогона».
+      # ИСТОРИЯ ШАГА (TD-044). Первый же его прогон нашёл в Spring две
+      # CRITICAL-уязвимости обхода авторизации, поэтому шаг был на время
+      # отключён `if: false` — включённый гейт заблокировал бы каждый merge,
+      # включая PR с самой починкой. После обновления Spring Boot 3.4.0 -> 3.5.3
+      # и `tomcat.version` -> 10.1.55 обе достижимые CRITICAL закрыты, и `if`
+      # снят: шаг работает как обычный гейт.
       #
       # T-303: сканирование зависимостей backend. Выбран Trivy по СОБРАННОМУ jar,
       # а не OWASP dependency-check из первоначального описания задачи: последний
