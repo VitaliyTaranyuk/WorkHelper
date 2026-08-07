@@ -27,8 +27,16 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>Тест помечен тегом {@code integration} и в {@code ./gradlew test} НЕ
  * входит — он требует БД. Запуск: {@code ./gradlew integrationTest}.
  */
+/*
+ * RANDOM_PORT, а не MOCK: приложение экспортирует WebSocket-эндпоинт (звонки),
+ * и мок-контекст падает с «Attribute 'jakarta.websocket.server.ServerContainer'
+ * not found in ServletContext» — найдено прогоном в CI. Встроенный контейнер
+ * дороже на несколько секунд, но проверяет тот же путь старта, что и прод,
+ * а не его усечённую версию. Порт случайный: занятый 8080 не должен ронять
+ * прогон.
+ */
 @Tag("integration")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 class SchemaIntegrationIT {
 
