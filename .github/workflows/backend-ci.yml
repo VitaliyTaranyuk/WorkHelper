@@ -30,12 +30,20 @@ jobs:
       # До T-101 сервис поднимался вхолостую — интеграционных тестов не было ни одного,
       # и предупреждение здесь честно об этом говорило (T-106). Теперь наличие postgres
       # в пайплайне действительно означает, что интеграционные тесты выполняются.
+      #
+      # Пароля у этой БД НЕТ вовсе: `POSTGRES_HOST_AUTH_METHOD: trust`. Так в
+      # репозитории не остаётся ни одной учётной записи — раньше здесь стояли
+      # те же логин и пароль, что в README, в локальном docker-compose и в
+      # шаблоне профиля, и повторение делало их похожими на «настоящие».
+      # Контейнер живёт минуты, доступен только из этого job и уничтожается
+      # вместе с раннером; заводить ради него секрет GitHub значило бы просить
+      # у владельца секрет там, где секрет не нужен (K-33).
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: mydb
-          POSTGRES_USER: myuser
-          POSTGRES_PASSWORD: 1234566
+          POSTGRES_DB: worktask_ci
+          POSTGRES_USER: worktask_ci
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -83,6 +91,7 @@ jobs:
       - name: Run integration tests
         run: ./gradlew integrationTest
         env:
-          IT_DB_URL: jdbc:postgresql://localhost:5432/mydb
-          IT_DB_USER: myuser
-          IT_DB_PASSWORD: 1234566
+          IT_DB_URL: jdbc:postgresql://localhost:5432/worktask_ci
+          IT_DB_USER: worktask_ci
+          # Пусто намеренно: у контейнера аутентификация trust, пароля нет.
+          IT_DB_PASSWORD: ""

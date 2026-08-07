@@ -5,15 +5,13 @@
 # одноразовый. Любое другое имя потребовало бы заводить JWT_SECRET в CI —
 # то есть секрет ради теста, чего K-33 не одобряет.
 #
-# Адрес БД приезжает системными свойствами из задачи integrationTest
-# (build.gradle): в CI это service container, локально —
-# backend/enviroment/local/docker-compose.yml. Значения здесь — фолбэк.
+# Учётных данных здесь НЕТ и быть не должно: `spring.datasource.*` задаются
+# системными свойствами из задачи integrationTest, а та берёт их только из
+# окружения (IT_DB_URL / IT_DB_USER / IT_DB_PASSWORD) и без них останавливается
+# с объяснением. Запуск теста из IDE в обход Gradle упадёт на отсутствии
+# датасорса — это ожидаемо, гоняйте `./gradlew integrationTest`.
 
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/mydb
-    username: myuser
-    password: 1234566
   jpa:
     show-sql: false
     hibernate:
