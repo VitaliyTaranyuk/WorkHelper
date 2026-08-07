@@ -72,3 +72,17 @@ jobs:
 
       - name: Run tests
         run: ./gradlew test
+
+      # T-101: интеграционные тесты против service container postgres:16.
+      # До T-101 этот сервис поднимался, но им не пользовался ни один тест —
+      # он был заведён авансом и три месяца работал вхолостую.
+      #
+      # Отдельным шагом, а не внутри `test`: у них разные предусловия. `test`
+      # обязан проходить на машине без БД, `integrationTest` без БД
+      # осмысленно упасть, а не позеленеть на пустом множестве.
+      - name: Run integration tests
+        run: ./gradlew integrationTest
+        env:
+          IT_DB_URL: jdbc:postgresql://localhost:5432/mydb
+          IT_DB_USER: myuser
+          IT_DB_PASSWORD: 1234566

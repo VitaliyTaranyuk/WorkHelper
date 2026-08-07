@@ -1,0 +1,39 @@
+# T-101: профиль интеграционных тестов.
+#
+# Имя `test` выбрано не произвольно: JwtUtils#initSecret допускает пустой
+# JWT-секрет только для профилей local и test (DEV_PROFILES) и генерирует
+# одноразовый. Любое другое имя потребовало бы заводить JWT_SECRET в CI —
+# то есть секрет ради теста, чего K-33 не одобряет.
+#
+# Адрес БД приезжает системными свойствами из задачи integrationTest
+# (build.gradle): в CI это service container, локально —
+# backend/enviroment/local/docker-compose.yml. Значения здесь — фолбэк.
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mydb
+    username: myuser
+    password: 1234566
+  jpa:
+    show-sql: false
+    hibernate:
+      # ВАЖНО: validate, а не none. Схему создаёт Liquibase, а Hibernate
+      # сверяет с ней свои маппинги при старте контекста — расхождение
+      # «сущность ↔ таблица» роняет тест. Именно это TD-004 называл риском
+      # («тесты могут расходиться с реальной схемой»), и до T-101 такой
+      # проверки не было ни одной.
+      ddl-auto: validate
+  liquibase:
+    enabled: true
+  cors:
+    allowed:
+      origins: "http://localhost:3000"
+      local: "http://localhost:3000"
+
+app:
+  mail:
+    enable: false
+  # Пусто = админ-учётки не создаются (TD-026). Интеграционный тест не должен
+  # заводить пользователей с предсказуемым паролем даже во временной БД.
+  bootstrap:
+    admin-password: ""
