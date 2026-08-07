@@ -2,7 +2,10 @@ import java.text.SimpleDateFormat
 
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.0'
+    // TD-044: 3.4.0 -> 3.5.3 (последняя опубликованная на момент 2026-08-07).
+    // Обновление вызвано не гигиеной версий, а двумя CRITICAL-уязвимостями
+    // обхода авторизации в Spring Security, найденными первым же прогоном Trivy.
+    id 'org.springframework.boot' version '3.5.3'
     id 'io.spring.dependency-management' version '1.1.6'
     id 'org.liquibase.gradle' version '2.2.0'
     id 'com.github.spotbugs' version '6.0.26'
@@ -12,6 +15,14 @@ ext {
     gitVersion = 'git rev-parse --short HEAD'.execute().text.trim()
     buildTime = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date())
     appVersion = "0.0.1-${gitVersion}"
+
+    // TD-044: Spring Boot 3.5.3 приносит tomcat-embed 10.1.42, в котором
+    // CRITICAL CVE-2026-41293 и ещё восемь CVE. Исправленная 10.1.55
+    // опубликована, а Boot-релиза с ней ещё нет — поднимаем управляемую
+    // версию явно. Это штатный механизм spring-boot-gradle-plugin, а не
+    // обход: BOM продолжает управлять остальными зависимостями.
+    // Убрать, когда Boot начнёт приносить >= 10.1.55 сам.
+    set('tomcat.version', '10.1.55')
 }
 
 version = appVersion
