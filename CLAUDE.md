@@ -211,7 +211,8 @@ Zustand, React Hook Form + Zod, Axios.
 | Операция | Команда |
 |---|---|
 | БД локально | `docker-compose up -d` в `backend/enviroment/local` |
-| Тесты (backend) | `./gradlew test` |
+| Тесты (backend) | `./gradlew test` — БД не требуется, тег `integration` исключён |
+| Интеграционные тесты (backend) | `./gradlew integrationTest` — **нужен живой PostgreSQL**: `docker-compose up -d` в `backend/enviroment/local` либо `IT_DB_URL`/`IT_DB_USER`/`IT_DB_PASSWORD` |
 | Статический анализ (backend) | `./gradlew spotbugsMain` (входит в `build`; отчёт — `build/reports/spotbugs/main.html`) |
 | Сборка (backend) | `./gradlew build` |
 | Запуск (backend) | `./gradlew bootRun` |

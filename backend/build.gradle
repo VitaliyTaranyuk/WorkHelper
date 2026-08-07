@@ -69,8 +69,24 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-mail'
 }
 
+/*
+ * T-101: интеграционные тесты отделены от модульных ТЕГОМ, а не отдельным
+ * source set. Причина — K-15 (консервативный вариант): тестовый classpath,
+ * зависимости и SpotBugs-исключения остаются прежними, добавляется только
+ * фильтр.
+ *
+ * `test` их НЕ запускает, поэтому `./gradlew test` остаётся зелёным на машине
+ * без PostgreSQL — именно так весь проектный quality gate и работал до сих пор.
+ * `integrationTest` запускает ТОЛЬКО их и требует живую БД.
+ *
+ * Тег, а не условный пропуск: тест, который сам себя выключает при недоступной
+ * БД, зелёный и в том случае, когда проверять было нечем, — это молчаливый
+ * отказ (W-06) и гейт, неотличимый от выключенного (урок T-104).
+ */
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags 'integration'
+    }
 
     // T-513: эталонный каталог правил порождается из `.ai/PROJECT_RULES.md` и
     // сверяется с ним на каждом прогоне (ReferenceCatalogSyncTest). Перегенерация —
@@ -80,6 +96,39 @@ tasks.named('test') {
     if (System.getProperty('rules.regenerate') != null) {
         systemProperty 'rules.regenerate', System.getProperty('rules.regenerate')
     }
+}
+
+tasks.register('integrationTest', Test) {
+    description = 'Интеграционные тесты против живого PostgreSQL (профиль test).'
+    group = 'verification'
+
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
+    useJUnitPlatform {
+        includeTags 'integration'
+    }
+
+    // Адрес БД переопределяется окружением: в CI это service container,
+    // локально — backend/enviroment/local/docker-compose.yml. Значения по
+    // умолчанию совпадают с обоими.
+    systemProperty 'spring.datasource.url',
+            System.getenv('IT_DB_URL') ?: 'jdbc:postgresql://localhost:5432/mydb'
+    systemProperty 'spring.datasource.username', System.getenv('IT_DB_USER') ?: 'myuser'
+    systemProperty 'spring.datasource.password', System.getenv('IT_DB_PASSWORD') ?: '1234566'
+
+    // Падение интеграционного теста почти всегда происходит при СТАРТЕ контекста,
+    // а стандартный вывод Gradle печатает только тип исключения («IllegalStateException
+    // at Assert.java:79») без сообщения — по такой строке причина неотличима от
+    // десятка других. Полный формат экономит круг «правка → пуш → прогон CI».
+    testLogging {
+        events 'failed'
+        exceptionFormat = 'full'
+        showCauses = true
+        showStackTraces = true
+    }
+
+    shouldRunAfter tasks.named('test')
 }
 
 /*

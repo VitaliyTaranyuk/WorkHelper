@@ -80,9 +80,13 @@ ru.worktechlab.work_task/
   `docker-compose`. Прежняя версия файла указывала на БД **на VPS** и лежала в публичном
   репозитории вместе с паролем — это и было содержанием TD-001
 - `prod` — переменные среды (`DB_URL`, `POSTGRES_USER`, `POSTGRES_PASSWORD`)
-- CI — тесты запускают PostgreSQL как service container, но **не пользуются им**: классов
-  с `@SpringBootTest` в проекте ноль, поэтому ни один тест не читает профильные файлы
-  (сервис заведён авансом под T-101)
+- `test` — профиль интеграционных тестов (T-101), `src/test/resources/application-test.yml`.
+  Схему создаёт Liquibase, Hibernate сверяет с ней маппинги (`ddl-auto: validate`). Имя
+  `test` обязательно: только `local` и `test` разрешают пустой JWT-секрет
+  (`JwtUtils.DEV_PROFILES`)
+- CI — поднимает PostgreSQL как service container, и с T-101 им **пользуется** шаг
+  `./gradlew integrationTest`. Модульные тесты (`./gradlew test`) БД по-прежнему не требуют:
+  интеграционные отделены тегом `integration`
 
 ---
 
