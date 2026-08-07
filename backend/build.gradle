@@ -2,7 +2,10 @@ import java.text.SimpleDateFormat
 
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.0'
+    // TD-044: 3.4.0 -> 3.5.3 (последняя опубликованная на момент 2026-08-07).
+    // Обновление вызвано не гигиеной версий, а двумя CRITICAL-уязвимостями
+    // обхода авторизации в Spring Security, найденными первым же прогоном Trivy.
+    id 'org.springframework.boot' version '3.5.3'
     id 'io.spring.dependency-management' version '1.1.6'
     id 'org.liquibase.gradle' version '2.2.0'
     id 'com.github.spotbugs' version '6.0.26'

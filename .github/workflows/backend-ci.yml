@@ -109,7 +109,6 @@ jobs:
       # но заблокировала бы КАЖДЫЙ merge до выхода патча у стороннего проекта.
       # Такие находки видны в выводе шага, просто не валят сборку.
       - name: Security scan (Trivy)
-        if: false  # TD-044: включить обратно после обновления Spring Boot
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: rootfs
