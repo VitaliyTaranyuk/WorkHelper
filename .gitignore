@@ -34,6 +34,12 @@ frontend/.tanstack/
 !.env.*.example
 *.env.local
 
+# Локальный профиль backend (T-103, TD-001): содержит адрес и креды БД
+# разработчика. Раньше лежал в репозитории вместе с паролем боевой базы
+# на VPS — при публичном репозитории это был вход без всякого взлома.
+# Шаблон рядом: application-local.yml.example (он ОТСЛЕЖИВАЕТСЯ).
+backend/src/main/resources/application-local.yml
+
 # ===== OS =====
 .DS_Store
 Thumbs.db

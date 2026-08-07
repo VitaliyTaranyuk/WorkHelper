@@ -64,7 +64,25 @@ docker-compose up -d
 - User: `myuser`
 - Password: `1234566`
 
-### 2. Backend
+### 2. Локальный профиль backend
+
+Профиль `local` активен по умолчанию, но его файл **в репозитории не хранится** — он
+содержит адрес и креды базы разработчика (T-103, TD-001). Рядом лежит шаблон:
+
+```bash
+cp backend/src/main/resources/application-local.yml.example backend/src/main/resources/application-local.yml
+```
+
+Значения в шаблоне уже соответствуют локальной БД из шага 1 — править ничего не нужно,
+если вы поднимали её через `docker-compose`. Файл игнорируется git и не попадает в
+docker-образ.
+
+> **Если вы обновляетесь со старой версии репозитория:** `application-local.yml` раньше
+> был отслеживаемым, поэтому при `git pull` он **исчезнет из рабочей копии**. Восстановить —
+> той же командой выше. Пароль боевой БД, лежавший в прежней версии файла, считайте
+> скомпрометированным: репозиторий публичный, и история хранит его навсегда.
+
+### 3. Backend
 
 ```bash
 cd backend
@@ -73,7 +91,7 @@ cd backend
 
 Swagger UI доступен по адресу: `http://localhost:8080/swagger-ui/index.html`
 
-### 3. Frontend
+### 4. Frontend
 
 ```bash
 cd frontend

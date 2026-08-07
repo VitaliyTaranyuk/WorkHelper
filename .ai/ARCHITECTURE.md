@@ -74,9 +74,15 @@ ru.worktechlab.work_task/
 - Миграции: `src/main/resources/db/changelog/changes/` (16 XML-файлов)
 
 **ADR-004: Профили Spring**
-- `local` — используется по умолчанию (`application-local.yml`), подключается к БД на VPS
+- `local` — используется по умолчанию, но файл `application-local.yml` **в репозитории не
+  хранится** (T-103, TD-001): он содержит креды базы разработчика. Отслеживается только
+  шаблон `application-local.yml.example`, значения в нём совпадают с локальным
+  `docker-compose`. Прежняя версия файла указывала на БД **на VPS** и лежала в публичном
+  репозитории вместе с паролем — это и было содержанием TD-001
 - `prod` — переменные среды (`DB_URL`, `POSTGRES_USER`, `POSTGRES_PASSWORD`)
-- CI — тесты запускают PostgreSQL как service container
+- CI — тесты запускают PostgreSQL как service container, но **не пользуются им**: классов
+  с `@SpringBootTest` в проекте ноль, поэтому ни один тест не читает профильные файлы
+  (сервис заведён авансом под T-101)
 
 ---
 

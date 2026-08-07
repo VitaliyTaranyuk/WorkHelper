@@ -1,0 +1,42 @@
+# Шаблон локального профиля (T-103, TD-001).
+#
+# Скопировать рядом без суффикса .example и править под себя:
+#   cp application-local.yml.example application-local.yml
+#
+# Сам application-local.yml в git НЕ хранится (.gitignore) и НЕ попадает
+# в docker-образ (backend/.dockerignore). Причина: раньше он лежал
+# в репозитории вместе с логином и паролем боевой БД на VPS, а репозиторий
+# публичный — креды знал любой, кто открыл GitHub. Вдобавок `COPY src ./src`
+# запекал этот файл в КАЖДЫЙ образ, включая продовый.
+#
+# Значения ниже — не секреты: это те же параметры, что поднимает
+# backend/enviroment/local/docker-compose.yml. Локальная БД на localhost,
+# и ничего чувствительного здесь быть не должно. Если нужен доступ
+# к удалённой базе — держать его в своей копии файла, а не в шаблоне.
+
+spring:
+  datasource:
+    # Соответствует backend/enviroment/local/docker-compose.yml:
+    #   docker-compose up -d  в  backend/enviroment/local
+    url: jdbc:postgresql://localhost:5432/mydb
+    username: myuser
+    password: 1234566
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+  liquibase:
+    enabled: true
+  cors:
+    allowed:
+      origins: "http://localhost:3000"
+      local: "http://localhost:3000,http://localhost:5173"
+
+server:
+  servlet:
+    context-path:
+  port: 8080
+
+app:
+  mail:
+    enable: false
