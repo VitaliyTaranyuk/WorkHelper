@@ -8,6 +8,9 @@ on:
     paths: [ 'mcp/**', '.github/workflows/mcp-ci.yml' ]
   pull_request:
     paths: [ 'mcp/**', '.github/workflows/mcp-ci.yml' ]
+  # T-303: см. пояснение в frontend-ci.yml — CVE появляются без изменений кода.
+  schedule:
+    - cron: '0 6 * * 1'
 
 jobs:
   build-and-test:
@@ -33,6 +36,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # T-303: гейт, а не отчёт. Порог и обоснование — как во frontend-ci.yml.
+      # На момент введения пакет имел 0 уязвимостей любого уровня.
+      - name: Security audit
+        run: npm audit --audit-level=high
 
       - name: Type check
         run: npm run lint
