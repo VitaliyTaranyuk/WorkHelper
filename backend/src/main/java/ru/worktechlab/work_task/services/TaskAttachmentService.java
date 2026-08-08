@@ -18,7 +18,6 @@ import ru.worktechlab.work_task.utils.CheckerUtil;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.UUID;
@@ -151,14 +150,24 @@ public class TaskAttachmentService {
 
     private static String sanitizeFileName(String original) {
         if (original == null || original.isBlank()) return "file";
-        // T-104 (найдено SpotBugs, NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE):
-        // getFileName() возвращает null для пути без имени — например "/" или
-        // "C:\". Имя приходит из `file.getOriginalFilename()`, то есть от
-        // пользователя, и прежний код падал на нём NPE (500 на загрузке).
-        Path fileName = Paths.get(original).getFileName();
-        if (fileName == null) return "file";
-        String base = fileName.toString();
-        // Запрещаем path-разделители и управляющие символы.
+        // Разбор ИМЕНИ, а не ПУТИ — и это принципиально (T-105).
+        //
+        // Здесь стоял `Paths.get(original).getFileName()`, и он дважды оказывался
+        // не тем инструментом для недоверенного ввода:
+        //   1. T-104 (SpotBugs, NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE):
+        //      getFileName() отдаёт null для пути без имени («/», «C:\») —
+        //      прежний код падал NPE, то есть 500 на пользовательском вводе;
+        //   2. T-105: на Windows `Paths.get("re:port*?.txt")` бросает
+        //      InvalidPathException (unchecked) ЕЩЁ ДО очистки — то есть
+        //      санитайзер падал именно на тех именах, от которых защищает.
+        //      На Linux те же символы в путях легальны, поэтому дефект
+        //      платформозависимый и на проде не проявлялся.
+        //
+        // Строковый разбор убирает зависимость от платформы целиком: базовое имя
+        // берётся по последнему разделителю любого из двух видов, а всё
+        // небезопасное затем заменяется.
+        int cut = Math.max(original.lastIndexOf('/'), original.lastIndexOf('\\'));
+        String base = cut >= 0 ? original.substring(cut + 1) : original;
         String safe = base.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_").trim();
         if (safe.isBlank() || safe.equals(".") || safe.equals("..")) return "file";
         return safe.length() > 200 ? safe.substring(0, 200) : safe;
