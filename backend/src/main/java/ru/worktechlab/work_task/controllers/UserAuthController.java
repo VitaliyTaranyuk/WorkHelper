@@ -5,8 +5,10 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import ru.worktechlab.work_task.services.LoginRateLimiter;
 import ru.worktechlab.work_task.dto.auth.LoginRequestDTO;
 import ru.worktechlab.work_task.dto.auth.LoginResponseDTO;
 import ru.worktechlab.work_task.dto.auth.TokenRefreshRequestDTO;
@@ -22,13 +24,30 @@ public class UserAuthController {
 
     private final AuthService authService;
     private final UserService userService;
+    private final LoginRateLimiter loginRateLimiter;
 
+    /**
+     * T-302: проверка лимита стоит ДО обращения к сервису, а учёт неудачи —
+     * вокруг него. Причина в том, что ограничение обязано считать именно
+     * неудачи: успешный вход бюджет не расходует, иначе офис за одним
+     * NAT-адресом блокировал бы сам себя.
+     *
+     * Пароль здесь не логируется и в сообщение не попадает — наружу идёт только
+     * указание, когда повторить (**K-34**).
+     */
     @PostMapping("/login")
     @Operation(summary = "Войти в учетную запись")
     public LoginResponseDTO authenticateUser(
             @Parameter(description = "Данные для аутентификации")
-            @RequestBody LoginRequestDTO loginRequestDTO) throws NotFoundException {
-        return authService.authenticate(loginRequestDTO);
+            @RequestBody LoginRequestDTO loginRequestDTO,
+            HttpServletRequest request) throws NotFoundException {
+        loginRateLimiter.checkAllowed(request);
+        try {
+            return authService.authenticate(loginRequestDTO);
+        } catch (RuntimeException | NotFoundException e) {
+            loginRateLimiter.recordFailure(request);
+            throw e;
+        }
     }
 
     @PostMapping("/refresh")
