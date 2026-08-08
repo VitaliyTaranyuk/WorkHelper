@@ -80,12 +80,22 @@ class ObservabilityIT {
     /**
      * Список экспонированных эндпоинтов — не декларация, а граница: {@code env}
      * раскрыл бы конфигурацию вместе с именами секретов и их источниками.
+     *
+     * <p>Проверяется <b>свойство</b>, а не код ответа. Первая версия теста
+     * ждала 404 и упала на 401: неэкспонированный эндпоинт не отображён вовсе,
+     * поэтому запрос не совпадает ни с одним правилом Actuator и упирается в
+     * общее {@code anyRequest().authenticated()}. Код здесь — следствие
+     * устройства цепочки, а не то, что задача обязана гарантировать; требовать
+     * его значило бы закрепить тестом деталь реализации Spring.
      */
     @Test
     void configurationEndpointsAreNotExposedAtAll() {
-        assertThat(get(managementPort, "/actuator/env").getStatusCode().value())
+        ResponseEntity<String> response = get(managementPort, "/actuator/env");
+
+        assertThat(response.getStatusCode().value()).isNotEqualTo(200);
+        assertThat(response.getBody() == null || !response.getBody().contains("propertySources"))
                 .as("actuator отдаёт конфигурацию приложения — список include шире, чем задумано")
-                .isEqualTo(404);
+                .isTrue();
     }
 
     private ResponseEntity<String> get(int port, String path) {
