@@ -1,4 +1,8 @@
 spring:
+  application:
+    # T-301: имя попадает в структурированный лог полем service.name — без него
+    # строки из разных сервисов на одном хосте неразличимы после агрегации.
+    name: work-task
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
   liquibase:
@@ -113,5 +117,23 @@ app:
 server:
   port: ${PORT:8080}
 
-logging:
-  levelly: TRACE
+# T-301: наблюдаемость. Метрики отдаёт Spring Actuator, работоспособность —
+# по-прежнему /work-task/api/v1/health (HealthController), и это разделение
+# намеренное: второй ответ на тот же вопрос разошёлся бы с первым (K-40).
+management:
+  server:
+    # ОТДЕЛЬНЫЙ порт — эшелонированная защита, а не удобство. nginx на VDS
+    # проксирует только /work-task/ и /work-task/ws/ (infra/nginx-vds.conf), а
+    # docker публикует оба порта на 127.0.0.1 (docker-compose.vds.yml), поэтому
+    # из интернета путь /actuator недостижим дважды: его нет на публикуемом
+    # маршруте И его нет на том порту, куда nginx умеет ходить.
+    # Локально порт свободен; 0 = случайный (используют тесты).
+    port: ${MANAGEMENT_PORT:8081}
+  endpoints:
+    web:
+      exposure:
+        # ТОЛЬКО метрики. env, configprops, beans, heapdump, loggers и health
+        # не экспонируются: первые три раскрывают конфигурацию (включая имена
+        # секретов), heapdump — содержимое памяти, а health увёл бы проект ко
+        # второму источнику истины о работоспособности.
+        include: metrics

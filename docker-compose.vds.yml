@@ -10,9 +10,23 @@ services:
     env_file: .env.vds
     ports:
       - "127.0.0.1:8080:8080"
+      # T-301: порт метрик (Spring Actuator, /actuator/metrics). Публикуется
+      # ТОЛЬКО на loopback — из интернета он недостижим, читать его можно с
+      # самого сервера (владелец по SSH и шаг деплоя). nginx на него не смотрит
+      # ни одной локацией: публично проксируются только /work-task/ и
+      # /work-task/ws/ на 8080.
+      - "127.0.0.1:8081:8081"
     volumes:
       - /var/lib/workhelper/attachments:/var/lib/workhelper/attachments
     restart: unless-stopped
+    # T-301: единственный канал логов на VDS — `docker logs`, а драйвер
+    # json-file по умолчанию не ограничен ничем: лог рос бы до заполнения
+    # диска, и первым бы об этом узнала база. Потолок 30 МБ на контейнер.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     # TD-029: раньше здесь был `curl -s` (без -f) по POST-эндпоинту /auth/login.
     # GET на него отдаёт 405, а без -f curl успешен на ЛЮБОМ ответе, включая
     # 500 — контейнер объявлялся healthy, если Spring отвечал хоть чем-нибудь,

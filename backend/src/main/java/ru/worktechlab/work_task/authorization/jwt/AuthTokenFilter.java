@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,6 +14,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 import ru.worktechlab.work_task.config.CustomUserDetails;
+import ru.worktechlab.work_task.config.RequestLogFilter;
 import ru.worktechlab.work_task.utils.UserContext;
 
 import java.io.IOException;
@@ -48,6 +50,11 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
                 CustomUserDetails customUserDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(username);
                 userContext.setThreadLocal(customUserDetails.getGuid(), customUserDetails.getUsername(), customUserDetails.getAuthorities().toString());
+                // T-301: идентификатор (не email и не имя — ПДн в логе не нужны,
+                // K-36) попадает в каждую строку лога этого запроса. Ключ снимает
+                // RequestLogFilter: он внешний, и его finally отрабатывает даже
+                // когда сюда управление не дошло.
+                MDC.put(RequestLogFilter.MDC_USER_ID, customUserDetails.getGuid());
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(customUserDetails,

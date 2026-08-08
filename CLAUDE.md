@@ -213,7 +213,7 @@ Zustand, React Hook Form + Zod, Axios.
 | БД локально | `cp .env.example .env` и заполнить, затем `docker-compose up -d` — в `backend/enviroment/local` |
 | Локальный профиль backend | `cp application-local.yml.example application-local.yml` в `backend/src/main/resources`, значения те же, что в `.env` |
 | Тесты (backend) | `./gradlew test` — БД не требуется, тег `integration` исключён |
-| Интеграционные тесты (backend) | `./gradlew integrationTest` — **нужен живой PostgreSQL и переменные** `IT_DB_URL`/`IT_DB_USER`/`IT_DB_PASSWORD` (дефолтов нет, без них задача останавливается с объяснением) |
+| Интеграционные тесты (backend) | `./gradlew integrationTest` — **нужен живой PostgreSQL и переменные** `IT_DB_URL`/`IT_DB_USER`/`IT_DB_PASSWORD` (дефолтов нет, без них задача останавливается с объяснением). БД поднимается одной командой: `docker run -d --name wt-it-pg -e POSTGRES_DB=worktask_ci -e POSTGRES_USER=worktask_ci -e POSTGRES_HOST_AUTH_METHOD=trust -p 5433:5432 postgres:16` — прогон локально занимает ~15 с и экономит круг через CI (проверено T-301) |
 | Статический анализ (backend) | `./gradlew spotbugsMain` (входит в `build`; отчёт — `build/reports/spotbugs/main.html`) |
 | Сборка (backend) | `./gradlew build` |
 | Запуск (backend) | `./gradlew bootRun` |

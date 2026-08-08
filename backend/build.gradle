@@ -23,6 +23,16 @@ ext {
     // обход: BOM продолжает управлять остальными зависимостями.
     // Убрать, когда Boot начнёт приносить >= 10.1.55 сам.
     set('tomcat.version', '10.1.55')
+
+    // T-301: Spring Boot 3.5.3 приносит micrometer-core 1.15.1, в котором две
+    // HIGH-уязвимости отказа в обслуживании — CVE-2026-40983 (gRPC) и
+    // CVE-2026-40984 (HTTP-запросы). Найдены гейтом Trivy на первом же прогоне
+    // PR с actuator: подключение метрик само по себе завело бы их на прод.
+    // Исправление есть и опубликовано — проверено запросом к Maven Central,
+    // а не по отчёту сканера (урок TD-044: «исправленной версии» может не
+    // существовать). Патч в пределах 1.15.x, поведение не меняется.
+    // Убрать, когда Boot начнёт приносить >= 1.15.12 сам.
+    set('micrometer.version', '1.15.12')
 }
 
 version = appVersion
@@ -60,6 +70,13 @@ configurations {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    // T-301: метрики процесса (JVM, GC, пул соединений, http.server.requests).
+    // Подключён РАДИ МЕТРИК: работоспособность остаётся за существующим
+    // /work-task/api/v1/health (гейт деплоя и healthcheck контейнера), и
+    // actuator-эндпоинт health намеренно НЕ экспонируется — второй источник
+    // того же ответа неизбежно разошёлся бы с первым (K-40).
+    // Слушает отдельный порт, не проксируемый nginx (см. application.yml).
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.security:spring-security-crypto'

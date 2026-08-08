@@ -60,8 +60,25 @@ public class GlobalExceptionHandler {
                 .body(ex.getMessage());
     }
 
+    /**
+     * Общий обработчик непредвиденных ошибок: сюда попадают NPE, ошибки
+     * Hibernate и всё, для чего нет своего обработчика выше.
+     *
+     * <p>T-301: до этой задачи метод был <b>единственным</b> в классе, который
+     * не писал в лог ни строки. Ответ 500 уходил пользователю, а на сервере не
+     * оставалось ничего: Spring считает исключение обработанным и сам его не
+     * логирует. То есть самый интересный класс отказов был полностью невидим
+     * (W-06) — «пятисоток на проде нет» означало лишь, что их нечем увидеть.
+     *
+     * <p>Пишется стектрейс целиком: без него у необъявленных исключений
+     * (например NPE) вообще нет сообщения, и запись выглядела бы как
+     * {@code Необработанное исключение: null}. Строка несёт {@code rid} и
+     * {@code uid} из MDC (см. {@code RequestLogFilter}), поэтому от неё есть
+     * дорога к остальным записям того же запроса.
+     */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
+        log.error("Необработанное исключение: {}", ex.getClass().getName(), ex);
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

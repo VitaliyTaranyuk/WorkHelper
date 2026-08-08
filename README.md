@@ -96,6 +96,24 @@ cp backend/src/main/resources/application-local.yml.example backend/src/main/res
 Секреты (`DEEPSEEK_API_KEY`, доступ к БД и т.п.) живут только в `.env.vds` на
 сервере и в репозиторий не попадают.
 
+## Наблюдаемость (T-301)
+
+Всё ниже доступно **только с сервера**: порт метрик публикуется на `127.0.0.1`,
+nginx его не проксирует.
+
+| Вопрос | Команда на VDS |
+|---|---|
+| Работает ли приложение | `curl -s https://wowoffcata.hlab.kz/work-task/api/v1/health` (публично) |
+| Сколько памяти занято | `curl -s 127.0.0.1:8081/actuator/metrics/jvm.memory.used` |
+| Какие запросы и с каким исходом | `curl -s 127.0.0.1:8081/actuator/metrics/http.server.requests` |
+| Что было в конкретном запросе | `docker logs workhelper-backend-1 \| jq 'select(.rid=="abc123")'` |
+| Все ошибки за сегодня | `docker logs workhelper-backend-1 \| jq 'select(.log.level=="ERROR")'` |
+
+Лог боевого профиля — JSON в формате ECS, одна строка на событие; каждая строка
+запроса несёт `rid` (он же уходит клиенту заголовком `X-Request-Id`), `uid`,
+метод, путь, статус и длительность. Ошибки клиента собирает GlitchTip — это
+отдельный контур (ADR-016).
+
 
 ## Структура модулей (Backend)
 

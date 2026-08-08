@@ -3,6 +3,7 @@ package ru.worktechlab.work_task.config;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -64,6 +65,28 @@ public class SecurityConfig {
     // деплоя снаружи — JWT там взять неоткуда. Ответ содержит только UP/DOWN.
     private static final String[] HEALTH_URLS = {HealthController.PATH};
 
+    /*
+     * T-301: метрики Actuator живут на ОТДЕЛЬНОМ порту (management.server.port),
+     * и цепочка ниже действует на нём тоже — Spring Boot переносит бин
+     * springSecurityFilterChain из родительского контекста в дочерний
+     * (ServletManagementChildContextConfiguration$ServletManagementContextSecurityConfiguration).
+     * Без явного разрешения служебный порт отвечал 401 на всё, то есть метрики
+     * нельзя было прочитать ни владельцу по SSH, ни шагу деплоя — механизм без
+     * потребителя (K-32). Найдено первым же прогоном ObservabilityIT в CI.
+     *
+     * Разрешение НЕ делает метрики публичными, и защита не в этой строке:
+     *   - порт публикуется только на 127.0.0.1 (docker-compose.vds.yml);
+     *   - nginx проксирует наружу только /work-task/ и /work-task/ws/ на 8080;
+     *   - экспонирован единственный эндпоинт metrics (application.yml), поэтому
+     *     env, configprops, beans, heapdump и threaddump не существуют вовсе.
+     * На публичном порту 8080 эндпоинтов Actuator нет: при отдельном
+     * management-порту они отображаются только в дочернем контексте.
+     *
+     * EndpointRequest, а не строка "/actuator/**": матчер знает фактические пути
+     * эндпоинтов, поэтому смена base-path не превратит правило в мёртвое молча.
+     */
+
+
     @Value("${spring.cors.allowed.origins}")
     private String allowedOrigins;
 
@@ -99,6 +122,7 @@ public class SecurityConfig {
                         .requestMatchers(MONITORING_URLS).permitAll()
                         .requestMatchers(ERROR_URLS).permitAll()
                         .requestMatchers(HEALTH_URLS).permitAll()
+                        .requestMatchers(EndpointRequest.toAnyEndpoint()).permitAll()
                         .anyRequest().authenticated());
         http.sessionManagement(
                 session ->
