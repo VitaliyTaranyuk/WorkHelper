@@ -42,6 +42,24 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
     }
 
+    /**
+     * T-302. Обработчик обязателен, а не «желателен»: {@link TooManyRequestsException}
+     * наследует {@link RuntimeException}, и без него сработал бы обработчик ниже —
+     * ограничение отвечало бы <b>500</b> вместо 429, то есть выглядело бы поломкой
+     * сервера, а не защитой. Spring выбирает наиболее специфичный обработчик,
+     * поэтому этот перекрывает общий.
+     *
+     * {@code Retry-After} — часть ответа по смыслу: без него клиент не знает,
+     * когда повторять (**K-34**).
+     */
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<String> handleTooManyRequests(TooManyRequestsException ex) {
+        log.warn("Запрос отклонён ограничением частоты: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(ex.getRetryAfterSeconds()))
+                .body(ex.getMessage());
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);

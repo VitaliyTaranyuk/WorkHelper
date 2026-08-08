@@ -33,6 +33,14 @@ spring:
       max-request-size: 30MB
 
 app:
+  auth:
+    # T-302: защита входа от перебора пароля. Считаются только НЕУДАЧНЫЕ
+    # попытки с одного адреса за минуту — успешный вход бюджет не расходует,
+    # иначе офис за одним NAT блокировал бы сам себя.
+    # 10 в минуту щедро для человека, забывшего пароль, и тесно для перебора.
+    # 0 или меньше выключает ограничение (нужно, если проект окажется за
+    # балансировщиком, который не проставляет X-Forwarded-For).
+    login-failures-per-minute: ${LOGIN_FAILURES_PER_MINUTE:10}
   attachments:
     storage-dir: ${ATTACHMENTS_DIR:/var/lib/workhelper/attachments}
   monitoring:
