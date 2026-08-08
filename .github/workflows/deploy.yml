@@ -167,6 +167,46 @@ jobs:
             exit 1
           fi
 
+      # T-301: наблюдаемость проверяется там же, где живёт, — на сервере.
+      # Два утверждения, каждое из которых уже отказывало молча:
+      #   1) профиль vds однажды остался БЕЗ единого appender'а, и логи прода не
+      #      попадали никуда (найдено при разборе ТП-212) — грепом по полю
+      #      ECS-формата это становится гейтом, а не надеждой;
+      #   2) метрики слушают отдельный порт: если он не поднялся, об этом надо
+      #      узнать при деплое, а не когда понадобится разбирать инцидент.
+      # Проверка идёт по loopback: наружу порт не опубликован — это и есть
+      # защита, поэтому curl из раннера здесь был бы неверной пробой.
+      - name: Проверить наблюдаемость backend
+        if: ${{ inputs.target == 'both' || inputs.target == 'backend' }}
+        run: |
+          $SSH "$SERVER_USER@$SERVER_IP" '
+            set -e
+            curl -fsS http://127.0.0.1:8081/actuator/metrics/jvm.memory.used > /dev/null \
+              || { echo "Метрики не отвечают на служебном порту 8081"; exit 1; }
+            echo "метрики отвечают: /actuator/metrics"
+            if docker logs --tail 200 workhelper-backend-1 2>&1 | grep -q "@timestamp"; then
+              echo "лог backend структурирован (ECS)"
+            else
+              echo "Лог backend не структурирован: профиль vds остался без JSON-appender"
+              exit 1
+            fi
+          '
+
+      # Обратная сторона того же решения: метрики не должны быть видны из
+      # интернета. nginx отдаёт на неизвестный путь index.html приложения, то
+      # есть по коду ответа отличить нельзя — сверяем содержимое.
+      - name: Убедиться, что метрики не опубликованы наружу
+        if: ${{ inputs.target == 'both' || inputs.target == 'backend' }}
+        run: |
+          body=$(curl -s "https://${{ vars.PUBLIC_URL || 'wowoffcata.hlab.kz' }}/actuator/metrics" || true)
+          case "$body" in
+            *'"names"'*)
+              echo "С публичного адреса отдаётся список метрик — служебный порт проксирован наружу"
+              exit 1 ;;
+            *)
+              echo "снаружи /actuator/metrics метрик не отдаёт" ;;
+          esac
+
       - name: Set up Node
         if: ${{ inputs.target == 'both' || inputs.target == 'frontend' }}
         uses: actions/setup-node@v7

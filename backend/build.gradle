@@ -60,6 +60,13 @@ configurations {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    // T-301: метрики процесса (JVM, GC, пул соединений, http.server.requests).
+    // Подключён РАДИ МЕТРИК: работоспособность остаётся за существующим
+    // /work-task/api/v1/health (гейт деплоя и healthcheck контейнера), и
+    // actuator-эндпоинт health намеренно НЕ экспонируется — второй источник
+    // того же ответа неизбежно разошёлся бы с первым (K-40).
+    // Слушает отдельный порт, не проксируемый nginx (см. application.yml).
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.security:spring-security-crypto'

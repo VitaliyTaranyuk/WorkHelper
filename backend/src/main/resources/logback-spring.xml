@@ -35,6 +35,31 @@
         </encoder>
     </appender>
 
+    <!--
+      T-301: структурированный лог для боевого окружения. Формат ECS
+      (Elastic Common Schema) — встроенный в Spring Boot 3.4+, отдельная
+      зависимость не нужна. Строка выглядит так (имена полей вложенные, не
+      точечные — проверено StructuredLogFormatTest):
+        {"@timestamp":"…","log":{"level":"INFO","logger":"…"},
+         "service":{"name":"work-task"},"message":"…",
+         "rid":"abc123","uid":"…","method":"POST","path":"…",
+         "status":"429","ms":"12","ecs":{"version":"8.11"}}
+      Поля MDC (rid, uid, method, path, status, ms) идут отдельными членами
+      верхнего уровня — их кладёт RequestLogFilter.
+
+      Зачем: единственный канал логов на VDS — `docker logs`, и текстовая
+      строка разбирается только глазами. С JSON вопрос «что было в запросе
+      abc123» превращается в
+          docker logs workhelper-backend-1 | jq 'select(.rid=="abc123")'
+      а «сколько было пятисоток за час» — в фильтр по полю status.
+    -->
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+            <format>ecs</format>
+            <charset>utf-8</charset>
+        </encoder>
+    </appender>
+
     <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
         <queueSize>512</queueSize>
         <appender-ref ref="FILE"/>
@@ -64,10 +89,22 @@
       разборе фолбэков DeepSeek, ТП-212). Пишем и в файл, и в stdout: в
       контейнере stdout — стандартный канал (`docker logs`).
     -->
+    <!--
+      T-301: на боевом окружении остаётся ОДИН канал — stdout в формате ECS.
+
+      Файловый appender отсюда убран намеренно: том под ./logs не смонтирован
+      (docker-compose.vds.yml монтирует только вложения), поэтому wt.log жил
+      внутри записываемого слоя контейнера — терялся при каждой пересборке,
+      никем не читался и при этом резервировал до 2 ГБ (totalSizeCap) на диске
+      VDS. Лог, который нельзя прочитать, но который занимает место, — хуже
+      отсутствующего.
+
+      Текстовый STDOUT заменён на JSON: разбирать `docker logs` глазами и так
+      не выходило, а поля MDC в тексте теряются между пробелами.
+    -->
     <springProfile name="vds">
         <root level="INFO">
-            <appender-ref ref="ASYNC"/>
-            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="JSON"/>
         </root>
     </springProfile>
 

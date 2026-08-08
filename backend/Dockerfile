@@ -50,5 +50,9 @@ ENV SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
 # Открываем порт 8080
 EXPOSE 8080
 
+# T-301: порт метрик (Spring Actuator). EXPOSE — только документация образа:
+# наружу порт публикует docker-compose.vds.yml, и делает это на 127.0.0.1.
+EXPOSE 8081
+
 # Запускаем приложение
 ENTRYPOINT ["java", "-jar", "app.jar"]
