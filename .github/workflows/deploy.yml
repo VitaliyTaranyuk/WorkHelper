@@ -54,18 +54,29 @@ jobs:
 
       # Способ подключения выбирается один раз и дальше используется всеми
       # шагами через $SSH/$SCP — иначе ветвление размазалось бы по каждому.
+      #
+      # KEEPALIVE обязателен, а не гигиена: пересборка backend идёт НА СЕРВЕРЕ
+      # (1 CPU), и `gradle bootJar` держит паузу в несколько минут без единой
+      # строки вывода. Соединение при этом умирает по таймауту промежуточного
+      # оборудования, а деплой падает с `client_loop: send disconnect: Broken
+      # pipe` — сборка при этом шла нормально (прогон #31248323115, T-301,
+      # первый деплой после подключения actuator: обновились зависимости, и
+      # слой сборки перестал попадать в кэш). Симптом неотличим от настоящей
+      # поломки, поэтому лечится причина: пакеты раз в 30 с, до 20 подряд без
+      # ответа — то есть до 10 минут тишины допустимо.
       - name: Настроить доступ к серверу
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null
+          KEEPALIVE="-o ServerAliveInterval=30 -o ServerAliveCountMax=20"
           if [ -n "$SSH_PRIVATE_KEY" ]; then
             printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
             chmod 600 ~/.ssh/id_deploy
             echo "Доступ по ключу"
-            echo "SSH=ssh -i $HOME/.ssh/id_deploy -o BatchMode=yes" >> "$GITHUB_ENV"
-            echo "SCP=scp -i $HOME/.ssh/id_deploy -o BatchMode=yes" >> "$GITHUB_ENV"
+            echo "SSH=ssh -i $HOME/.ssh/id_deploy -o BatchMode=yes $KEEPALIVE" >> "$GITHUB_ENV"
+            echo "SCP=scp -i $HOME/.ssh/id_deploy -o BatchMode=yes $KEEPALIVE" >> "$GITHUB_ENV"
           else
             sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
             echo "Доступ по паролю"
@@ -87,8 +98,8 @@ jobs:
             # с одним `password` отклоняется — хотя тот же пароль руками
             # проходит. Симптом неотличим от неверного пароля.
             AUTH="-o PubkeyAuthentication=no -o PreferredAuthentications=keyboard-interactive,password -o NumberOfPasswordPrompts=1"
-            echo "SSH=$HOME/.ssh/wrap ssh $AUTH" >> "$GITHUB_ENV"
-            echo "SCP=$HOME/.ssh/wrap scp $AUTH" >> "$GITHUB_ENV"
+            echo "SSH=$HOME/.ssh/wrap ssh $AUTH $KEEPALIVE" >> "$GITHUB_ENV"
+            echo "SCP=$HOME/.ssh/wrap scp $AUTH $KEEPALIVE" >> "$GITHUB_ENV"
           fi
 
       # Бэкенд собирается ВНУТРИ образа (многоэтапный backend/Dockerfile,
