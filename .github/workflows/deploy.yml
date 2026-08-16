@@ -13,7 +13,10 @@ on:
         type: choice
         required: true
         default: both
-        options: [both, backend, frontend]
+        # landing — статический одностраничник Voice на /voice/. Отдельная цель,
+        # а не часть both: выкладка WorkHelper не должна зависеть от страницы
+        # соседнего проекта, а её поломка — ронять релиз приложения.
+        options: [both, backend, frontend, landing]
 
 concurrency:
   # Два одновременных деплоя на один сервер — гарантированный конфликт.
@@ -314,6 +317,18 @@ jobs:
           $SSH "$SERVER_USER@$SERVER_IP" \
             'cd ${{ vars.DEPLOY_DIR || '/opt/workhelper' }} \
              && bash infra/apply-nginx-cache.sh'
+
+      # Одностраничник Voice (config as code, тот же контракт, что у остальных
+      # apply-nginx-*). Файлы приезжают шагом «Обновить код на сервере» — он
+      # безусловный, поэтому отдельная передача по scp не нужна. Скрипт сам
+      # проверяет живой адрес и откатывается, если /voice/ не отвечает или
+      # основной сайт пострадал.
+      - name: Выложить одностраничник Voice
+        if: ${{ inputs.target == 'landing' }}
+        run: |
+          $SSH "$SERVER_USER@$SERVER_IP" \
+            'cd ${{ vars.DEPLOY_DIR || '/opt/workhelper' }} \
+             && bash infra/apply-nginx-voice-landing.sh'
 
       - name: Убрать ключ
         if: always()
